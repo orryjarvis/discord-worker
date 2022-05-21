@@ -1,3 +1,4 @@
 name = "discord-worker"
 main = "src/index.ts"
 compatibility_date = "2022-05-21"
+node_compat = true
