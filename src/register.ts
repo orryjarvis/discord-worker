@@ -1,4 +1,4 @@
-import { AWW_COMMAND, Command, INVITE_COMMAND } from "./commands";
+import { AWW_COMMAND, Command, INVITE_COMMAND } from "./commands.js";
 
 const token = process.env.DISCORD_TOKEN;
 const applicationId = process.env.DISCORD_APPLICATION_ID;
@@ -65,4 +65,4 @@ async function registerCommands(url: any) {
 }
 
 await registerGlobalCommands();
-  // await registerGuildCommands();
+// await registerGuildCommands();

@@ -1,4 +1,18 @@
-name = "discord-worker"
 main = "src/index.ts"
 compatibility_date = "2022-05-21"
 node_compat = true
+workers_dev = true
+
+[env.test]
+name = "discord-worker-test"
+node_compat = true
+
+[env.prod]
+name = "discord-worker"
+node_compat = true
+
+# [secrets]
+# DISCORD_TOKEN
+# DISCORD_PUBLIC_KEY
+# DISCORD_APPLICATION_ID
+# DISCORD_GUILD_ID

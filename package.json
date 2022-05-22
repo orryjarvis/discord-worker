@@ -9,7 +9,9 @@
     "fix": "eslint --fix . --ext .ts",
     "lint": "eslint . --ext .ts",
     "test": "ts-mocha -n loader=ts-node/esm test/**/*ts",
-    "publish": "wrangler publish"
+    "register": "node --loader ts-node/esm ./src/register.ts",
+    "publish:test": "wrangler publish --env test",
+    "publish:prod": "wrangler publish --env prod"
   },
   "dependencies": {
     "discord-interactions": "^3.2.0",
