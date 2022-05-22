@@ -13,8 +13,8 @@ import {
   InteractionType,
   verifyKey
 } from 'discord-interactions';
-import { AWW_COMMAND, INVITE_COMMAND } from './commands';
-import { getCuteUrl } from './reddit';
+import { AWW_COMMAND, INVITE_COMMAND } from './commands.js';
+import { getCuteUrl } from './reddit.js';
 
 class JsonResponse extends Response {
   constructor(body: any, init?: any) {
