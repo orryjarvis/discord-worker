@@ -8,8 +8,9 @@ export const AWW_COMMAND: Command = {
     description: 'Drop some cuteness on this channel.'
 }
 
-
 export const INVITE_COMMAND: Command = {
     name: 'invite',
     description: 'Get an invite link to add the bot to your server',
 };
+
+export const COMMANDS = [AWW_COMMAND, INVITE_COMMAND];

@@ -6,10 +6,11 @@
   "private": true,
   "scripts": {
     "start": "wrangler dev",
+    "tunnel": "cloudflared tunnel --url http://localhost:8787",
     "fix": "eslint --fix . --ext .ts",
     "lint": "eslint . --ext .ts",
-    "test": "ts-mocha -n loader=ts-node/esm test/**/*ts",
-    "register": "node --loader ts-node/esm ./src/register.ts",
+    "test": "c8 ts-mocha -n loader=ts-node/esm test/**/*ts",
+    "deploy_commands": "node --loader ts-node/esm ./scripts/deploy_commands.ts",
     "publish:test": "wrangler publish --env test",
     "publish:prod": "wrangler publish --env prod"
   },
