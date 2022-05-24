@@ -10,6 +10,7 @@
             "@cloudflare/workers-types",
             "node"
         ],
-        "noEmit": false
+        "noEmit": false,
+        "outDir": "../bin"
     }
 }
