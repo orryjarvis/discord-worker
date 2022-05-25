@@ -42,7 +42,7 @@ router.post('/', async (request: Request, env: Env) => {
     switch (interaction.data.name.toLowerCase()) {
       case REDDIT_COMMAND.name.toLowerCase(): {
         if (interaction.data.type === ApplicationCommandType.ChatInput) {
-          const option = interaction.data.options?.find(p => p.name === REDDIT_COMMAND.name);
+          const option = interaction.data.options?.find(p => p.name === 'subreddit');
           if (option?.type === ApplicationCommandOptionType.String) {
             const url = await getRedditMedia(option.value);
             return new JsonResponse({
