@@ -2,19 +2,15 @@ import { Router } from 'itty-router';
 import {
   InteractionResponseType,
   InteractionType,
-  APIInteraction
+  APIInteraction,
+  ApplicationCommandType,
+  ApplicationCommandOptionType
 } from 'discord-api-types/v10';
 import { COMMANDS, INVITE_COMMAND, REDDIT_COMMAND, REFRESH_COMMAND } from './commands.js';
 import { getRedditMedia } from './reddit.js';
 import { upsertCommands } from './api.js';
 import { verifySignature } from './crypto.js';
-
-interface Env {
-  DISCORD_APPLICATION_ID: string;
-  DISCORD_PUBLIC_KEY: string;
-  DISCORD_GUILD_ID: string | undefined;
-  DISCORD_TOKEN: string;
-}
+import { Env } from './env.js'
 
 class JsonResponse extends Response {
   constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
@@ -35,24 +31,28 @@ router.get('/', async (request: Request, env: Env) => {
 });
 
 router.post('/', async (request: Request, env: Env) => {
-  const message: APIInteraction = await request.json();
-  if (message.type === InteractionType.Ping) {
+  const interaction: APIInteraction = await request.json();
+  if (interaction.type === InteractionType.Ping) {
     return new JsonResponse({
       type: InteractionResponseType.Pong,
     });
   }
 
-  if (message.type === InteractionType.ApplicationCommand) {
-    switch (message.data.name.toLowerCase()) {
+  if (interaction.type === InteractionType.ApplicationCommand) {
+    switch (interaction.data.name.toLowerCase()) {
       case REDDIT_COMMAND.name.toLowerCase(): {
-        console.log(message.data);
-        const url = await getRedditMedia('dota2');
-        return new JsonResponse({
-          type: 4,
-          data: {
-            content: url,
-          },
-        });
+        if (interaction.data.type === ApplicationCommandType.ChatInput) {
+          const option = interaction.data.options?.find(p => p.name === REDDIT_COMMAND.name);
+          if (option?.type === ApplicationCommandOptionType.String) {
+            const url = await getRedditMedia(option.value);
+            return new JsonResponse({
+              type: 4,
+              data: {
+                content: url,
+              },
+            });
+          }
+        }
       }
       case INVITE_COMMAND.name.toLowerCase(): {
         const applicationId = env.DISCORD_APPLICATION_ID;
