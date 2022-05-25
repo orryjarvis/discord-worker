@@ -1,10 +1,10 @@
-import { Command } from "./commands.js";
+import { ApplicationCommandStub } from "./commands.js";
 
 function getDiscordCommandUrl(applicationId: string, guildId?: string, commandId?: string): string {
     return `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ""}commands${commandId ? `/${commandId}` : ""}`
 }
 
-export async function upsertCommands(applicationId: string, token: string, commands: Command[], guildId?: string): Promise<Response> {
+export async function upsertCommands(applicationId: string, token: string, commands: ApplicationCommandStub[], guildId?: string): Promise<Response> {
     const url = getDiscordCommandUrl(applicationId, guildId);
     const response = await fetch(url, {
         headers: {
