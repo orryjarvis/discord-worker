@@ -1,10 +1,11 @@
 import { Router } from 'itty-router';
 import {
   InteractionResponseType,
-  InteractionType
+  InteractionType,
+  APIInteraction
 } from 'discord-api-types/v10';
-import { AWW_COMMAND, COMMANDS, INVITE_COMMAND, REFRESH_COMMAND } from './commands.js';
-import { getCuteUrl } from './reddit.js';
+import { COMMANDS, INVITE_COMMAND, REDDIT_COMMAND, REFRESH_COMMAND } from './commands.js';
+import { getRedditMedia } from './reddit.js';
 import { upsertCommands } from './api.js';
 import { verifySignature } from './crypto.js';
 
@@ -33,25 +34,23 @@ router.get('/', async (request: Request, env: Env) => {
   return new Response(`👋 ${env.DISCORD_APPLICATION_ID}`);
 });
 
-router.post('/', async (request: Request, env) => {
-  const message = await request.json<any>();
+router.post('/', async (request: Request, env: Env) => {
+  const message: APIInteraction = await request.json();
   if (message.type === InteractionType.Ping) {
-    console.log('Handling Ping request');
     return new JsonResponse({
       type: InteractionResponseType.Pong,
     });
   }
 
   if (message.type === InteractionType.ApplicationCommand) {
-    // Most user commands will come as `ApplicationCommand`.
     switch (message.data.name.toLowerCase()) {
-      case AWW_COMMAND.name.toLowerCase(): {
-        console.log('handling cute request');
-        const cuteUrl = await getCuteUrl();
+      case REDDIT_COMMAND.name.toLowerCase(): {
+        console.log(message.data);
+        const url = await getRedditMedia('dota2');
         return new JsonResponse({
           type: 4,
           data: {
-            content: cuteUrl,
+            content: url,
           },
         });
       }
