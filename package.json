@@ -6,7 +6,8 @@
   "private": true,
   "scripts": {
     "start": "wrangler dev --env dev",
-    "tunnel": "ngrok http 8787",
+    "ngrok": "ngrok http 8787",
+    "cloudflared": "cloudflared tunnel --url http://localhost:8787",
     "fix": "eslint --fix . --ext .ts",
     "lint": "eslint . --ext .ts",
     "test": "c8 ts-mocha -n loader=ts-node/esm test/**/*ts",
