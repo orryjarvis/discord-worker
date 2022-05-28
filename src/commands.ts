@@ -16,6 +16,46 @@ export const REDDIT_COMMAND: ApplicationCommandStub = {
     ]
 }
 
+export const REACT_COMMAND: ApplicationCommandStub = {
+    name: 'react',
+    description: 'React and track emotions',
+    type: ApplicationCommandType.ChatInput,
+    options: [
+        {
+            name: 'emote',
+            description: 'Choose an emote',
+            type: ApplicationCommandOptionType.String,
+            required: true,
+            choices: [
+                {
+                    name: 'sadge',
+                    value: 'sadge'
+                },
+                {
+                    name: 'pog',
+                    value: 'pog'
+                },
+                {
+                    name: 'weirdge',
+                    value: 'weridge'
+                },
+                {
+                    name: 'monak',
+                    value: 'monak'
+                },
+                {
+                    name: 'jebait',
+                    value: 'jebait'
+                },
+                {
+                    name: 'kappa',
+                    value: 'kappa'
+                }
+            ]
+        }
+    ]
+}
+
 export const INVITE_COMMAND: ApplicationCommandStub = {
     name: 'invite',
     description: 'Get an invite link to add the bot to your server',
@@ -28,4 +68,4 @@ export const REFRESH_COMMAND: ApplicationCommandStub = {
     type: ApplicationCommandType.ChatInput
 }
 
-export const COMMANDS = [REDDIT_COMMAND, INVITE_COMMAND, REFRESH_COMMAND];
+export const COMMANDS = [REDDIT_COMMAND, INVITE_COMMAND, REFRESH_COMMAND, REACT_COMMAND];
