@@ -3,7 +3,7 @@ import { Env } from "./env.js";
 type ReactionType = "sadge" | "pog" | "monak" | "weirdge" | "jebait" | "kappa";
 
 function ordinal_suffix_of(i: bigint) {
-    var j = i % 10n,
+    const j = i % 10n,
         k = i % 100n;
     if (j == 1n && k != 11n) {
         return i + "st";
