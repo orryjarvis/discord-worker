@@ -69,6 +69,7 @@ router.post('/', async (request: Request, env: Env) => {
             });
           }
         }
+        return new Response('Unknown Type', { status: 400 });
       }
       case INVITE_COMMAND.name.toLowerCase(): {
         const applicationId = env.DISCORD_APPLICATION_ID;
