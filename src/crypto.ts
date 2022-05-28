@@ -5,7 +5,7 @@ export const verifySignature = async (
     timestamp: string,
     body: string,
     clientPublicKey: string
-) => {
+): Promise<boolean> => {
     const message = new TextEncoder().encode(timestamp + body)
     const isVerified = await ed.verify(signature, message, clientPublicKey)
     return isVerified
