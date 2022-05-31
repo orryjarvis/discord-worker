@@ -37,7 +37,7 @@ export const REACT_COMMAND: ApplicationCommandStub = {
                 },
                 {
                     name: 'weirdge',
-                    value: 'weridge'
+                    value: 'weirdge'
                 },
                 {
                     name: 'monak',
