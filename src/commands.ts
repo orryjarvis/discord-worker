@@ -1,6 +1,6 @@
 import { APIApplicationCommand, ApplicationCommandOptionType, ApplicationCommandType } from 'discord-api-types/v10';
 
-export type ApplicationCommandStub = Omit<APIApplicationCommand, 'id' | 'version' | 'application_id'>;
+export type ApplicationCommandStub = Omit<APIApplicationCommand, 'id' | 'version' | 'application_id' | 'default_member_permissions'>;
 
 export const REDDIT_COMMAND: ApplicationCommandStub = {
     name: 'reddit',
