@@ -9,7 +9,7 @@ import { reactCommandHandler } from './react';
 import { inviteCommandHandler } from './invite';
 import { refreshCommandHandler } from './refresh';
 
-export type CommandHandler = (interaction: unknown, env: unknown, deps: unknown) => Promise<Response>;
+export type CommandHandler = (interaction: any, env: any, deps: any) => Promise<Response>;
 
 export const commandRegistry: Record<string, CommandHandler> = {
   reddit: redditCommandHandler,
