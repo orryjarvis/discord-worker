@@ -1,5 +1,5 @@
 import { COMMANDS } from "../src/commands.js";
-import { discordService } from "../src/services/discordService";
+import { discordService } from "../src/services/discordService.js";
 
 export const TOKEN = process.env.DISCORD_TOKEN;
 export const APPLICATION_ID = process.env.DISCORD_APPLICATION_ID;
