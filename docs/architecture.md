@@ -4,7 +4,7 @@
 graph TD
     subgraph Cloudflare
         Worker[Discord Worker]
-        CFServices[Cloudflare Services (KV, Durable Objects, etc.)]
+        CFServices[Cloudflare Services]
     end
     User((Discord User))
     DiscordAPI[Discord API]
@@ -25,4 +25,4 @@ graph TD
     APIProviders-->|Other|GitHub
 ```
 
-This diagram shows the Discord Worker bot hosted on Cloudflare, interacting with Discord users via the Discord API, and using various API/data providers for command functionality. Cloudflare services (such as KV and Durable Objects) are used by the bot's commands for state and data management.
+This diagram shows the Discord Worker bot hosted on Cloudflare, interacting with Discord users via the Discord API, and using various API/data providers for command functionality. Cloudflare Services (such as KV and Durable Objects) are used by the bot's commands for state and data management.

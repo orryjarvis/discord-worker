@@ -53,7 +53,8 @@ The repository is organized as follows (update this section if you change the la
   - `test/services/` — Tests for each service.
   - `test/e2e/` — End-to-end tests.
 - `scripts/` — Deployment and utility scripts.
-- `docs/` — Documentation (to be deprecated as instructions are migrated).
+- `README.md` — Entrypoint to documentation.
+- `docs/` — More detailed documentation and diagrams.
 - `wrangler.toml` — Cloudflare Worker deployment configuration.
 - `package.json` — Project dependencies and scripts.
 
