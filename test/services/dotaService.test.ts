@@ -44,7 +44,7 @@ describe('DotaService', () => {
     }) as any;
     const service = new DotaService(mockKV as any);
     const counters = await service.getHeroCounters('Phantom Lancer');
-    expect(counters).toEqual(['Axe', 'Lion']);
+    expect(counters).toEqual(['Lion', 'Axe']);
   });
 
   it('caches counters in KV', async () => {

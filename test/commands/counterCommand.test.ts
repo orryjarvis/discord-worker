@@ -38,7 +38,7 @@ describe('counterCommand', () => {
     const env = { kv: mockKV };
     const res = await counterCommand(interaction, env, {});
     const json = await res.json();
-    expect(json.data.content).toMatch(/Top counters for \*\*Phantom Lancer\*\*: `Axe`, `Lion`/i);
+    expect(json.data.content).toMatch(/Top counters for \*\*Phantom Lancer\*\*: `Lion`, `Axe`/i);
   });
 
   it('handles missing hero name', async () => {
