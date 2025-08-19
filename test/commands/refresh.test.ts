@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { refreshCommandHandler } from '../../src/commands/refresh';
 
-const upsertCommands = vi.fn(async () => {});
+const upsertCommands = vi.fn(async () => Promise.resolve());
 const mockDeps = {
   discordService: {
     upsertCommands,

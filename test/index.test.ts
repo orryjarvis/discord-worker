@@ -16,7 +16,7 @@ vi.mock('../src/reddit', () => ({
   getRedditMedia: vi.fn(async (subreddit: string) => `https://reddit.com/r/${subreddit}`)
 }));
 vi.mock('../src/api', () => ({
-  upsertCommands: vi.fn(async () => {})
+  upsertCommands: vi.fn(async () => Promise.resolve())
 }));
 
 const env: any = {
@@ -26,7 +26,7 @@ const env: any = {
   DISCORD_GUILD_ID: 'guild-id',
   KV: {
     get: async () => '0',
-    put: async () => Promise.resolve(), // resolves the lint error
+    put: async () => Promise.resolve(),
   },
 };
 
