@@ -45,6 +45,16 @@ function makeRequest(method: string, body: any, headers: Record<string, string> 
 describe('Discord Worker Bot', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch = vi.fn(async () => ({
+      json: async () => ({
+        data: {
+          children: [
+            { is_gallery: false, data: { url: 'https://reddit.com/r/funny' } },
+            { is_gallery: false, data: { url: 'https://reddit.com/r/funny2' } },
+          ]
+        }
+      })
+    })) as any;
   });
 
   it('responds to Ping interaction', async () => {
