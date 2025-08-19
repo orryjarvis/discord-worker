@@ -68,4 +68,18 @@ export const REFRESH_COMMAND: ApplicationCommandStub = {
     type: ApplicationCommandType.ChatInput
 }
 
-export const COMMANDS = [REDDIT_COMMAND, INVITE_COMMAND, REFRESH_COMMAND, REACT_COMMAND];
+export const COUNTER_COMMAND: ApplicationCommandStub = {
+    name: 'counter',
+    description: 'Get hero counters for Dota 2. Example: /counter phantom lancer',
+    type: ApplicationCommandType.ChatInput,
+    options: [
+        {
+            name: 'hero',
+            description: 'The Dota 2 hero to counter',
+            type: ApplicationCommandOptionType.String,
+            required: true
+        }
+    ]
+};
+
+export const COMMANDS = [REDDIT_COMMAND, INVITE_COMMAND, REFRESH_COMMAND, REACT_COMMAND, COUNTER_COMMAND];

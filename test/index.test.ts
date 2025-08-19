@@ -165,4 +165,40 @@ describe('Discord Worker Bot', () => {
     const res = await handler.fetch(req, env);
     expect(res.status).toBe(404);
   });
+
+  it('handles Counter command and invokes DotaService', async () => {
+    // Mock fetch for OpenDota API
+    global.fetch = vi.fn(async (url: string) => {
+      if (url.includes('/matchups')) {
+        return {
+          json: async () => [
+            { hero_id: 2, games: 100, wins: 60 }, // Axe
+            { hero_id: 3, games: 100, wins: 55 }, // Lion
+          ],
+        };
+      }
+      // For both hero lookup and counter name mapping
+      return {
+        json: async () => [
+          { id: 1, localized_name: 'Phantom Lancer' },
+          { id: 2, localized_name: 'Axe' },
+          { id: 3, localized_name: 'Lion' },
+        ],
+      };
+    }) as any;
+
+    const interaction = {
+      type: InteractionType.ApplicationCommand,
+      data: {
+        name: 'counter',
+        type: ApplicationCommandType.ChatInput,
+        options: [{ name: 'hero', type: ApplicationCommandOptionType.String, value: 'Phantom Lancer' }],
+      },
+    };
+    const req = makeRequest('POST', interaction);
+    const res = await handler.fetch(req, env);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.content).toMatch(/Top counters for \*\*Phantom Lancer\*\*: `Axe`, `Lion`/i);
+  });
 });
