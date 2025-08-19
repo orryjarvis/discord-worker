@@ -125,3 +125,5 @@ export default {
     return router.handle(request, env);
   },
 };
+
+export { createCommandHandlers };
