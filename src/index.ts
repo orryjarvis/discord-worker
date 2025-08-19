@@ -31,6 +31,61 @@ router.get('/', async (request: Request, env: Env) => {
   return new Response(`👋 ${env.DISCORD_APPLICATION_ID}`);
 });
 
+function createCommandHandlers(deps: {
+  getRedditMedia: typeof getRedditMedia,
+  react: typeof react,
+  upsertCommands: typeof upsertCommands,
+}) {
+  return {
+    [REDDIT_COMMAND.name.toLowerCase()]: async (interaction, env) => {
+      if (interaction.data.type === ApplicationCommandType.ChatInput) {
+        const option = interaction.data.options?.find(p => p.name === 'subreddit');
+        if (option?.type === ApplicationCommandOptionType.String) {
+          const url = await deps.getRedditMedia(option.value);
+          return new JsonResponse({
+            type: 4,
+            data: { content: url },
+          });
+        }
+      }
+      return new Response('Unknown Type', { status: 400 });
+    },
+    [REACT_COMMAND.name.toLowerCase()]: async (interaction, env) => {
+      if (interaction.data.type == ApplicationCommandType.ChatInput) {
+        const option = interaction.data.options?.find(p => p.name === 'emote');
+        if (option?.type === ApplicationCommandOptionType.String) {
+          const val = await deps.react(option.value, env);
+          return new JsonResponse({
+            type: 4,
+            data: { content: `Reacted ${option.value} for the ${val} time` },
+          });
+        }
+      }
+      return new Response('Unknown Type', { status: 400 });
+    },
+    [INVITE_COMMAND.name.toLowerCase()]: async (interaction, env) => {
+      const applicationId = env.DISCORD_APPLICATION_ID;
+      const INVITE_URL = `https://discord.com/oauth2/authorize?client_id=${applicationId}&scope=applications.commands`;
+      return new JsonResponse({
+        type: 4,
+        data: { content: INVITE_URL, flags: 64 },
+      });
+    },
+    [REFRESH_COMMAND.name.toLowerCase()]: async (interaction, env) => {
+      const applicationId = env.DISCORD_APPLICATION_ID;
+      const token = env.DISCORD_TOKEN;
+      const guildId = env.DISCORD_GUILD_ID;
+      await deps.upsertCommands(applicationId, token, COMMANDS, guildId);
+      return new JsonResponse({
+        type: 4,
+        data: { content: `${guildId ? 'Server' : 'Global'} commands refreshed` },
+      });
+    },
+  };
+}
+
+const commandHandlers = createCommandHandlers({ getRedditMedia, react, upsertCommands });
+
 router.post('/', async (request: Request, env: Env) => {
   const interaction: APIInteraction = await request.json();
   if (interaction.type === InteractionType.Ping) {
@@ -40,63 +95,13 @@ router.post('/', async (request: Request, env: Env) => {
   }
 
   if (interaction.type === InteractionType.ApplicationCommand) {
-    switch (interaction.data.name.toLowerCase()) {
-      case REDDIT_COMMAND.name.toLowerCase(): {
-        if (interaction.data.type === ApplicationCommandType.ChatInput) {
-          const option = interaction.data.options?.find(p => p.name === 'subreddit');
-          if (option?.type === ApplicationCommandOptionType.String) {
-            const url = await getRedditMedia(option.value);
-            return new JsonResponse({
-              type: 4,
-              data: {
-                content: url,
-              },
-            });
-          }
-        }
-        return new Response('Unknown Type', { status: 400 });
-      }
-      case REACT_COMMAND.name.toLowerCase(): {
-        if (interaction.data.type == ApplicationCommandType.ChatInput) {
-          const option = interaction.data.options?.find(p => p.name === 'emote');
-          if (option?.type === ApplicationCommandOptionType.String) {
-            const val = await react(option.value, env);
-            return new JsonResponse({
-              type: 4,
-              data: {
-                content: `Reacted ${option.value} for the ${val} time`,
-              }
-            });
-          }
-        }
-        return new Response('Unknown Type', { status: 400 });
-      }
-      case INVITE_COMMAND.name.toLowerCase(): {
-        const applicationId = env.DISCORD_APPLICATION_ID;
-        const INVITE_URL = `https://discord.com/oauth2/authorize?client_id=${applicationId}&scope=applications.commands`;
-        return new JsonResponse({
-          type: 4,
-          data: {
-            content: INVITE_URL,
-            flags: 64,
-          },
-        });
-      }
-      case REFRESH_COMMAND.name.toLowerCase(): {
-        const applicationId = env.DISCORD_APPLICATION_ID;
-        const token = env.DISCORD_TOKEN;
-        const guildId = env.DISCORD_GUILD_ID;
-        await upsertCommands(applicationId, token, COMMANDS, guildId);
-        return new JsonResponse({
-          type: 4,
-          data: {
-            content: `${guildId ? 'Server' : 'Global'} commands refreshed`
-          }
-        });
-      }
-      default:
-        console.error('Unknown Command');
-        return new Response('Unknown Type', { status: 400 });
+    const commandName = interaction.data.name.toLowerCase();
+    const handler = commandHandlers[commandName];
+    if (handler) {
+      return await handler(interaction, env);
+    } else {
+      console.error('Unknown Command');
+      return new Response('Unknown Type', { status: 400 });
     }
   }
 
