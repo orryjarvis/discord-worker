@@ -22,6 +22,7 @@ export async function deployCommands() {
     }
 }
 
-if (require.main === module) {
+// Remove CommonJS require.main check for ESM compatibility
+if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('deploy_commands.js')) {
     deployCommands();
 }
