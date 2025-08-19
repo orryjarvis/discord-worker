@@ -40,7 +40,7 @@ export class DotaService {
         const counters = matchups
             .map((m: any) => ({
                 hero_id: m.hero_id,
-                win_rate: m.wins / m.games,
+                win_rate: m.wins / m.games_played,
             }))
             .sort((a: any, b: any) => b.win_rate - a.win_rate)
             .slice(0, topN);

@@ -13,3 +13,11 @@ TODO:
     - pokemon stuff
     - more dota stuff
     - "meta" command to create new commands with an agent.. create a PR with new feature?
+- decouple discord request stuff from commands
+- dev container and code spaces 
+- Set up policies in GitHub to pave way for contributions
+- Npm start without cloudflare? Or add people to my org?
+- Pipeline for building services from API specs (like OpenDota spec)
+- MCP enablement for running tests, linting, generating code, etc
+- Fix the fucking lint warnings; refine lint rules to be reasonable but still helpful
+- IPSBDOT helper command(s)

@@ -29,8 +29,8 @@ describe('DotaService', () => {
       if (url.includes('/matchups')) {
         return {
           json: async () => [
-            { hero_id: 2, games: 100, wins: 60 }, // Axe
-            { hero_id: 3, games: 100, wins: 55 }, // Lion
+            { hero_id: 2, games_played: 100, wins: 60 }, // Axe
+            { hero_id: 3, games_played: 100, wins: 55 }, // Lion
           ],
         };
       }
@@ -54,7 +54,7 @@ describe('DotaService', () => {
       if (url.includes('/matchups')) {
         return {
           json: async () => [
-            { hero_id: 2, games: 100, wins: 60 },
+            { hero_id: 2, games_played: 100, wins: 60 },
           ],
         };
       }
