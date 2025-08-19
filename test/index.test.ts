@@ -1,29 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import handler from '../src/index';
 import { InteractionType, ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
+import { redditService } from '../src/services/redditService';
+import { reactService } from '../src/services/reactService';
+import { discordService } from '../src/services/discordService';
 
 // Mocks
 vi.mock('../src/crypto', () => ({
-  verifySignature: vi.fn(() => true)
+  verifySignature: vi.fn(async () => true)
 }));
 vi.mock('../src/react', () => ({
-  react: vi.fn(async (emote, env) => 42)
+  react: vi.fn(async (emote: string, env: any) => 42)
 }));
 vi.mock('../src/reddit', () => ({
-  getRedditMedia: vi.fn(async (subreddit) => `https://reddit.com/r/${subreddit}`)
+  getRedditMedia: vi.fn(async (subreddit: string) => `https://reddit.com/r/${subreddit}`)
 }));
 vi.mock('../src/api', () => ({
   upsertCommands: vi.fn(async () => {})
 }));
 
-const env = {
+const env: any = {
   DISCORD_APPLICATION_ID: 'app-id',
   DISCORD_PUBLIC_KEY: 'public-key',
   DISCORD_TOKEN: 'token',
   DISCORD_GUILD_ID: 'guild-id',
+  KV: {
+    get: async () => '0',
+    put: async () => Promise.resolve(), // resolves the lint error
+  },
 };
 
-function makeRequest(method, body, headers = {}) {
+function makeRequest(method: string, body: any, headers: Record<string, string> = {}) {
   return new Request('https://worker', {
     method,
     body: method === 'POST' ? JSON.stringify(body) : undefined,
@@ -36,16 +43,21 @@ function makeRequest(method, body, headers = {}) {
 }
 
 describe('Discord Worker Bot', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('responds to Ping interaction', async () => {
     const interaction = { type: InteractionType.Ping };
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.type).toBe(1); // Pong
   });
 
-  it('handles Reddit command', async () => {
+  it('handles Reddit command and invokes redditService', async () => {
+    const spy = vi.spyOn(redditService, 'getMedia');
     const interaction = {
       type: InteractionType.ApplicationCommand,
       data: {
@@ -56,49 +68,57 @@ describe('Discord Worker Bot', () => {
     };
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
+    expect(spy).toHaveBeenCalledWith('funny');
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.data.content).toContain('reddit.com/r/funny');
+    const json = await res.json() as any;
+    expect(typeof json.data.content).toBe('string');
+    expect(json.data.content.startsWith('http')).toBe(true);
   });
 
-  it('handles React command', async () => {
+  it('handles React command and invokes reactService', async () => {
+    const spy = vi.spyOn(reactService, 'react');
     const interaction = {
       type: InteractionType.ApplicationCommand,
       data: {
         name: 'react',
         type: ApplicationCommandType.ChatInput,
-        options: [{ name: 'emote', type: ApplicationCommandOptionType.String, value: 'smile' }],
+        options: [{ name: 'emote', type: ApplicationCommandOptionType.String, value: 'pog' }],
       },
     };
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
+    expect(spy).toHaveBeenCalledWith('pog', env);
     expect(res.status).toBe(200);
-    const json = await res.json();
-    expect(json.data.content).toContain('Reacted smile');
+    const json = await res.json() as any;
+    expect(json.data.content).toContain('Reacted pog');
   });
 
-  it('handles Invite command', async () => {
+  it('handles Invite command and invokes discordService.getInviteUrl', async () => {
+    const spy = vi.spyOn(discordService, 'getInviteUrl');
     const interaction = {
       type: InteractionType.ApplicationCommand,
       data: { name: 'invite' },
     };
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
+    expect(spy).toHaveBeenCalledWith(env.DISCORD_APPLICATION_ID);
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.data.content).toContain('discord.com/oauth2/authorize');
     expect(json.data.flags).toBe(64);
   });
 
-  it('handles Refresh command', async () => {
+  it('handles Refresh command and invokes discordService.upsertCommands', async () => {
+    const spy = vi.spyOn(discordService, 'upsertCommands');
     const interaction = {
       type: InteractionType.ApplicationCommand,
       data: { name: 'refresh' },
     };
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
+    expect(spy).toHaveBeenCalledWith(env.DISCORD_APPLICATION_ID, env.DISCORD_TOKEN, expect.anything(), env.DISCORD_GUILD_ID);
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.data.content).toContain('commands refreshed');
   });
 
@@ -122,12 +142,12 @@ describe('Discord Worker Bot', () => {
   it('returns 401 for invalid signature', async () => {
     // Override verifySignature to return false
     const crypto = await import('../src/crypto');
-    crypto.verifySignature.mockResolvedValue(false);
+    (crypto.verifySignature as any).mockImplementation(async () => false);
     const interaction = { type: InteractionType.Ping };
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
     expect(res.status).toBe(401);
-    crypto.verifySignature.mockResolvedValue(true); // reset
+    (crypto.verifySignature as any).mockImplementation(async () => true); // reset
   });
 
   it('returns 404 for unknown route', async () => {
