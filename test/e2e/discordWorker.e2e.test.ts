@@ -9,7 +9,7 @@ function mockSignature(body: string, timestamp: string) {
 }
 
 describe('Discord Worker E2E', () => {
-  const baseUrl = 'http://localhost:8787'; // Wrangler dev default
+  const baseUrl = process.env.BASE_URL || 'http://localhost:8787';
 
   it('responds to GET / with app ID', async () => {
     const res = await fetch(baseUrl + '/');
