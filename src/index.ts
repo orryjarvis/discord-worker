@@ -65,6 +65,10 @@ router.all('*', () => new Response('Not Found.', { status: 404 }));
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'POST') {
+      // Bypass signature verification for local/dev/testing
+      if (env.SKIP_SIGNATURE_CHECK === 'true') {
+        return router.handle(request, env);
+      }
       const signature = request.headers.get('x-signature-ed25519') ?? "";
       const timestamp = request.headers.get('x-signature-timestamp') ?? "";
       const body = await request.clone().text();

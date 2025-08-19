@@ -4,4 +4,5 @@ export interface Env {
     DISCORD_GUILD_ID: string | undefined;
     DISCORD_TOKEN: string;
     KV: KVNamespace;
+    SKIP_SIGNATURE_CHECK?: string;
 }
