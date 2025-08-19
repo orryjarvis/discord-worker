@@ -3,28 +3,13 @@
 ```mermaid
 graph TD
     Registry[Command Registry]
-    Counter[counter.ts]
-    Invite[invite.ts]
-    React[react.ts]
-    Reddit[reddit.ts]
-    Refresh[refresh.ts]
-    Services[Services]
-    DiscordService[discordService.ts]
-    RedditService[redditService.ts]
-    DotaService[dotaService.ts]
-    ReactService[reactService.ts]
+    Command[Command]
+    Service[Service]
+    APIProvider[API/Data Provider]
 
-    Registry-->|Registers|Counter
-    Registry-->|Registers|Invite
-    Registry-->|Registers|React
-    Registry-->|Registers|Reddit
-    Registry-->|Registers|Refresh
-    Counter-->|Uses|Services
-    Invite-->|Uses|DiscordService
-    React-->|Uses|ReactService
-    Reddit-->|Uses|RedditService
-    Refresh-->|Uses|Services
-    Services-->|Provide|APIs
+    Registry-->|Registers|Command
+    Command-->|Uses|Service
+    Service-->|Provides|APIProvider
 ```
 
-This diagram shows how commands are registered and reference services, supporting modularity and extensibility.
+This generalized diagram shows how commands are registered in the registry and reference services, which in turn may interact with external API/data providers. This supports modularity and extensibility without coupling documentation to specific implementations.
