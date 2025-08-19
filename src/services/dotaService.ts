@@ -42,7 +42,7 @@ export class DotaService {
                 hero_id: m.hero_id,
                 win_rate: m.wins / m.games_played,
             }))
-            .sort((a: any, b: any) => b.win_rate - a.win_rate)
+            .sort((a: any, b: any) => a.win_rate - b.win_rate)
             .slice(0, topN);
 
         // Fetch hero names for counter IDs
