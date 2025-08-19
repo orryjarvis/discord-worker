@@ -10,6 +10,8 @@ node_compat = true
 kv_namespaces = [
     { binding = "KV", id ="4000434490424208b40ea5817cf0f86e", preview_id = "4000434490424208b40ea5817cf0f86e" }
 ]
+[env.dev.vars]
+SKIP_SIGNATURE_CHECK = "true"
 
 [env.test]
 name = "discord-worker-test"
