@@ -1,0 +1,15 @@
+TODO:
+- smoke tests on test deployment; deploy to prod if passing
+- e2e tests in ci
+- update to new wrangler, etc
+- break out KV into its own service; separate the two uses of KV
+- fix dota counter command to recommend correct heroes
+- streamline prompt for contributing a new feature/command in its entirety
+- make commands.ts more dynamic.. it's just another thing to update at the moment
+- make local dev "better"?
+    - postman collections?
+    - a test frontend?
+- new commands
+    - pokemon stuff
+    - more dota stuff
+    - "meta" command to create new commands with an agent.. create a PR with new feature?
