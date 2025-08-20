@@ -1,9 +1,7 @@
 TODO:
-- smoke tests on test deployment; deploy to prod if passing
 - e2e tests in ci
-- update to new wrangler, etc
+- smoke tests on test deployment; deploy to prod if passing
 - break out KV into its own service; separate the two uses of KV
-- fix dota counter command to recommend correct heroes
 - streamline prompt for contributing a new feature/command in its entirety
 - make commands.ts more dynamic.. it's just another thing to update at the moment
 - make local dev "better"?
@@ -16,9 +14,10 @@ TODO:
 - decouple discord request stuff from commands
 - dev container and code spaces 
 - Set up policies in GitHub to pave way for contributions
-- Npm start without cloudflare? Or add people to my org?
+- cloudflare api / organization best practices
 - Pipeline for building services from API specs (like OpenDota spec)
 - MCP enablement for running tests, linting, generating code, etc
 - Fix the fucking lint warnings; refine lint rules to be reasonable but still helpful
 - IPSBDOT helper command(s)
 - clear dota service cache on deployment?
+- test bot in same server as prod bot? support multiple servers per bot?

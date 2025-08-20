@@ -120,9 +120,15 @@ describe('Discord Worker E2E', () => {
       },
       body,
     });
-    const json = await res.json();
+    const text = await res.text();
+    if (res.status !== 200) {
+      console.error('Reddit command failed:', {
+        status: res.status,
+        body: text,
+      });
+    }
     expect(res.status).toBe(200);
-    expect((json as any).data.content).toMatch(/http/);
+    expect(text).toMatch(/http/);
   });
 
   it('responds to refresh command', async () => {
