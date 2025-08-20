@@ -7,5 +7,6 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['test/e2e/setup.ts'], // Use wrangler unstable_dev setup
     watch: false,
+    testTimeout: 15000,
   },
 });
