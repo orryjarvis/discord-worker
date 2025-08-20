@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import crypto from 'crypto';
+import { worker } from './setup';
 
 // Helper to generate a valid Discord interaction signature (mocked for local)
 function mockSignature(body: string, timestamp: string) {
@@ -9,10 +10,9 @@ function mockSignature(body: string, timestamp: string) {
 }
 
 describe('Discord Worker E2E', () => {
-  const baseUrl = 'http://localhost:8787';
 
   it('responds to GET / with app ID', async () => {
-    const res = await fetch(baseUrl + '/');
+    const res = await worker.fetch('/');
     const text = await res.text();
     expect(res.status).toBe(200);
     expect(text).toMatch(/👋/);
@@ -22,7 +22,7 @@ describe('Discord Worker E2E', () => {
     const timestamp = Date.now().toString();
     const body = JSON.stringify({ type: 1 }); // InteractionType.Ping
     const signature = mockSignature(body, timestamp);
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -43,7 +43,7 @@ describe('Discord Worker E2E', () => {
       data: { name: 'notacommand' },
     });
     const signature = mockSignature(body, timestamp);
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -63,7 +63,7 @@ describe('Discord Worker E2E', () => {
       type: 2, // ApplicationCommand
       data: { name: 'invite' },
     });
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -87,7 +87,7 @@ describe('Discord Worker E2E', () => {
         options: [{ name: 'emote', type: 3, value: 'pog' }],
       },
     });
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -111,7 +111,7 @@ describe('Discord Worker E2E', () => {
         options: [{ name: 'subreddit', type: 3, value: 'aww' }],
       },
     });
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -131,7 +131,7 @@ describe('Discord Worker E2E', () => {
       type: 2,
       data: { name: 'refresh' },
     });
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',

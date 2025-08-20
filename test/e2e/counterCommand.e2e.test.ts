@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import crypto from 'crypto';
+import { worker } from './setup';
 
 function mockSignature(body: string, timestamp: string) {
   return crypto.createHash('sha256').update(body + timestamp).digest('hex');
 }
 
 describe('/counter command E2E', () => {
-  const baseUrl = 'http://localhost:8787';
-
   it('responds to counter command with valid hero', async () => {
     const timestamp = Date.now().toString();
     const body = JSON.stringify({
@@ -19,7 +18,7 @@ describe('/counter command E2E', () => {
       },
     });
     const signature = mockSignature(body, timestamp);
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -44,7 +43,7 @@ describe('/counter command E2E', () => {
       },
     });
     const signature = mockSignature(body, timestamp);
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -69,7 +68,7 @@ describe('/counter command E2E', () => {
       },
     });
     const signature = mockSignature(body, timestamp);
-    const res = await fetch(baseUrl + '/', {
+    const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
