@@ -23,3 +23,4 @@ TODO:
 - test bot in same server as prod bot? support multiple servers per bot?
     - figure out state of global commands
 - Vscode tasks for mcp
+- worker logging / stack trace observability
