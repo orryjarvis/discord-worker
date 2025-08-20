@@ -6,7 +6,7 @@ export const redditService = {
   async getMedia(subreddit: string): Promise<string> {
     const response = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json`, {
       headers: {
-        'User-Agent': 'mrmeseeks:discordbot:v1.0.0 (by /u/twiitchz)',
+        'User-Agent': 'discord-worker:1.0.0 (by /u/twiitchz)',
       },
     });
     const data: any = await response.json();
