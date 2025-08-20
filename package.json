@@ -20,7 +20,7 @@
     "itty-router": "^2.6.1"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20230228.0",
+    "@cloudflare/workers-types": "^4.20250820.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.54.0",
     "eslint": "^8.25.0",
