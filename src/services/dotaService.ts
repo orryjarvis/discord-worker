@@ -12,7 +12,7 @@ export class DotaService {
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes`);
-        const heroes = await res.json();
+        const heroes = await res.json() as Array<{ id: number; localized_name: string }>;
         const hero = heroes.find((h: any) =>
             h.localized_name.toLowerCase() === heroName.toLowerCase()
         );
@@ -24,7 +24,7 @@ export class DotaService {
         const now = Date.now();
 
         // Try to get from KV
-        const cachedRaw = await this.kv.get(cacheKey, { type: 'json' });
+        const cachedRaw = await this.kv.get(cacheKey, { type: 'json' }) as { counters: string[]; expires: number } | null;
         if (cachedRaw && cachedRaw.expires > now) {
             return cachedRaw.counters;
         }
@@ -34,7 +34,7 @@ export class DotaService {
 
         // Fetch matchup data
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes/${heroId}/matchups`);
-        const matchups = await res.json();
+        const matchups = await res.json() as Array<{ hero_id: number; wins: number; games_played: number }>;
 
         // Sort by highest win rate against the hero
         const counters = matchups
@@ -47,7 +47,7 @@ export class DotaService {
 
         // Fetch hero names for counter IDs
         const allHeroesRes = await fetch(`${OPENDOTA_API_BASE}/heroes`);
-        const allHeroes = await allHeroesRes.json();
+        const allHeroes = await allHeroesRes.json() as Array<{ id: number; localized_name: string }>;
 
         const counterNames = counters.map((c: any) => {
             const hero = allHeroes.find((h: any) => h.id === c.hero_id);

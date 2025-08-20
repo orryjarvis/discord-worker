@@ -37,7 +37,7 @@ describe('counterCommand', () => {
     };
     const env = { kv: mockKV };
     const res = await counterCommand(interaction, env, {});
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.data.content).toMatch(/Top counters for \*\*Phantom Lancer\*\*: `Lion`, `Axe`/i);
   });
 
@@ -45,7 +45,7 @@ describe('counterCommand', () => {
     const interaction = { data: { options: [] } };
     const env = { kv: mockKV };
     const res = await counterCommand(interaction, env, {});
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.data.content).toMatch(/please specify a hero name/i);
   });
 
@@ -58,7 +58,7 @@ describe('counterCommand', () => {
     };
     const env = { kv: mockKV };
     const res = await counterCommand(interaction, env, {});
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.data.content).toMatch(/Error:/i);
   });
 });
