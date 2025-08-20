@@ -5,10 +5,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "wrangler dev --env dev",
+    "start": "wrangler dev --env dev --local --port 8787",
     "fix": "eslint --fix . --ext .ts",
     "lint": "eslint . --ext .ts",
-    "test": "vitest run",
+    "test": "vitest",
     "test:e2e": "vitest --config ./test/e2e/vitest.e2e.config.ts",
     "deploy_commands": "tsc --project ./scripts/tsconfig.json && node ./bin/scripts/deploy_commands.js",
     "publish:test": "wrangler deploy --env test",

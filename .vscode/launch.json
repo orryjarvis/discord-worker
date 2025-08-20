@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Dev Server",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": null,
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "Start Dev Server"
+    }
+  ]
+}
