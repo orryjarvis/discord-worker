@@ -1,12 +1,10 @@
 main = "src/index.ts"
 compatibility_date = "2022-05-21"
-node_compat = true
 workers_dev = true
 account_id = "ac4880feb8f60847f0577d5967bf2b59"
 
 [env.dev]
 name = "discord-worker-dev"
-node_compat = true
 kv_namespaces = [
     { binding = "KV", id ="4000434490424208b40ea5817cf0f86e", preview_id = "4000434490424208b40ea5817cf0f86e" }
 ]
@@ -15,14 +13,12 @@ SKIP_SIGNATURE_CHECK = "true"
 
 [env.test]
 name = "discord-worker-test"
-node_compat = true
 kv_namespaces = [
     { binding = "KV", id = "f7b9e2cbd87640a286eb71509304ce9b" }
 ]
 
 [env.prod]
 name = "discord-worker"
-node_compat = true
 kv_namespaces = [
     { binding = "KV", id = "1ac499a14b8345f0b30a7f526b9df6b9" }
 ]
