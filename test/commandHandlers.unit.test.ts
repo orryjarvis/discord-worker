@@ -5,7 +5,7 @@ import { inviteCommandHandler } from '../src/commands/invite';
 import { refreshCommandHandler } from '../src/commands/refresh';
 
 const getRedditMedia = vi.fn(async (subreddit) => `https://reddit.com/r/${subreddit}`);
-const react = vi.fn(async () => '1st'); // Remove unused emote/env args
+const react = vi.fn(async () => 1); // Return number instead of string to match expected type
 const upsertCommands = vi.fn(async () => Promise.resolve()); // returns void to match expected type
 
 const redditDeps = { redditService: { getMedia: getRedditMedia } };

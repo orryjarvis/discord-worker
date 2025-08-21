@@ -198,7 +198,7 @@ describe('Discord Worker Bot', () => {
     const req = makeRequest('POST', interaction);
     const res = await handler.fetch(req, env);
     expect(res.status).toBe(200);
-    const json = await res.json();
+    const json = await res.json() as any;
     expect(json.data.content).toMatch(/Top counters for \*\*Phantom Lancer\*\*: `Lion`, `Axe`/i);
   });
 });

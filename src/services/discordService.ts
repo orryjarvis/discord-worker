@@ -2,6 +2,12 @@
  * Discord Service
  * Encapsulates all Discord API calls
  */
+import type { DiscordCommand } from '../types/commandTypes';
+
+/**
+ * Discord Service
+ * Encapsulates all Discord API calls
+ */
 function getDiscordCommandUrl(applicationId: string, guildId?: string, commandId?: string): string {
   return `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ''}commands${commandId ? `/${commandId}` : ''}`;
 }
@@ -10,7 +16,7 @@ export const discordService = {
   getInviteUrl(applicationId: string): string {
     return `https://discord.com/oauth2/authorize?client_id=${applicationId}&scope=applications.commands`;
   },
-  async upsertCommands(applicationId: string, token: string, commands: any[], guildId?: string): Promise<Response> {
+  async upsertCommands(applicationId: string, token: string, commands: DiscordCommand[], guildId?: string): Promise<Response> {
     const url = getDiscordCommandUrl(applicationId, guildId);
     const response = await fetch(url, {
       headers: {
