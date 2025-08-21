@@ -17,7 +17,7 @@
   "dependencies": {
     "@noble/ed25519": "^2.3.0",
     "discord-api-types": "^0.37.35",
-    "itty-router": "^2.6.1"
+    "itty-router": "^5.0.22"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250820.0",
