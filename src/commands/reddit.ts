@@ -4,12 +4,16 @@
  */
 import { ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
 import { JsonResponse } from '../index';
+import type { RedditCommandDeps } from '../types/commandTypes';
 
-export async function redditCommandHandler(interaction: any, env: any, deps: { redditService: { getMedia: (subreddit: string) => Promise<string> } }) {
-  if (interaction.data.type === ApplicationCommandType.ChatInput) {
-    const option = interaction.data.options?.find((p: any) => p.name === 'subreddit');
-    if (option?.type === ApplicationCommandOptionType.String) {
-      const url = await deps.redditService.getMedia(option.value);
+export async function redditCommandHandler(interaction: unknown, env: unknown, deps: unknown) {
+  const typedDeps = deps as RedditCommandDeps;
+  const typedInteraction = interaction as { data: { type: number; options?: { name: string; value: string; type?: number }[] } };
+  if (typedInteraction.data.type === ApplicationCommandType.ChatInput) {
+    const option = typedInteraction.data.options?.find((p: { name: string }) => p.name === 'subreddit');
+    if (option && option.type === ApplicationCommandOptionType.String) {
+      const subredditValue = option.value;
+      const url = await typedDeps.redditService.getMedia(subredditValue);
       return new JsonResponse({
         type: 4,
         data: { content: url },

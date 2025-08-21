@@ -1,4 +1,5 @@
 import type { KVNamespace } from '@cloudflare/workers-types';
+import type { DotaHero, DotaMatchup } from '../types/commandTypes';
 
 const OPENDOTA_API_BASE = 'https://api.opendota.com/api';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -12,8 +13,8 @@ export class DotaService {
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes`);
-        const heroes = await res.json();
-        const hero = heroes.find((h: any) =>
+        const heroes = await res.json() as DotaHero[];
+        const hero = heroes.find((h) =>
             h.localized_name.toLowerCase() === heroName.toLowerCase()
         );
         return hero ? hero.id : null;
@@ -24,7 +25,7 @@ export class DotaService {
         const now = Date.now();
 
         // Try to get from KV
-        const cachedRaw = await this.kv.get(cacheKey, { type: 'json' });
+        const cachedRaw = await this.kv.get(cacheKey, { type: 'json' }) as { counters: string[]; expires: number } | null;
         if (cachedRaw && cachedRaw.expires > now) {
             return cachedRaw.counters;
         }
@@ -34,23 +35,23 @@ export class DotaService {
 
         // Fetch matchup data
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes/${heroId}/matchups`);
-        const matchups = await res.json();
+        const matchups = await res.json() as DotaMatchup[];
 
         // Sort by highest win rate against the hero
         const counters = matchups
-            .map((m: any) => ({
+            .map((m) => ({
                 hero_id: m.hero_id,
                 win_rate: m.wins / m.games_played,
             }))
-            .sort((a: any, b: any) => a.win_rate - b.win_rate)
+            .sort((a, b) => a.win_rate - b.win_rate)
             .slice(0, topN);
 
         // Fetch hero names for counter IDs
         const allHeroesRes = await fetch(`${OPENDOTA_API_BASE}/heroes`);
-        const allHeroes = await allHeroesRes.json();
+        const allHeroes = await allHeroesRes.json() as DotaHero[];
 
-        const counterNames = counters.map((c: any) => {
-            const hero = allHeroes.find((h: any) => h.id === c.hero_id);
+        const counterNames = counters.map((c) => {
+            const hero = allHeroes.find((h) => h.id === c.hero_id);
             return hero ? hero.localized_name : `Hero ID ${c.hero_id}`;
         });
 
