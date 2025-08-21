@@ -35,16 +35,16 @@ describe('counterCommand', () => {
         options: [{ name: 'hero', value: 'Phantom Lancer' }],
       },
     };
-    const env = { kv: mockKV };
-    const res = await counterCommand(interaction, env, {});
+  const env = { kv: mockKV as unknown as KVNamespace<string> };
+  const res = await counterCommand(interaction, env);
     const json = await res.json() as any;
     expect(json.data.content).toMatch(/Top counters for \*\*Phantom Lancer\*\*: `Lion`, `Axe`/i);
   });
 
   it('handles missing hero name', async () => {
     const interaction = { data: { options: [] } };
-    const env = { kv: mockKV };
-    const res = await counterCommand(interaction, env, {});
+  const env = { kv: mockKV as unknown as KVNamespace<string> };
+  const res = await counterCommand(interaction, env);
     const json = await res.json() as any;
     expect(json.data.content).toMatch(/please specify a hero name/i);
   });
@@ -56,8 +56,8 @@ describe('counterCommand', () => {
         options: [{ name: 'hero', value: 'NotARealHero' }],
       },
     };
-    const env = { kv: mockKV };
-    const res = await counterCommand(interaction, env, {});
+  const env = { kv: mockKV as unknown as KVNamespace<string> };
+  const res = await counterCommand(interaction, env);
     const json = await res.json() as any;
     expect(json.data.content).toMatch(/Error:/i);
   });

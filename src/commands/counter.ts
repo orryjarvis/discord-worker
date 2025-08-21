@@ -1,11 +1,18 @@
 import { DotaService } from '../services/dotaService';
+import type { KVNamespace } from '@cloudflare/workers-types';
 
-export async function counterCommand(interaction: any, env: any, deps: any): Promise<Response> {
+export async function counterCommand(
+    interaction: { data: { options?: Array<{ name: string; value: string }> } },
+    env: { DOTA_KV?: KVNamespace; KV?: KVNamespace; kv?: KVNamespace }
+): Promise<Response> {
     // Discord interaction options
-    const options = interaction.data.options || [];
-    const heroOption = options.find((opt: any) => opt.name === 'hero');
-    const heroName = heroOption ? heroOption.value : '';
-    const kv = env.DOTA_KV || env.KV || env.kv; // Adjust to your binding name
+    const options: Array<{ name: string; value: string }> = interaction.data.options || [];
+    const heroOption = options.find(opt => opt.name === 'hero');
+    const heroName: string = heroOption ? heroOption.value : '';
+    const kv = env.DOTA_KV || env.KV || env.kv;
+    if (!kv) {
+        return new Response('KV binding not found', { status: 500 });
+    }
 
     function reply(content: string) {
         return new Response(
@@ -30,10 +37,13 @@ export async function counterCommand(interaction: any, env: any, deps: any): Pro
         if (counters.length === 0) {
             return reply(`No counters found for "${heroName}".`);
         }
-        return reply(
-            `Top counters for **${heroName}**: ${counters.map(h => `\`${h}\``).join(', ')}`
-        );
-    } catch (err: any) {
-        return reply(`Error: ${err.message}`);
+        // Format each counter with backticks
+        const formatted = counters.map((h: string) => `\`${h}\``).join(', ');
+        return reply(`Top counters for **${heroName}**: ${formatted}`);
+    } catch (err) {
+        if (err instanceof Error) {
+            return reply(`Error: ${err.message}`);
+        }
+        return reply('Unknown error');
     }
 }
