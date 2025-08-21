@@ -23,21 +23,20 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: npm run lint
-  # e2e:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - uses: actions/setup-node@v2
-  #       with:
-  #         node-version: 24
-  #     - run: npm ci
-  #     - run: npm run test:e2e
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run test:e2e
   release-test:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: test
-    # needs: [test, lint, e2e]
-    needs: [test, lint]
+    needs: [test, lint, e2e]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
