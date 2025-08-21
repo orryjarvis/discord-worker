@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { reactService } from '../../src/services/reactService';
-import { Env } from '../../src/env';
+import { Env } from '../../src/types';
 
 describe('reactService', () => {
   it('react returns correct count for valid emote', async () => {

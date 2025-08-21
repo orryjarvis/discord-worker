@@ -1,15 +1,13 @@
 import type { KVNamespace } from '@cloudflare/workers-types';
 import type { DotaHero, DotaMatchup } from '../types/commandTypes';
+import { inject, injectable } from 'tsyringe';
 
 const OPENDOTA_API_BASE = 'https://api.opendota.com/api';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
+@injectable()
 export class DotaService {
     kv: KVNamespace;
-
-    constructor(kv: KVNamespace) {
-        this.kv = kv;
-    }
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes`);

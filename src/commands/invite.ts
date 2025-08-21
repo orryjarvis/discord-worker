@@ -2,15 +2,21 @@
  * Invite Command Handler
  * Uses discordService for URL generation
  */
+import { injectable } from 'tsyringe';
 import { JsonResponse } from '../index';
-import type { InviteCommandDeps } from '../types/commandTypes';
+import { DiscordService } from '../services/discordService';
+import { Env, ICommandHandler } from '../types';
 
-export async function inviteCommandHandler(interaction: unknown, env: unknown, deps: unknown) {
-  const typedDeps = deps as InviteCommandDeps;
-  const applicationId = (env as Record<string, unknown>)["DISCORD_APPLICATION_ID"] as string;
-  const INVITE_URL = typedDeps.discordService.getInviteUrl(applicationId);
-  return new JsonResponse({
-    type: 4,
-    data: { content: INVITE_URL, flags: 64 },
-  });
+@injectable({token: 'ICommandHandler'})
+export class InviteCommand implements ICommandHandler {
+  readonly commandId = 'invite';
+  constructor(private discordService: DiscordService) {}
+
+  async handle(interaction: unknown, env: Env): Promise<Response> {
+    const INVITE_URL = this.discordService.getInviteUrl(env.DISCORD_APPLICATION_ID);
+    return new JsonResponse({
+      type: 4,
+      data: { content: INVITE_URL, flags: 64 },
+    });
+  }
 }

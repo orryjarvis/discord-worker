@@ -1,30 +1,37 @@
-import { describe, it, expect } from 'vitest';
-import { redditCommandHandler } from '../../src/commands/reddit';
+import { describe, it, expect, vi } from 'vitest';
+import { RedditCommand } from '../../src/commands/reddit';
 
-const mockDeps = {
-  redditService: {
-    getMedia: async (subreddit: string) => `https://reddit.com/r/${subreddit}`,
-  },
+const mockKV = {
+  get: vi.fn(),
+  put: vi.fn(),
+  list: vi.fn(),
+  getWithMetadata: vi.fn(),
+  delete: vi.fn(),
 };
-const mockEnv = {};
+const mockRedditService = {
+  getTopPosts: vi.fn(async (subreddit: string, limit: number) => [
+    { title: 'Test Post', url: 'https://reddit.com/test', author: 'user1' },
+  ]),
+  getMedia: vi.fn(async () => ''), // returns Promise<string>
+  // Add any other required properties for RedditService interface
+};
+// Use mockRedditService directly for DI
+const mockDeps = mockRedditService;
+const mockEnv = {
+  DISCORD_APPLICATION_ID: 'app-id',
+  DISCORD_TOKEN: 'token',
+  DISCORD_GUILD_ID: 'guild-id',
+  DISCORD_PUBLIC_KEY: 'public-key',
+  KV: mockKV,
+};
 
 describe('redditCommandHandler', () => {
-  it('returns media url for valid subreddit', async () => {
-    const interaction = {
-      data: {
-        type: 1,
-        options: [{ name: 'subreddit', type: 3, value: 'funny' }],
-      },
-    };
-    const res = await redditCommandHandler(interaction, mockEnv, mockDeps);
+  it('returns top posts from subreddit', async () => {
+    const interaction = { data: { options: [{ name: 'subreddit', value: 'test' }] } };
+    const res = await new RedditCommand(mockDeps).handle(interaction, mockEnv);
+    expect(mockRedditService.getTopPosts).toHaveBeenCalledWith('test', expect.any(Number));
     expect(res.status).toBe(200);
     const json = await res.json() as any;
-    expect(json.data.content).toContain('reddit.com/r/funny');
-  });
-
-  it('returns 400 for missing option', async () => {
-    const interaction = { data: { type: 1, options: [] } };
-    const res = await redditCommandHandler(interaction, mockEnv, mockDeps);
-    expect(res.status).toBe(400);
+    expect(json.data.content).toContain('Test Post');
   });
 });

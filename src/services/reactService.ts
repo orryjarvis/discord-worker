@@ -1,4 +1,5 @@
-import { Env } from '../env.js';
+import { injectable } from 'tsyringe';
+import { Env } from '../types.js';
 
 type ReactionType = "sadge" | "pog" | "monak" | "weirdge" | "jebait" | "kappa";
 
@@ -28,7 +29,8 @@ const getAndIncrement = async (reactionType: ReactionType, kvNamespace: KVNamesp
  * React Service
  * Encapsulates all React API calls
  */
-export const reactService = {
+@injectable()
+export class ReactService {
   async react(emote: string, env: Env): Promise<string> {
     const reactionType = emote as ReactionType;
     switch (reactionType) {
@@ -45,5 +47,5 @@ export const reactService = {
         throw new Error(exhaustiveCheck);
       }
     }
-  },
-};
+  }
+}

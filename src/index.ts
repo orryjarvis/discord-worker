@@ -2,16 +2,23 @@ import { Router } from 'itty-router';
 import {
   InteractionResponseType,
   InteractionType,
-  APIInteraction,
+  APIInteraction
 } from 'discord-api-types/v10';
-import { commandRegistry } from './commands/registry';
-import { redditService } from './services/redditService';
-import { reactService } from './services/reactService';
-import { discordService } from './services/discordService';
-import { COMMANDS } from './commands.js';
-
-import { Env } from './env.js'
+import 'reflect-metadata';
+import { container } from 'tsyringe';
+import { Env } from './types.js';
 import { verifySignature } from './crypto.js';
+import { CounterCommand } from './commands/counter.js';
+import { CommandRegistry } from './registry.js';
+import { DotaService } from './services/dotaService.js';
+console.log(CounterCommand)
+console.log(DotaService)
+
+const commandRegistry = container.resolve(CommandRegistry);
+console.log(commandRegistry);
+const handler = commandRegistry.getHandler('counter');
+console.log(handler);
+
 
 class JsonResponse extends Response {
   constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
@@ -42,16 +49,10 @@ router.post('/', async (request: Request, env: Env) => {
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     const commandName = interaction.data.name.toLowerCase();
-    const handler = commandRegistry[commandName];
+    const commandRegistry = container.resolve(CommandRegistry);
+    const handler = commandRegistry.getHandler(commandName);
     if (handler) {
-      // Inject shared services and COMMANDS
-      const deps = {
-        redditService,
-        reactService,
-        discordService,
-        commands: COMMANDS,
-      };
-      return await handler(interaction, env, deps);
+      return await handler.handle(interaction, env);
     } else {
       console.error('Unknown Command');
       return new Response('Unknown Type', { status: 400 });

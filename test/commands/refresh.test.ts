@@ -1,11 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { refreshCommandHandler } from '../../src/commands/refresh';
+import { RefreshCommand } from '../../src/commands/refresh';
 
-const upsertCommands = vi.fn(async () => Promise.resolve());
+const mockDiscordService = {
+  upsertCommands: vi.fn(async () => Promise.resolve()),
+};
 const mockDeps = {
-  discordService: {
-    upsertCommands,
-  },
+  discordService: mockDiscordService,
   commands: [],
 };
 const mockEnv = {
@@ -17,8 +17,8 @@ const mockEnv = {
 describe('refreshCommandHandler', () => {
   it('calls upsertCommands and returns refreshed message', async () => {
     const interaction = { data: {} };
-    const res = await refreshCommandHandler(interaction, mockEnv, mockDeps);
-    expect(upsertCommands).toHaveBeenCalled();
+    const res = await new RefreshCommand(mockDeps).handle(interaction, mockEnv);
+    expect(mockDiscordService.upsertCommands).toHaveBeenCalled();
     expect(res.status).toBe(200);
     const json = await res.json() as any;
     expect(json.data.content).toContain('commands refreshed');

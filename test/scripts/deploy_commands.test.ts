@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { discordService } from '../../src/services/discordService';
+import { DiscordService } from '../../src/services/discordService';
 
 let deployCommands: typeof import('../../scripts/deploy_commands').deployCommands;
 
@@ -15,6 +15,7 @@ describe('deploy_commands script', () => {
 
   it('calls discordService.upsertCommands and logs success', async () => {
     const mockResponse = { ok: true, text: async () => '' };
+    const discordService = new DiscordService();
     vi.spyOn(discordService, 'upsertCommands').mockResolvedValue(mockResponse as any);
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => void 0);
     await deployCommands();
@@ -24,6 +25,7 @@ describe('deploy_commands script', () => {
 
   it('logs error if registration fails', async () => {
     const mockResponse = { ok: false, text: async () => 'fail' };
+    const discordService = new DiscordService();
     vi.spyOn(discordService, 'upsertCommands').mockResolvedValue(mockResponse as any);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => void 0);
     await deployCommands();

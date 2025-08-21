@@ -6,3 +6,8 @@ export interface Env {
     KV: KVNamespace;
     SKIP_SIGNATURE_CHECK?: string;
 }
+
+export interface ICommandHandler {
+  commandId: string;
+  handle(interaction: any, env: Env): Promise<Response>;
+}

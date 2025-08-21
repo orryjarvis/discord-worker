@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { redditService } from '../../src/services/redditService';
+import { RedditService } from '../../src/services/redditService';
 
 describe('redditService', () => {
   beforeEach(() => {
@@ -16,7 +16,7 @@ describe('redditService', () => {
   });
 
   it('getMedia returns a valid url', async () => {
-    const url = await redditService.getMedia('funny');
+    const url = await new RedditService().getMedia('funny');
     expect(typeof url).toBe('string');
     expect(url.startsWith('http')).toBe(true);
   });

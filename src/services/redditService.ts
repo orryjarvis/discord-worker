@@ -1,5 +1,8 @@
+import { injectable } from 'tsyringe';
 import type { RedditApiResponse } from '../types/commandTypes';
-export const redditService = {
+
+@injectable()
+export class RedditService {
   async getMedia(subreddit: string): Promise<string> {
     const response = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json`, {
       headers: {
@@ -22,5 +25,5 @@ export const redditService = {
     const randomIndex = Math.floor(Math.random() * posts.length);
     const randomPost = posts[randomIndex] ?? '';
     return randomPost;
-  },
-};
+  }
+}

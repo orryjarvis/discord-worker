@@ -24,3 +24,7 @@ TODO:
     - figure out state of global commands
 - Vscode tasks for mcp
 - worker logging / stack trace observability
+- Feature flagging
+- Use turbo build?
+- lightweight DI/IoC? ‘tiny-ioc’
+- decorator 
