@@ -27,6 +27,7 @@ class JsonResponse extends Response {
 
 const router = Router();
 
+
 router.get('/', async (request: Request, env: Env) => {
   return new Response(`👋 ${env.DISCORD_APPLICATION_ID}`);
 });
@@ -60,6 +61,7 @@ router.post('/', async (request: Request, env: Env) => {
   console.error('Unknown Type');
   return new Response('Unknown Type', { status: 400 });
 });
+
 router.all('*', () => new Response('Not Found.', { status: 404 }));
 
 export default {
@@ -67,7 +69,7 @@ export default {
     if (request.method === 'POST') {
       // Bypass signature verification for local/dev/testing
       if (env.SKIP_SIGNATURE_CHECK === 'true') {
-        return router.handle(request, env);
+        return router.fetch(request, env);
       }
       const signature = request.headers.get('x-signature-ed25519') ?? "";
       const timestamp = request.headers.get('x-signature-timestamp') ?? "";
@@ -78,7 +80,7 @@ export default {
         return new Response('Bad request signature.', { status: 401 });
       }
     }
-    return router.handle(request, env);
+    return router.fetch(request, env);
   },
 };
 
