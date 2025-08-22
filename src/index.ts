@@ -8,18 +8,7 @@ import 'reflect-metadata';
 import { container } from 'tsyringe';
 import { Env } from './types.js';
 import { verifySignature } from './crypto.js';
-import { CounterCommand } from './commands/counter.js';
 import { CommandRegistry } from './registry.js';
-import { DotaService } from './services/dotaService.js';
-console.log(CounterCommand)
-console.log(DotaService)
-
-const commandRegistry = container.resolve(CommandRegistry);
-console.log(commandRegistry);
-const handler = commandRegistry.getHandler('counter');
-console.log(handler);
-
-
 class JsonResponse extends Response {
   constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
     const jsonBody = JSON.stringify(body);
@@ -49,6 +38,7 @@ router.post('/', async (request: Request, env: Env) => {
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     const commandName = interaction.data.name.toLowerCase();
+    await import(`./commands/${commandName}.ts`); 
     const commandRegistry = container.resolve(CommandRegistry);
     const handler = commandRegistry.getHandler(commandName);
     if (handler) {

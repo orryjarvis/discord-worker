@@ -2,7 +2,7 @@
  * Refresh Command Handler
  * Uses discordService for command upsert
  */
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { JsonResponse } from '../index';
 import { DiscordService } from '../services/discordService';
 import { ICommandHandler, Env } from '../types';
@@ -10,7 +10,7 @@ import { ICommandHandler, Env } from '../types';
 @injectable({token: 'ICommandHandler'})
 export class RefreshCommand implements ICommandHandler {
   readonly commandId = 'refresh';
-  constructor(private discordService: DiscordService) {}
+  constructor(@inject(DiscordService) private discordService: DiscordService) {}
 
   async handle(interaction: any, env: Env): Promise<Response> {
     await this.discordService.upsertCommands(env.DISCORD_APPLICATION_ID, env.DISCORD_TOKEN, [], env.DISCORD_GUILD_ID);

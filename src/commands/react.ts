@@ -2,7 +2,7 @@
  * React Command Handler
  * Uses reactService for external API calls
  */
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import { ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
 import { JsonResponse } from '../index';
 import { ReactService } from '../services/reactService';
@@ -11,7 +11,7 @@ import { Env, ICommandHandler } from '../types';
 @injectable({token: 'ICommandHandler'})
 export class ReactCommand implements ICommandHandler {
   readonly commandId = 'react';
-  constructor(private reactService: ReactService) {}
+  constructor(@inject(ReactService)private reactService: ReactService) {}
 
   async handle(interaction: unknown, env: Env): Promise<Response> {
     const typedInteraction = interaction as { data: { type: number; options?: { name: string; value: string; type?: number }[] } };

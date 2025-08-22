@@ -5,7 +5,7 @@ import { Env, ICommandHandler } from '../types';
 @injectable({token: 'ICommandHandler'})
 export class CounterCommand implements ICommandHandler{
   readonly commandId = 'counter';
-  constructor(@inject(DotaService) dotaService: DotaService) {}
+  constructor(@inject(DotaService) private dotaService: DotaService) {}
 
   async handle(
     interaction: { data: { options?: Array<{ name: string; value: string }> } },
@@ -37,7 +37,7 @@ export class CounterCommand implements ICommandHandler{
     }
 
     try {
-      const counters = await this.dotaService.getHeroCounters(heroName);
+      const counters = await this.dotaService.getHeroCounters(heroName, env.KV);
       if (counters.length === 0) {
         return reply(`No counters found for "${heroName}".`);
       }

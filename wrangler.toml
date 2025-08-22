@@ -1,7 +1,11 @@
 main = "src/index.ts"
-compatibility_date = "2022-05-21"
+compatibility_date = "2023-08-01"
 workers_dev = true
 account_id = "ac4880feb8f60847f0577d5967bf2b59"
+find_additional_modules = true
+rules = [
+  { type = "ESModule", globs = ["src/commands/*.ts", "src/services/*.ts"], fallthrough = true }
+]
 
 [env.dev]
 name = "discord-worker-dev"
