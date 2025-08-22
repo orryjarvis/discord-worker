@@ -9,6 +9,9 @@ import { container } from 'tsyringe';
 import { Env } from './types.js';
 import { verifySignature } from './crypto.js';
 import { CommandRegistry } from './registry.js';
+import { CommandLoader } from './loader.js';
+// import { ICommandHandler } from './types.js';
+
 class JsonResponse extends Response {
   constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
     const jsonBody = JSON.stringify(body);
@@ -38,14 +41,16 @@ router.post('/', async (request: Request, env: Env) => {
 
   if (interaction.type === InteractionType.ApplicationCommand) {
     const commandName = interaction.data.name.toLowerCase();
-    await import(`./commands/${commandName}.ts`); 
+    const loader = container.resolve(CommandLoader);
+    console.error(`Loading command: ${commandName}`);
+    await loader?.loadCommand(commandName);
     const commandRegistry = container.resolve(CommandRegistry);
-    const handler = commandRegistry.getHandler(commandName);
-    if (handler) {
-      return await handler.handle(interaction, env);
+    const command = commandRegistry?.getCommand(commandName);
+    if (command) {
+      return await command.handle(interaction, env);
     } else {
       console.error('Unknown Command');
-      return new Response('Unknown Type', { status: 400 });
+      return new Response('Unknown Command', { status: 400 });
     }
   }
 

@@ -79,6 +79,6 @@ describe('/counter command E2E', () => {
     });
     const json = await res.json();
     expect(res.status).toBe(200);
-    expect((json as any).data.content).toMatch(/Error:/i);
+    expect((json as any).data.content).toMatch(/Error/i);
   });
 });

@@ -42,19 +42,18 @@ describe('Discord Worker E2E', () => {
       type: 2, // InteractionType.ApplicationCommand
       data: { name: 'notacommand' },
     });
-    const signature = mockSignature(body, timestamp);
     const res = await worker.fetch('/', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-signature-ed25519': signature,
+        'x-signature-ed25519': 'dummy',
         'x-signature-timestamp': timestamp,
       },
       body,
     });
     expect(res.status).toBe(400);
     const text = await res.text();
-    expect(text).toMatch(/Unknown Type/);
+    expect(text).toMatch(/Unknown Command/);
   });
 
   it('responds to invite command', async () => {
