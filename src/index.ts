@@ -42,7 +42,7 @@ router.post('/', async (request: Request, env: Env) => {
   if (interaction.type === InteractionType.ApplicationCommand) {
     const commandName = interaction.data.name.toLowerCase();
     const loader = container.resolve(CommandLoader);
-    console.error(`Loading command: ${commandName}`);
+    console.log(`Loading command: ${commandName}`);
     await loader?.loadCommand(commandName);
     const commandRegistry = container.resolve(CommandRegistry);
     const command = commandRegistry?.getCommand(commandName);
