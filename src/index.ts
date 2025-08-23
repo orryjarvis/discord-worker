@@ -80,7 +80,7 @@ export default {
         return new Response('Bad request signature.', { status: 401 });
       }
     }
-    return router.fetch(request, env);
+    return await router.fetch(request, env);
   },
 };
 
