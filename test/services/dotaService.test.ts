@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { describe, it, expect, vi } from 'vitest';
 import { DotaService } from '../../src/services/dotaService';
 
@@ -42,9 +43,9 @@ describe('DotaService', () => {
         ],
       };
     }) as any;
-    const service = new DotaService(mockKV as any);
-    const counters = await service.getHeroCounters('Phantom Lancer');
-    expect(counters).toEqual(['Lion', 'Axe']);
+  const service = new DotaService();
+  const counters = await service.getHeroCounters('Phantom Lancer', mockKV as any);
+  expect(counters).toEqual(['Lion', 'Axe']);
   });
 
   it('caches counters in KV', async () => {
@@ -65,9 +66,9 @@ describe('DotaService', () => {
         ],
       };
     }) as any;
-    const service = new DotaService(mockKV as any);
-    await service.getHeroCounters('Phantom Lancer');
-    await service.getHeroCounters('Phantom Lancer'); // Should hit cache
-    expect(fetchCount).toBeLessThanOrEqual(2); // Only one fetch per endpoint
+  const service = new DotaService();
+  await service.getHeroCounters('Phantom Lancer', mockKV as any);
+  await service.getHeroCounters('Phantom Lancer', mockKV as any); // Should hit cache
+  expect(fetchCount).toBeLessThanOrEqual(2); // Only one fetch per endpoint
   });
 });

@@ -16,6 +16,8 @@ upload_source_maps = true
 local = true
 [env.dev.vars]
 SKIP_SIGNATURE_CHECK = "true"
+DISCORD_APPLICATION_ID = "111"
+DISCORD_BOT_TOKEN = "xyz"
 
 [env.test]
 name = "discord-worker-test"

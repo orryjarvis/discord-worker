@@ -1,18 +1,21 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import * as ed from "@noble/ed25519"
-import { Env } from './types';
+import { Configuration } from './config';
 
 @injectable()
 export class Auth {
 
-    async performChecks(request: Request, env: Env): Promise<Response | undefined> {
-        if (env.SKIP_SIGNATURE_CHECK === 'true') {
+    constructor(@inject(Configuration) private config: Configuration) {}
+
+    async performChecks(request: Request): Promise<Response | undefined> {
+        if (this.config.get('SKIP_SIGNATURE_CHECK') === 'true') {
             return;
         }
         const signature = request.headers.get('x-signature-ed25519') ?? "";
         const timestamp = request.headers.get('x-signature-timestamp') ?? "";
         const body = await request.clone().text();
-        const isValidRequest = await this.verifySignature(signature, timestamp, body, env.DISCORD_PUBLIC_KEY);
+        const discord_pub_key = this.config.get('DISCORD_PUBLIC_KEY');
+        const isValidRequest = await this.verifySignature(signature, timestamp, body, discord_pub_key);
         if (!isValidRequest) {
             console.error('Invalid Request');
             return new Response('Bad request signature.', { status: 401 });

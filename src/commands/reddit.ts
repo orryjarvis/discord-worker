@@ -3,17 +3,17 @@
  * Uses redditService for external API calls
  */
 import { inject, injectable } from 'tsyringe';
-import { ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
+import { ApplicationCommandType, ApplicationCommandOptionType, APIInteraction } from 'discord-api-types/v10';
 import { JsonResponse } from '../types';
 import { RedditService } from '../services/redditService';
-import { ICommandHandler, Env } from '../types';
+import { ICommandHandler } from '../types';
 
 @injectable({token: 'ICommandHandler'})
 export class RedditCommand implements ICommandHandler {
   readonly commandId = 'reddit';
   constructor(@inject(RedditService) private redditService: RedditService) {}
 
-  async handle(interaction: unknown, env: Env): Promise<Response> {
+  async handle(interaction: APIInteraction): Promise<Response> {
     const typedInteraction = interaction as { data: { type: number; options?: { name: string; value: string; type?: number }[] } };
     if (typedInteraction.data.type === ApplicationCommandType.ChatInput) {
       const option = typedInteraction.data.options?.find((p: { name: string }) => p.name === 'subreddit');

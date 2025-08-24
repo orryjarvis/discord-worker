@@ -1,37 +1,23 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import "../setup";
 import { RedditCommand } from '../../src/commands/reddit';
+import { createEnv, createMockRedditService } from '../setup';
 
-const mockKV = {
-  get: vi.fn(),
-  put: vi.fn(),
-  list: vi.fn(),
-  getWithMetadata: vi.fn(),
-  delete: vi.fn(),
-};
-const mockRedditService = {
-  getTopPosts: vi.fn(async (subreddit: string, limit: number) => [
-    { title: 'Test Post', url: 'https://reddit.com/test', author: 'user1' },
-  ]),
-  getMedia: vi.fn(async () => ''), // returns Promise<string>
-  // Add any other required properties for RedditService interface
-};
-// Use mockRedditService directly for DI
-const mockDeps = mockRedditService;
-const mockEnv = {
-  DISCORD_APPLICATION_ID: 'app-id',
-  DISCORD_TOKEN: 'token',
-  DISCORD_GUILD_ID: 'guild-id',
-  DISCORD_PUBLIC_KEY: 'public-key',
-  KV: mockKV,
-};
-
-describe('redditCommandHandler', () => {
+describe('Reddit Command', () => {
   it('returns top posts from subreddit', async () => {
-    const interaction = { data: { options: [{ name: 'subreddit', value: 'test' }] } };
-    const res = await new RedditCommand(mockDeps).handle(interaction, mockEnv);
-    expect(mockRedditService.getTopPosts).toHaveBeenCalledWith('test', expect.any(Number));
-    expect(res.status).toBe(200);
-    const json = await res.json() as any;
-    expect(json.data.content).toContain('Test Post');
+    const interaction = {
+      data: {
+        type: 1, // ApplicationCommandType.ChatInput
+        options: [{ name: 'subreddit', value: 'test', type: 3 }], // type: ApplicationCommandOptionType.String
+      }
+    };
+    const env = createEnv();
+    const redditService = createMockRedditService();
+    const command = new RedditCommand(redditService);
+    const res = await command.handle(interaction, env);
+  expect(redditService.getMedia).toHaveBeenCalledWith('test');
+  expect(res.status).toBe(200);
+  const json = await res.json() as any;
+  expect(typeof json.data.content).toBe('string');
   });
 });

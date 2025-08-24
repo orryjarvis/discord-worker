@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { RedditService } from '../../src/services/redditService';
 
@@ -15,8 +16,12 @@ describe('redditService', () => {
     })) as any;
   });
 
-  it('getMedia returns a valid url', async () => {
-    const url = await new RedditService().getMedia('funny');
+  let service: RedditService;
+  beforeEach(() => {
+    service = new RedditService();
+  });
+  it('should fetch media url', async () => {
+    const url = await service.getMedia('funny');
     expect(typeof url).toBe('string');
     expect(url.startsWith('http')).toBe(true);
   });

@@ -1,8 +1,12 @@
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
 import type { RedditApiResponse } from '../types/commandTypes';
+import { Configuration } from '../config';
 
 @injectable()
 export class RedditService {
+  
+  constructor(@inject(Configuration) private config: Configuration) {}
+  
   async getMedia(subreddit: string): Promise<string> {
     const response = await fetch(`https://www.reddit.com/r/${subreddit}/hot.json`, {
       headers: {

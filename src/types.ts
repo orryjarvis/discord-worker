@@ -1,3 +1,5 @@
+import { APIInteraction } from "discord-api-types/v10";
+
 export interface Env {
     DISCORD_APPLICATION_ID: string;
     DISCORD_PUBLIC_KEY: string;
@@ -9,7 +11,7 @@ export interface Env {
 
 export interface ICommandHandler {
   commandId: string;
-  handle(interaction: any, env: Env): Promise<Response>;
+  handle(interaction: APIInteraction): Promise<Response>;
 }
 
 export class JsonResponse extends Response {

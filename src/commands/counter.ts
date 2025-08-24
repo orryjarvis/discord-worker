@@ -1,6 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 import { DotaService } from '../services/dotaService';
-import { Env, ICommandHandler } from '../types';
+import { ICommandHandler } from '../types';
+import { APIInteraction } from 'discord-api-types/v10';
 
 @injectable({token: 'ICommandHandler'})
 export class CounterCommand implements ICommandHandler{
@@ -8,17 +9,12 @@ export class CounterCommand implements ICommandHandler{
   constructor(@inject(DotaService) private dotaService: DotaService) {}
 
   async handle(
-    interaction: { data: { options?: Array<{ name: string; value: string }> } },
-    env: Env
+    interaction: APIInteraction
   ): Promise<Response> {
     // Discord interaction options
-    const options: Array<{ name: string; value: string }> = interaction.data.options || [];
+    const options: Array<{ name: string; value: string }> = interaction?.data?.options || [];
     const heroOption = options.find(opt => opt.name === 'hero');
     const heroName: string = heroOption ? heroOption.value : '';
-    const kv = env.KV
-    if (!kv) {
-      return new Response('KV binding not found', { status: 500 });
-    }
 
     function reply(content: string) {
       return new Response(
@@ -37,7 +33,7 @@ export class CounterCommand implements ICommandHandler{
     }
 
     try {
-      const counters = await this.dotaService.getHeroCounters(heroName, env.KV);
+      const counters = await this.dotaService.getHeroCounters(heroName);
       if (counters.length === 0) {
         return reply(`No counters found for "${heroName}".`);
       }

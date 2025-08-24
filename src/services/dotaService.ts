@@ -1,12 +1,15 @@
-import type { KVNamespace } from '@cloudflare/workers-types';
 import type { DotaHero, DotaMatchup } from '../types/commandTypes';
-import { injectable } from 'tsyringe';
+import { inject, injectable } from 'tsyringe';
+import { Configuration } from '../config';
+import { ObjectStorage } from './objectStorage';
 
 const OPENDOTA_API_BASE = 'https://api.opendota.com/api';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 @injectable()
 export class DotaService {
+
+    constructor(@inject(Configuration) private config: Configuration, @inject(ObjectStorage) private kv: ObjectStorage) {}
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes`);
@@ -17,12 +20,12 @@ export class DotaService {
         return hero ? hero.id : null;
     }
 
-    async getHeroCounters(heroName: string, kv: KVNamespace, topN = 5): Promise<string[]> {
-        const cacheKey = `dota-counters:${heroName.toLowerCase()}`;
+    async getHeroCounters(heroName: string, topN = 5): Promise<string[]> {
+        const cacheKey = `counters:${heroName.toLowerCase()}`;
         const now = Date.now();
 
         // Try to get from KV
-        const cachedRaw = await kv.get(cacheKey, { type: 'json' }) as { counters: string[]; expires: number } | null;
+        const cachedRaw = await this.kv.get_json('DotaService', cacheKey) as { counters: string[]; expires: number } | null;
         if (cachedRaw && cachedRaw.expires > now) {
             return cachedRaw.counters;
         }
@@ -53,7 +56,8 @@ export class DotaService {
         });
 
         // Store in KV
-        await kv.put(
+        await this.kv.put(
+            'DotaService',
             cacheKey,
             JSON.stringify({
                 counters: counterNames,
