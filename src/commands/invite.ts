@@ -3,7 +3,7 @@
  * Uses discordService for URL generation
  */
 import { inject, injectable } from 'tsyringe';
-import { JsonResponse } from '../index';
+import { JsonResponse } from '../types';
 import { DiscordService } from '../services/discordService';
 import { Env, ICommandHandler } from '../types';
 

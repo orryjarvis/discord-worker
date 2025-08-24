@@ -4,7 +4,7 @@
  */
 import { inject, injectable } from 'tsyringe';
 import { ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
-import { JsonResponse } from '../index';
+import { JsonResponse } from '../types';
 import { ReactService } from '../services/reactService';
 import { Env, ICommandHandler } from '../types';
 

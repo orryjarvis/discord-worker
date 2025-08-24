@@ -11,3 +11,15 @@ export interface ICommandHandler {
   commandId: string;
   handle(interaction: any, env: Env): Promise<Response>;
 }
+
+export class JsonResponse extends Response {
+  constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
+    const jsonBody = JSON.stringify(body);
+    init = init || {
+      headers: {
+        'content-type': 'application/json;charset=UTF-8',
+      },
+    };
+    super(jsonBody, init);
+  }
+}

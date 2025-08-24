@@ -3,9 +3,8 @@
  * Uses discordService for command upsert
  */
 import { inject, injectable } from 'tsyringe';
-import { JsonResponse } from '../index';
 import { DiscordService } from '../services/discordService';
-import { ICommandHandler, Env } from '../types';
+import { ICommandHandler, Env, JsonResponse } from '../types';
 
 @injectable({token: 'ICommandHandler'})
 export class RefreshCommand implements ICommandHandler {
