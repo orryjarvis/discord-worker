@@ -1,7 +1,3 @@
-/**
- * Refresh Command Handler
- * Uses discordService for command upsert
- */
 import { inject, injectable } from 'tsyringe';
 import { DiscordService } from '../services/discordService';
 import { ICommandHandler, JsonResponse } from '../types';

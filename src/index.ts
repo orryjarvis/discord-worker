@@ -8,7 +8,7 @@ import { Configuration } from './config.js';
 const fetch = async (request: Request, env: Env) => {
     try {
         const childContainer = container.createChildContainer()
-            .register<Configuration>(Configuration, { useFactory: (c) => new Configuration(env)})
+            .register<Configuration>(Configuration, { useFactory: () => new Configuration(env)})
         const application = childContainer.resolve(DiscordApplicationRouter);
         return await application.fetch(request);
     } catch (error) {

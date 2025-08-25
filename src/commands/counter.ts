@@ -1,20 +1,26 @@
 import { inject, injectable } from 'tsyringe';
 import { DotaService } from '../services/dotaService';
 import { ICommandHandler } from '../types';
-import { APIInteraction } from 'discord-api-types/v10';
+import { APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption } from 'discord-api-types/v10';
 
-@injectable({token: 'ICommandHandler'})
-export class CounterCommand implements ICommandHandler{
+@injectable({ token: 'ICommandHandler' })
+export class CounterCommand implements ICommandHandler {
   readonly commandId = 'counter';
-  constructor(@inject(DotaService) private dotaService: DotaService) {}
+  constructor(@inject(DotaService) private dotaService: DotaService) { }
 
   async handle(
-    interaction: APIInteraction
+    interaction: APIChatInputApplicationCommandInteraction
   ): Promise<Response> {
-    // Discord interaction options
-    const options: Array<{ name: string; value: string }> = interaction?.data?.options || [];
-    const heroOption = options.find(opt => opt.name === 'hero');
-    const heroName: string = heroOption ? heroOption.value : '';
+    const options = Array.isArray(interaction?.data?.options) ? interaction.data.options : [];
+    const heroOption = options.find(
+      (opt): opt is APIApplicationCommandInteractionDataOption =>
+        'value' in opt && opt.name === 'hero'
+    ) as {name: string, value: string};
+    
+    if (!heroOption) {
+      return reply('Please specify a hero name. Example: `/counter phantom lancer`');
+    }
+    const heroName = heroOption.value;
 
     function reply(content: string) {
       return new Response(
@@ -28,9 +34,6 @@ export class CounterCommand implements ICommandHandler{
       );
     }
 
-    if (!heroName) {
-      return reply('Please specify a hero name. Example: `/counter phantom lancer`');
-    }
 
     try {
       const counters = await this.dotaService.getHeroCounters(heroName);

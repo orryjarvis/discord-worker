@@ -1,7 +1,3 @@
-/**
- * Reddit Command Handler
- * Uses redditService for external API calls
- */
 import { inject, injectable } from 'tsyringe';
 import { ApplicationCommandType, ApplicationCommandOptionType, APIInteraction } from 'discord-api-types/v10';
 import { JsonResponse } from '../types';

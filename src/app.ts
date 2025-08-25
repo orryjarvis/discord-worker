@@ -28,7 +28,7 @@ export class DiscordApplicationRouter {
         this.router.all('*', () => new Response('Not Found.', { status: 404 }));
     }
 
-    async get(request: Request): Promise<Response> {
+    async get(): Promise<Response> {
         return Promise.resolve(new Response(`👋 ${this.config.get('DISCORD_APPLICATION_ID')}`));
     }
 

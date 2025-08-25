@@ -51,5 +51,5 @@ export class ReactService {
     const bigInt = (val ? BigInt(val) : BigInt(0)) + 1n;
     await this.kv.put('ReactService', reactionType, bigInt.toString());
     return ordinal_suffix_of(bigInt);
-  };
+  }
 }

@@ -6,11 +6,13 @@
   "private": true,
   "scripts": {
     "start": "wrangler dev --env dev --port 8787",
-    "fix": "eslint --fix . --ext .ts",
     "lint": "eslint . --ext .ts",
+    "fix": "eslint --fix . --ext .ts",
+    "check": "tsc --noEmit",
     "test": "vitest",
     "test:e2e": "vitest --config ./test/e2e/vitest.e2e.config.ts",
-    "deploy_commands": "tsc --project ./scripts/tsconfig.json && node ./bin/scripts/deploy_commands.js",
+    "deploy_commands": "tsx scripts/deploy_commands.ts",
+    "generate_test_keys": "tsx scripts/generate_test_keys.ts",
     "publish:test": "wrangler deploy --env test",
     "publish:prod": "wrangler deploy --env prod"
   },
@@ -23,10 +25,12 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250821.0",
+    "@noble/hashes": "^1.8.0",
     "@types/node": "^24.3.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
     "wrangler": "^4.31.0"

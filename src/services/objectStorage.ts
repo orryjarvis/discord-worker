@@ -5,7 +5,7 @@ import { Configuration } from '../config';
 export class ObjectStorage {
   private readonly kv: KVNamespace;
   constructor(@inject(Configuration) private config: Configuration) {
-    this.kv = config.get('KV')
+    this.kv = config.get('KV') as KVNamespace;
   }
 
   private qualified_key(namespace: string, key: string): string {
@@ -16,7 +16,7 @@ export class ObjectStorage {
     return await this.kv.get(this.qualified_key(namespace, key))
   }
 
-  async get_json(namespace: string, key: string): Promise<Object | null> {
+  async get_json(namespace: string, key: string): Promise<object | null> {
     return await this.kv.get(this.qualified_key(namespace, key), 'json')
   }
 

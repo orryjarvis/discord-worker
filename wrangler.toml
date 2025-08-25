@@ -15,9 +15,9 @@ kv_namespaces = [
 upload_source_maps = true
 local = true
 [env.dev.vars]
-SKIP_SIGNATURE_CHECK = "true"
 DISCORD_APPLICATION_ID = "111"
-DISCORD_BOT_TOKEN = "xyz"
+DISCORD_TOKEN = "xyz"
+DISCORD_PUBLIC_KEY = "471fa8ce1a3d0428d1531fd232b8b26d540045d4086877df8872477e0ce637bc"
 
 [env.test]
 name = "discord-worker-test"

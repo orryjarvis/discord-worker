@@ -8,5 +8,8 @@ export default defineConfig({
     setupFiles: ['test/e2e/setup.ts'], // Use wrangler unstable_dev setup
     watch: false,
     testTimeout: 15000,
+    sequence: {
+      concurrent: false,
+    }
   },
 });

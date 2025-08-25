@@ -14,7 +14,7 @@ export class DiscordService {
 
   async upsertCommands(commands: DiscordCommand[], guildId?: string): Promise<Response> {
     const applicationId = this.config.get('DISCORD_APPLICATION_ID');
-    const botToken = this.config.get('DISCORD_BOT_TOKEN');
+    const botToken = this.config.get('DISCORD_TOKEN');
     const url = `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ''}commands`;
     const response = await fetch(url, {
       headers: {

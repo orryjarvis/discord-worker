@@ -8,15 +8,11 @@ export class Auth {
     constructor(@inject(Configuration) private config: Configuration) {}
 
     async performChecks(request: Request): Promise<Response | undefined> {
-        if (this.config.get('SKIP_SIGNATURE_CHECK') === 'true') {
-            return;
-        }
-        const signature = request.headers.get('x-signature-ed25519') ?? "";
-        const timestamp = request.headers.get('x-signature-timestamp') ?? "";
-        const body = await request.clone().text();
+        const signature = request.headers.get('x-signature-ed25519');
+        const timestamp = request.headers.get('x-signature-timestamp');
         const discord_pub_key = this.config.get('DISCORD_PUBLIC_KEY');
-        const isValidRequest = await this.verifySignature(signature, timestamp, body, discord_pub_key);
-        if (!isValidRequest) {
+        const body = await request.clone().text();
+    if (!signature || !timestamp || !(await this.verifySignature(signature, timestamp, body, String(discord_pub_key)))) {
             console.error('Invalid Request');
             return new Response('Bad request signature.', { status: 401 });
         }

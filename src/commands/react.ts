@@ -1,7 +1,3 @@
-/**
- * React Command Handler
- * Uses reactService for external API calls
- */
 import { inject, injectable } from 'tsyringe';
 import { ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
 import { JsonResponse } from '../types';
