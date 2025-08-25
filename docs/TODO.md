@@ -1,7 +1,4 @@
 TODO:
-- e2e tests in ci
-- smoke tests on test deployment; deploy to prod if passing
-- break out KV into its own service; separate the two uses of KV
 - streamline prompt for contributing a new feature/command in its entirety
 - make commands.ts more dynamic.. it's just another thing to update at the moment
 - make local dev "better"?
@@ -12,15 +9,23 @@ TODO:
     - pokemon stuff
     - more dota stuff
     - "meta" command to create new commands with an agent.. create a PR with new feature?
+    - github issue feature request command
+    - insult command
+    - emojify
+- generative ai hooks
 - decouple discord request stuff from commands. Discord types shouldn't make it all the way to the commands.
 - dev container and code spaces 
 - Set up policies in GitHub to pave way for contributions
 - cloudflare api key / role / organization best practices
 - Pipeline for building services from API specs (like OpenDota spec)
-- clear dota service cache on deployment?
+- script to clear kv cache?
 - test bot in same server as prod bot? support multiple servers per bot?
-    - figure out state of global commands
+    - figure out state of global commands and how to refresh
 - worker logging / stack trace observability
 - Feature flagging
 - revamp documentation
 - discord interaction "follow-up"?? does this allow for slower replies to not fail?
+- http client injection?
+- Rework “config” DI to just be the env. Config was a premature efficiency “optimization”
+- Dependabot too aggressive with nightly built packages
+- Editor config
