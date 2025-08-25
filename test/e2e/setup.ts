@@ -10,7 +10,8 @@ beforeAll(async () => {
   worker = await unstable_dev('src/index.ts', {
     experimental: { disableExperimentalWarning: true },
     env: 'dev',
-    logLevel: 'log'
+    logLevel: 'log',
+    local: false
   });
 });
 

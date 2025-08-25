@@ -13,11 +13,7 @@ kv_namespaces = [
     { binding = "KV", id ="4000434490424208b40ea5817cf0f86e", preview_id = "4000434490424208b40ea5817cf0f86e" }
 ]
 upload_source_maps = true
-local = true
-[env.dev.vars]
-DISCORD_APPLICATION_ID = "111"
-DISCORD_TOKEN = "xyz"
-DISCORD_PUBLIC_KEY = "471fa8ce1a3d0428d1531fd232b8b26d540045d4086877df8872477e0ce637bc"
+remote = true
 
 [env.test]
 name = "discord-worker-test"
@@ -32,7 +28,8 @@ kv_namespaces = [
 ]
 
 # [secrets]
-# DISCORD_TOKEN
-# DISCORD_PUBLIC_KEY
+# SIGNATURE_PUBLIC_KEY
 # DISCORD_APPLICATION_ID
-# DISCORD_GUILD_ID
+# DISCORD_TOKEN
+# REDDIT_APPLICATION_ID
+# REDDIT_TOKEN

@@ -10,7 +10,7 @@ export class Auth {
     async performChecks(request: Request): Promise<Response | undefined> {
         const signature = request.headers.get('x-signature-ed25519');
         const timestamp = request.headers.get('x-signature-timestamp');
-        const discord_pub_key = this.config.get('DISCORD_PUBLIC_KEY');
+        const discord_pub_key = this.config.get('SIGNATURE_PUBLIC_KEY');
         const body = await request.clone().text();
     if (!signature || !timestamp || !(await this.verifySignature(signature, timestamp, body, String(discord_pub_key)))) {
             console.error('Invalid Request');
