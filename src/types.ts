@@ -9,11 +9,14 @@ export interface Env {
   SKIP_SIGNATURE_CHECK?: string;
   REDDIT_APPLICATION_ID: string;
   REDDIT_TOKEN: string;
+  DISCORD_API_BASE?: string;
+  DRY_RUN_FOLLOWUPS?: string; // 'true' to avoid hitting real Discord in smoke
+  FOLLOWUP_MIRROR_URL?: string; // optional endpoint to mirror follow-up payloads for smoke tests
 }
 
 export interface ICommandHandler {
   commandId: string;
-  handle(interaction: APIInteraction): Promise<Response>;
+  handle(interaction: APIInteraction, ctx?: ExecutionContext): Promise<Response>;
 }
 
 export class JsonResponse extends Response {

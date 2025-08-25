@@ -10,7 +10,15 @@
         "Lint",
         "Unit Tests",
         "E2E Tests"
-      ]
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false,
+        "showReuseMessage": true,
+        "focus": true
+      }
     },
     {
       "label": "Check Types",
@@ -19,7 +27,15 @@
       "args": ["run", "check"],
       "group": "build",
       "isBackground": false,
-      "options": { "cwd": "${workspaceFolder}" }
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false,
+        "showReuseMessage": true,
+        "focus": false
+      }
     },
     {
       "label": "Lint",
@@ -28,7 +44,15 @@
       "args": ["run", "lint"],
       "group": "build",
       "isBackground": false,
-      "options": { "cwd": "${workspaceFolder}" }
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$eslint-stylish", "$eslint-compact"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false,
+        "showReuseMessage": true,
+        "focus": false
+      }
     },
     {
       "label": "Unit Tests",
@@ -37,7 +61,14 @@
       "args": ["run", "test"],
       "group": "build",
       "isBackground": false,
-      "options": { "cwd": "${workspaceFolder}" }
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false,
+        "showReuseMessage": true,
+        "focus": false
+      }
     },
     {
       "label": "E2E Tests",
@@ -46,7 +77,14 @@
       "args": ["run", "e2e"],
       "group": "build",
       "isBackground": false,
-      "options": { "cwd": "${workspaceFolder}" }
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": false,
+        "showReuseMessage": true,
+        "focus": false
+      }
     }
   ]
 }
