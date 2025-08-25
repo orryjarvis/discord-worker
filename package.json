@@ -5,26 +5,33 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "wrangler dev --env dev --local --port 8787",
-    "fix": "eslint --fix . --ext .ts",
+    "start": "wrangler dev --env dev --port 8787",
     "lint": "eslint . --ext .ts",
+    "fix": "eslint --fix . --ext .ts",
+    "check": "tsc --noEmit",
     "test": "vitest",
-    "test:e2e": "vitest --config ./test/e2e/vitest.e2e.config.ts",
-    "deploy_commands": "tsc --project ./scripts/tsconfig.json && node ./bin/scripts/deploy_commands.js",
+    "e2e": "vitest --config ./test/e2e/vitest.e2e.config.ts",
+    "smoke": "vitest --config ./test/e2e/vitest.smoke.config.ts",
+    "deploy_commands": "tsx scripts/deploy_commands.ts",
+    "generate_test_keys": "tsx scripts/generate_test_keys.ts",
     "publish:test": "wrangler deploy --env test",
     "publish:prod": "wrangler deploy --env prod"
   },
   "dependencies": {
     "@noble/ed25519": "^2.3.0",
     "discord-api-types": "^0.38.20",
-    "itty-router": "^5.0.22"
+    "itty-router": "^5.0.22",
+    "reflect-metadata": "^0.2.2",
+    "tsyringe": "^4.10.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250821.0",
+    "@noble/hashes": "^1.8.0",
     "@types/node": "^24.3.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
     "wrangler": "^4.31.0"

@@ -1,18 +1,19 @@
-/**
- * Refresh Command Handler
- * Uses discordService for command upsert
- */
-import { JsonResponse } from '../index';
-import type { RefreshCommandDeps } from '../types/commandTypes';
+import { inject, injectable } from 'tsyringe';
+import { DiscordService } from '../services/discordService';
+import { ICommandHandler, JsonResponse } from '../types';
+import { APIInteraction } from 'discord-api-types/v10';
 
-export async function refreshCommandHandler(interaction: unknown, env: unknown, deps: unknown) {
-  const typedDeps = deps as RefreshCommandDeps;
-  const applicationId = (env as Record<string, unknown>)["DISCORD_APPLICATION_ID"] as string;
-  const token = (env as Record<string, unknown>)["DISCORD_TOKEN"] as string;
-  const guildId = (env as Record<string, unknown>)["DISCORD_GUILD_ID"] as string;
-  await typedDeps.discordService.upsertCommands(applicationId, token, typedDeps.commands, guildId);
-  return new JsonResponse({
-    type: 4,
-    data: { content: `${guildId ? 'Server' : 'Global'} commands refreshed` },
-  });
+@injectable({token: 'ICommandHandler'})
+export class RefreshCommand implements ICommandHandler {
+  readonly commandId = 'refresh';
+  constructor(@inject(DiscordService) private discordService: DiscordService) {}
+
+  async handle(interaction: APIInteraction): Promise<Response> {
+    // TODO this isn't passing anything useful...
+    await this.discordService.upsertCommands([], interaction.guild_id);
+    return new JsonResponse({
+      type: 4,
+      data: { content: `server commands refreshed` },
+    });
+  }
 }

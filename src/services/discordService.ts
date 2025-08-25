@@ -1,51 +1,29 @@
-/**
- * Discord Service
- * Encapsulates all Discord API calls
- */
+import { inject, injectable } from 'tsyringe';
 import type { DiscordCommand } from '../types/commandTypes';
+import { Configuration } from '../config';
 
-/**
- * Discord Service
- * Encapsulates all Discord API calls
- */
-function getDiscordCommandUrl(applicationId: string, guildId?: string, commandId?: string): string {
-  return `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ''}commands${commandId ? `/${commandId}` : ''}`;
-}
+@injectable()
+export class DiscordService {
 
-export const discordService = {
-  getInviteUrl(applicationId: string): string {
+  constructor(@inject(Configuration) private config: Configuration) {}
+
+  getInviteUrl(): string {
+    const applicationId = this.config.get('DISCORD_APPLICATION_ID');
     return `https://discord.com/oauth2/authorize?client_id=${applicationId}&scope=applications.commands`;
-  },
-  async upsertCommands(applicationId: string, token: string, commands: DiscordCommand[], guildId?: string): Promise<Response> {
-    const url = getDiscordCommandUrl(applicationId, guildId);
+  }
+
+  async upsertCommands(commands: DiscordCommand[], guildId?: string): Promise<Response> {
+    const applicationId = this.config.get('DISCORD_APPLICATION_ID');
+    const botToken = this.config.get('DISCORD_TOKEN');
+    const url = `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ''}commands`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bot ${token}`,
+        Authorization: `Bot ${botToken}`,
       },
       method: 'PUT',
       body: JSON.stringify(commands),
     });
     return response;
-  },
-  async getCommands(applicationId: string, token: string, guildId?: string) {
-    const url = getDiscordCommandUrl(applicationId, guildId);
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bot ${token}`,
-      },
-      method: 'GET'
-    });
-    return await response.json();
-  },
-  async deleteCommand(applicationId: string, token: string, commandId: string, guildId?: string) {
-    const url = getDiscordCommandUrl(applicationId, guildId, commandId);
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bot ${token}`,
-      },
-      method: 'DELETE'
-    });
-    return await response.json();
-  },
-};
+  }
+}

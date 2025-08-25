@@ -1,18 +1,11 @@
+import 'reflect-metadata';
 import { COMMANDS } from "../src/commands.js";
-import { discordService } from "../src/services/discordService.js";
-
-export const TOKEN = process.env.DISCORD_TOKEN;
-export const APPLICATION_ID = process.env.DISCORD_APPLICATION_ID;
-export const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
+import { DiscordService } from "../src/services/discordService.js";
+import { Configuration } from '../src/config.js';
+import { Env } from '../src/types.js';
 
 export async function deployCommands() {
-    if (!TOKEN) {
-        throw new Error('The DISCORD_TOKEN environment variable is required.');
-    }
-    if (!APPLICATION_ID) {
-        throw new Error('The DISCORD_APPLICATION_ID environment variable is required.');
-    }
-    const creationResponse = await discordService.upsertCommands(APPLICATION_ID, TOKEN, COMMANDS, GUILD_ID);
+    const creationResponse = await new DiscordService(new Configuration(process.env as unknown as Env)).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
     if (creationResponse.ok) {
         console.log('Registered all commands');
     } else {

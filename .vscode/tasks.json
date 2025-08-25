@@ -2,182 +2,51 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Lint Code",
+      "label": "Build",
+      "type": "shell",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Check Types",
+        "Lint",
+        "Unit Tests",
+        "E2E Tests"
+      ]
+    },
+    {
+      "label": "Check Types",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "check"],
+      "group": "build",
+      "isBackground": false,
+      "options": { "cwd": "${workspaceFolder}" }
+    },
+    {
+      "label": "Lint",
       "type": "shell",
       "command": "npm",
       "args": ["run", "lint"],
-      "group": "test",
-      "isBackground": false,
-      "dependsOn": "Install Dependencies",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": ["$eslint-stylish"]
-    },
-    {
-      "label": "Fix Lint Issues",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "fix"],
       "group": "build",
       "isBackground": false,
-      "dependsOn": "Install Dependencies",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": ["$eslint-stylish"]
+      "options": { "cwd": "${workspaceFolder}" }
     },
     {
-      "label": "Start Dev Server",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "start"],
-      "group": "build",
-      "isBackground": true,
-      "dependsOn": "Install Dependencies",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "new",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": {
-        "pattern": {
-          "regexp": "^Debugger listening on (.*)$",
-          "file": 1
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "^Starting local server\\.\\.\\.",
-          "endsPattern": "^Debugger listening on"
-        }
-      }
-    },
-    {
-      "label": "Run Tests",
+      "label": "Unit Tests",
       "type": "shell",
       "command": "npm",
       "args": ["run", "test"],
-      "group": "test",
-      "isBackground": false,
-      "dependsOn": "Install Dependencies",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Run E2E Tests",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "test:e2e"],
-      "group": "test",
-      "isBackground": false,
-      "dependsOn": "Install Dependencies",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Build Project",
-      "type": "shell",
-      "command": "npx",
-      "args": ["tsc", "--noEmit"],
       "group": "build",
       "isBackground": false,
-      "dependsOn": "Install Dependencies",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": ["$tsc"]
+      "options": { "cwd": "${workspaceFolder}" }
     },
     {
-      "label": "Install Dependencies",
+      "label": "E2E Tests",
       "type": "shell",
       "command": "npm",
-      "args": ["install"],
+      "args": ["run", "e2e"],
       "group": "build",
       "isBackground": false,
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "Validation",
-      "dependsOrder": "sequence",
-      "dependsOn": [
-        "Build Project",
-        "Run Tests",
-        "Run E2E Tests",
-        "Lint Code"
-      ],
-      "group": "test",
-      "options": {
-        "cwd": "${workspaceFolder}"
-      },
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      }
+      "options": { "cwd": "${workspaceFolder}" }
     }
   ]
 }
