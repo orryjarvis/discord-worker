@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signAndSendRequest } from '../setup';
+import { signAndSendRequest } from '../signAndSendRequest';
 
 describe('invite command', () => {
   it('responds with link', async () => {

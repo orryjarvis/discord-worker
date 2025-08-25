@@ -1,15 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { worker, signAndSendRequest } from './setup';
+import { signAndSendRequest } from './signAndSendRequest';
 
 describe('Discord Worker E2E', () => {
-
-  it('responds to GET / with app ID', async () => {
-    const res = await worker.fetch('/');
-    const text = await res.text();
-    expect(res.status).toBe(200);
-    expect(text).toMatch(/👋/);
-  });
-
   it('responds to Discord Ping interaction', async () => {
     const body = { type: 1 }; // InteractionType.Ping
     const res = await signAndSendRequest(body);

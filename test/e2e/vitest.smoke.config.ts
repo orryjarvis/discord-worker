@@ -5,14 +5,14 @@ export default defineConfig({
     include: ['test/e2e/**/*.test.ts'],
     globals: true,
     environment: 'node',
-    setupFiles: ['test/e2e/setup.e2e.ts'],
+    setupFiles: ['test/smoke/setup.smoke.ts'],
     watch: false,
     testTimeout: 15000,
     sequence: {
       concurrent: false,
     },
     env: {
-      TEST_SETUP: 'e2e',
+      TEST_SETUP: 'smoke',
     },
   },
 });

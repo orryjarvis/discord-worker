@@ -43,7 +43,7 @@
       "label": "E2E Tests",
       "type": "shell",
       "command": "npm",
-      "args": ["run", "test:e2e"],
+      "args": ["run", "e2e"],
       "group": "build",
       "isBackground": false,
       "options": { "cwd": "${workspaceFolder}" }

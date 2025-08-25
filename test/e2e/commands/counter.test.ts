@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { signAndSendRequest } from '../setup';
+import { signAndSendRequest } from '../signAndSendRequest';
 
 describe('counter command', () => {
   it('responds with  valid hero', async () => {

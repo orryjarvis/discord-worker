@@ -49,7 +49,7 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: npm run test:e2e
+      - run: npm run e2e
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
@@ -68,11 +68,26 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+  smoke-test:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: test
+    needs: [release-test]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: npm run smoke
+        env:
+          SIGNATURE_PRIVATE_KEY: ${{ secrets.SIGNATURE_PRIVATE_KEY }}
+          LIVE_BASE_URL: "https://discord-worker-test.orry.workers.dev"
   release:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prod
-    needs: [release-test]
+    needs: [smoke-test]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
