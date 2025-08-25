@@ -56,10 +56,10 @@ describe('counter command', () => {
     expect(json.type).toBe(5);
     expect(json.data.content).toMatch(/Crunching counters/i);
 
-  await waitForFollowup((events) => events.some((e: any) => e.kind === 'editOriginalResponse' && typeof e.data?.content === 'string'));
-  const events = await getFollowupEvents();
-  const edit = events.find((e: any) => e.kind === 'editOriginalResponse');
-  expect(edit).toBeTruthy();
-  expect(edit.data).toEqual(expect.objectContaining({ content: expect.stringMatching(/No counters found|Error fetching/i) }));
+    await waitForFollowup((events) => events.some((e: any) => e.kind === 'editOriginalResponse' && typeof e.data?.content === 'string'));
+    const events = await getFollowupEvents();
+    const edit = events.find((e: any) => e.kind === 'editOriginalResponse');
+    expect(edit).toBeTruthy();
+    expect(edit.data).toEqual(expect.objectContaining({ content: expect.stringMatching(/No counters found|Error fetching/i) }));
   });
 });
