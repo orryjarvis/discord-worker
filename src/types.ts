@@ -1,12 +1,14 @@
 import { APIInteraction } from "discord-api-types/v10";
 
 export interface Env {
-    DISCORD_APPLICATION_ID: string;
-    DISCORD_PUBLIC_KEY: string;
-    DISCORD_GUILD_ID: string | undefined;
-    DISCORD_TOKEN: string;
-    KV: KVNamespace;
-    SKIP_SIGNATURE_CHECK?: string;
+  DISCORD_APPLICATION_ID: string;
+  DISCORD_PUBLIC_KEY: string;
+  DISCORD_GUILD_ID: string | undefined;
+  DISCORD_TOKEN: string;
+  KV: KVNamespace;
+  SKIP_SIGNATURE_CHECK?: string;
+  REDDIT_APPLICATION_ID: string;
+  REDDIT_TOKEN: string;
 }
 
 export interface ICommandHandler {
