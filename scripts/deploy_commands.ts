@@ -3,9 +3,12 @@ import { COMMANDS } from "../src/commands.js";
 import { DiscordService } from "../src/services/discordService.js";
 import { Configuration } from '../src/config.js';
 import { Env } from '../src/types.js';
+import { DiscordTransport } from '../src/services/discordTransport.js';
 
 export async function deployCommands() {
-    const creationResponse = await new DiscordService(new Configuration(process.env as unknown as Env)).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
+    const config = new Configuration(process.env as unknown as Env);
+    const transport = new DiscordTransport(config);
+    const creationResponse = await new DiscordService(config, transport).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
     if (creationResponse.ok) {
         console.log('Registered all commands');
     } else {

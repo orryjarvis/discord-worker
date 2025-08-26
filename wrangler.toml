@@ -7,6 +7,21 @@ rules = [
   { type = "ESModule", globs = ["src/commands/**/.ts", "src/services/**/*.ts"], fallthrough = true }
 ]
 
+# Queues and service bindings will be enabled as part of the follow-up pipeline migration.
+# Uncomment and set real resource names in dashboard, then bind here per environment.
+#
+# [[queues.producers]]
+# queue = "followup-queue"
+# binding = "FOLLOWUP_QUEUE"
+#
+# [[queues.consumers]]
+# queue = "followup-queue"
+#
+# [services]
+# # Example binding used by the app code to call Discord via a proxy/mirror worker
+# # Add per-env overrides below.
+#
+
 [env.dev]
 name = "discord-worker-dev"
 kv_namespaces = [
@@ -15,17 +30,62 @@ kv_namespaces = [
 upload_source_maps = true
 remote = true
 
+# [env.dev.queues.producers]
+#   [[env.dev.queues.producers]]
+#   queue = "followup-queue-dev"
+#   binding = "FOLLOWUP_QUEUE"
+#
+# [env.dev.queues]
+#   [[env.dev.queues.consumers]]
+#   queue = "followup-queue-dev"
+#   max_batch_size = 1
+#   max_batch_timeout = 1
+#
+# [[env.dev.services]]
+# binding = "DISCORD_SERVICE"
+# service = "discord-proxy-dev" # or discord-mirror-dev in smoke
+
 [env.test]
 name = "discord-worker-test"
 kv_namespaces = [
     { binding = "KV", id = "f7b9e2cbd87640a286eb71509304ce9b" }
 ]
 
+# [env.test.queues.producers]
+#   [[env.test.queues.producers]]
+#   queue = "followup-queue-test"
+#   binding = "FOLLOWUP_QUEUE"
+#
+# [env.test.queues]
+#   [[env.test.queues.consumers]]
+#   queue = "followup-queue-test"
+#   max_batch_size = 1
+#   max_batch_timeout = 1
+#
+# [[env.test.services]]
+# binding = "DISCORD_SERVICE"
+# service = "discord-mirror-test"
+
 [env.prod]
 name = "discord-worker"
 kv_namespaces = [
     { binding = "KV", id = "1ac499a14b8345f0b30a7f526b9df6b9" }
 ]
+
+# [env.prod.queues.producers]
+#   [[env.prod.queues.producers]]
+#   queue = "followup-queue"
+#   binding = "FOLLOWUP_QUEUE"
+#
+# [env.prod.queues]
+#   [[env.prod.queues.consumers]]
+#   queue = "followup-queue"
+#   max_batch_size = 10
+#   max_batch_timeout = 5
+#
+# [[env.prod.services]]
+# binding = "DISCORD_SERVICE"
+# service = "discord-proxy"
 
 # [secrets]
 # SIGNATURE_PUBLIC_KEY

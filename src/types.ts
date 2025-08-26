@@ -12,6 +12,9 @@ export interface Env {
   DISCORD_API_BASE?: string;
   DRY_RUN_FOLLOWUPS?: string; // 'true' to avoid hitting real Discord in smoke
   FOLLOWUP_MIRROR_URL?: string; // optional endpoint to mirror follow-up payloads for smoke tests
+  // Stubs for upcoming queue + service binding migration
+  FOLLOWUP_QUEUE?: QueueBinding;
+  DISCORD_SERVICE?: ServiceBinding;
 }
 
 export interface ICommandHandler {
@@ -30,3 +33,12 @@ export class JsonResponse extends Response {
     super(jsonBody, init);
   }
 }
+
+// Minimal binding types to avoid pulling workers-types immediately
+export type QueueBinding = {
+  send: (message: unknown) => Promise<void>;
+};
+
+export type ServiceBinding = {
+  fetch: (input: Request | string, init?: RequestInit) => Promise<Response>;
+};
