@@ -7,5 +7,5 @@ updates:
       day: "monday"
     groups:
       minor-and-patch:
-      - patterns: ["*"]
+        patterns: ["*"]
         update-types: ["version-update:semver-minor", "version-update:semver-patch"]
