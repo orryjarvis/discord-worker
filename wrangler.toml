@@ -19,6 +19,11 @@ secrets_store_secrets = [
 upload_source_maps = true
 remote = true
 
+[env.dev.vars]
+DISCORD_APPLICATION_ID = "TEST_APPLICATION"
+DISCORD_TOKEN = "not-a-real-token"
+SIGNATURE_PUBLIC_KEY = "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e"
+
 [env.test]
 name = "discord-worker-test"
 kv_namespaces = [
@@ -28,6 +33,11 @@ secrets_store_secrets = [
     { binding = "REDDIT_APPLICATION_ID", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_APPLICATION_ID" },
     { binding = "REDDIT_TOKEN", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_TOKEN" },
 ]
+
+[env.test.vars]
+DISCORD_APPLICATION_ID = "TEST_APPLICATION"
+DISCORD_TOKEN = "not-a-real-token"
+SIGNATURE_PUBLIC_KEY = "341f4fe431b3393a285cd42b4a01ae872978aedee5a2284fa3683e63ee772da4"
 
 [env.prod]
 name = "discord-worker"
