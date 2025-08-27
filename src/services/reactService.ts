@@ -1,5 +1,5 @@
 import { inject, injectable } from 'tsyringe';
-import { Configuration } from '../config.js';
+import type { Env } from '../types.js';
 import { ObjectStorage } from './objectStorage.js';
 
 type ReactionType = "sadge" | "pog" | "monak" | "weirdge" | "jebait" | "kappa";
@@ -26,7 +26,7 @@ function ordinal_suffix_of(i: bigint) {
 @injectable()
 export class ReactService {
 
-  constructor(@inject(Configuration) private config: Configuration, @inject(ObjectStorage) private kv: ObjectStorage) { }
+  constructor(@inject('Env') private env: Env, @inject(ObjectStorage) private kv: ObjectStorage) { }
 
   async react(emote: string): Promise<string> {
     const reactionType = emote as ReactionType;

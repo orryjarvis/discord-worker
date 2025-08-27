@@ -2,13 +2,12 @@ import 'reflect-metadata';
 import { container } from 'tsyringe';
 import { Env } from './types.js';
 import { DiscordApplicationRouter } from './app.js';
-import { Configuration } from './config.js';
 
 
 const fetch = async (request: Request, env: Env) => {
     try {
         const childContainer = container.createChildContainer()
-            .register<Configuration>(Configuration, { useFactory: () => new Configuration(env)})
+            .register<Env>('Env', { useValue: env})
         const application = childContainer.resolve(DiscordApplicationRouter);
         return await application.fetch(request);
     } catch (error) {

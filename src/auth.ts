@@ -1,16 +1,16 @@
 import { inject, injectable } from 'tsyringe';
 import * as ed from "@noble/ed25519"
-import { Configuration } from './config';
+import type { Env } from './types.js';
 
 @injectable()
 export class Auth {
 
-    constructor(@inject(Configuration) private config: Configuration) {}
+    constructor(@inject('Env') private env: Env) {}
 
     async performChecks(request: Request): Promise<Response | undefined> {
         const signature = request.headers.get('x-signature-ed25519');
         const timestamp = request.headers.get('x-signature-timestamp');
-        const discord_pub_key = this.config.get('SIGNATURE_PUBLIC_KEY');
+        const discord_pub_key = this.env.SIGNATURE_PUBLIC_KEY;
         const body = await request.clone().text();
     if (!signature || !timestamp || !(await this.verifySignature(signature, timestamp, body, String(discord_pub_key)))) {
             console.error('Invalid Request');

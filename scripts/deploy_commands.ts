@@ -1,11 +1,10 @@
 import 'reflect-metadata';
 import { COMMANDS } from "../src/commands.js";
 import { DiscordService } from "../src/services/discordService.js";
-import { Configuration } from '../src/config.js';
 import { Env } from '../src/types.js';
 
 export async function deployCommands() {
-    const creationResponse = await new DiscordService(new Configuration(process.env as unknown as Env)).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
+    const creationResponse = await new DiscordService(process.env as unknown as Env).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
     if (creationResponse.ok) {
         console.log('Registered all commands');
     } else {
