@@ -10,7 +10,7 @@ import 'reflect-metadata';
 import { CommandLoader } from './loader';
 import { CommandFactory } from './factory';
 import { Auth } from './auth';
-import { Configuration } from './config';
+import type { Env } from './types.js';
 
 @injectable()
 export class DiscordApplicationRouter {
@@ -20,7 +20,7 @@ export class DiscordApplicationRouter {
         @inject(CommandLoader) private loader: CommandLoader,
         @inject(CommandFactory) private factory: CommandFactory,
         @inject(Auth) private auth: Auth,
-        @inject(Configuration) private config: Configuration
+        @inject('Env') private env: Env
     ) {
         this.router.get('/', this.get.bind(this));
         this.router.all('*', this.auth.performChecks.bind(this.auth));
@@ -29,7 +29,7 @@ export class DiscordApplicationRouter {
     }
 
     async get(): Promise<Response> {
-        return Promise.resolve(new Response(`👋 ${this.config.get('DISCORD_APPLICATION_ID')}`));
+        return Promise.resolve(new Response(`👋 ${this.env.DISCORD_APPLICATION_ID}`));
     }
 
     async post(request: Request): Promise<Response> {

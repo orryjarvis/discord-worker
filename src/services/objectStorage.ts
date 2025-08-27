@@ -1,11 +1,11 @@
 import { inject, injectable } from 'tsyringe';
-import { Configuration } from '../config';
+import type { Env } from '../types.js';
 
 @injectable()
 export class ObjectStorage {
   private readonly kv: KVNamespace;
-  constructor(@inject(Configuration) private config: Configuration) {
-    this.kv = config.get('KV') as KVNamespace;
+  constructor(@inject('Env') private env: Env) {
+    this.kv = this.env.KV;
   }
 
   private qualified_key(namespace: string, key: string): string {

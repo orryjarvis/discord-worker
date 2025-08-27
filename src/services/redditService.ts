@@ -1,21 +1,20 @@
 import { inject, injectable } from 'tsyringe';
 import type { RedditApiResponse } from '../types/commandTypes';
-import { Configuration } from '../config';
+import type { Env } from '../types.js';
 
 @injectable()
 export class RedditService {
   private cachedToken: { value: string; expiresAt: number } | null = null;
 
-  constructor(@inject(Configuration) private config: Configuration) { }
+  constructor(@inject('Env') private env: Env) { }
 
   private async getAccessToken(): Promise<string> {
     const now = Date.now();
     if (this.cachedToken && this.cachedToken.expiresAt > now + 5_000) {
       return this.cachedToken.value;
     }
-
-    const clientId = this.config.get('REDDIT_APPLICATION_ID') as string;
-    const clientSecret = this.config.get('REDDIT_TOKEN') as string;
+    const clientId = await this.env.REDDIT_APPLICATION_ID.get();
+    const clientSecret = await this.env.REDDIT_TOKEN.get();
 
     // OAuth2 client_credentials flow for application-only access
     const authHeader = 'Basic ' + btoa(`${clientId}:${clientSecret}`);

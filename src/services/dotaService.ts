@@ -1,6 +1,6 @@
 import type { DotaHero, DotaMatchup } from '../types/commandTypes';
 import { inject, injectable } from 'tsyringe';
-import { Configuration } from '../config';
+import type { Env } from '../types.js';
 import { ObjectStorage } from './objectStorage';
 
 const OPENDOTA_API_BASE = 'https://api.opendota.com/api';
@@ -9,7 +9,7 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 @injectable()
 export class DotaService {
 
-    constructor(@inject(Configuration) private config: Configuration, @inject(ObjectStorage) private kv: ObjectStorage) {}
+    constructor(@inject('Env') private env: Env, @inject(ObjectStorage) private kv: ObjectStorage) {}
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
         const res = await fetch(`${OPENDOTA_API_BASE}/heroes`);

@@ -27,5 +27,4 @@ TODO:
 - discord interaction "follow-up"?? does this allow for slower replies to not fail?
 - http client injection?
 - Rework “config” DI to just be the env. Config was a premature efficiency “optimization”
-- Dependabot too aggressive with nightly built packages
 - Editor config

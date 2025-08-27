@@ -1,5 +1,5 @@
 main = "src/index.ts"
-compatibility_date = "2023-08-01"
+compatibility_date = "2025-08-27"
 workers_dev = true
 account_id = "ac4880feb8f60847f0577d5967bf2b59"
 find_additional_modules = true
@@ -12,6 +12,10 @@ name = "discord-worker-dev"
 kv_namespaces = [
     { binding = "KV", id ="4000434490424208b40ea5817cf0f86e", preview_id = "4000434490424208b40ea5817cf0f86e" }
 ]
+secrets_store_secrets = [
+    { binding = "REDDIT_APPLICATION_ID", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_APPLICATION_ID" },
+    { binding = "REDDIT_TOKEN", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_TOKEN" },
+]
 upload_source_maps = true
 remote = true
 
@@ -20,16 +24,22 @@ name = "discord-worker-test"
 kv_namespaces = [
     { binding = "KV", id = "f7b9e2cbd87640a286eb71509304ce9b" }
 ]
+secrets_store_secrets = [
+    { binding = "REDDIT_APPLICATION_ID", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_APPLICATION_ID" },
+    { binding = "REDDIT_TOKEN", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_TOKEN" },
+]
 
 [env.prod]
 name = "discord-worker"
 kv_namespaces = [
     { binding = "KV", id = "1ac499a14b8345f0b30a7f526b9df6b9" }
 ]
+secrets_store_secrets = [
+    { binding = "REDDIT_APPLICATION_ID", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_APPLICATION_ID" },
+    { binding = "REDDIT_TOKEN", store_id = "bcfe20a10506483d95a91e302bd42d41", secret_name = "REDDIT_TOKEN" },
+]
 
 # [secrets]
 # SIGNATURE_PUBLIC_KEY
 # DISCORD_APPLICATION_ID
 # DISCORD_TOKEN
-# REDDIT_APPLICATION_ID
-# REDDIT_TOKEN
