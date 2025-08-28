@@ -19,12 +19,19 @@ TODO:
 - cloudflare api key / role / organization best practices
 - Pipeline for building services from API specs (like OpenDota spec)
 - script to clear kv cache?
-- test bot in same server as prod bot? support multiple servers per bot?
-    - figure out state of global commands and how to refresh
+- figure out state of global commands and how to refresh
 - worker logging / stack trace observability
 - Feature flagging
 - revamp documentation
 - discord interaction "follow-up"?? does this allow for slower replies to not fail?
-- http client injection?
-- Rework “config” DI to just be the env. Config was a premature efficiency “optimization”
+- http client/fetch injection?
 - Editor config
+- rethink  default GET path
+- split out “integrations” from common services
+- open dota integration reliability
+- Bluesky integration
+- rename "objectstorage" concept to "cache". KV is more of a cache while R2 is the object storage offering.
+- local dev with remote bindings
+- Dependabot secrets and merge when checks met
+- Require workflows to pass for PRs, do not allow bypass
+- UAT type environment that you can optionally deploy to after smoke tests on preview, with a real discord integration
