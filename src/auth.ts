@@ -25,7 +25,9 @@ export class Auth {
         clientPublicKey: string
     ): Promise<boolean> {
         const message = new TextEncoder().encode(timestamp + body)
-        const isVerified = await ed.verifyAsync(signature, message, clientPublicKey)
+        const sigHex = ed.etc.hexToBytes(signature)
+        const pubKeyHex = ed.etc.hexToBytes(clientPublicKey)
+        const isVerified = await ed.verifyAsync(sigHex, message, pubKeyHex)
         return isVerified
     }
 
