@@ -7,11 +7,6 @@ rules = [
     { type = "ESModule", globs = ["src/commands/**/*.ts", "src/services/**/*.ts", "src/generated/**/*.ts"], fallthrough = true }
 ]
 
-[build]
-command = "npm run generate:opendota"
-# When these change, rerun build command during dev
-watch_dir = ["scripts", "scripts/opendota.allowlist.json"]
-
 [env.dev]
 name = "discord-worker-dev"
 kv_namespaces = [

@@ -16,7 +16,8 @@
     "generate_test_keys": "tsx scripts/generate_test_keys.ts",
     "generate:opendota": "tsx scripts/generate_opendota_types.ts",
     "publish:test": "wrangler deploy --env test",
-    "publish:prod": "wrangler deploy --env prod"
+    "publish:prod": "wrangler deploy --env prod",
+    "postinstall": "npm run generate:opendota"
   },
   "dependencies": {
     "@noble/ed25519": "^3.0.0",
