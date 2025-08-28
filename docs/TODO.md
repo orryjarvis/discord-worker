@@ -12,11 +12,13 @@ TODO:
     - github issue feature request command
     - insult command
     - emojify
+    - pseudo random dota rolling
 - generative ai hooks
 - decouple discord request stuff from commands. Discord types shouldn't make it all the way to the commands.
 - dev container and code spaces 
 - Set up policies in GitHub to pave way for contributions
 - cloudflare api key / role / organization best practices
+    - separate key for dependabot
 - Pipeline for building services from API specs (like OpenDota spec)
 - script to clear kv cache?
 - test bot in same server as prod bot? support multiple servers per bot?
@@ -28,3 +30,10 @@ TODO:
 - http client injection?
 - Rework “config” DI to just be the env. Config was a premature efficiency “optimization”
 - Editor config
+- rethink  default GET path
+- split out “integrations” from common services
+- open dota integration reliability
+- Bluesky integration
+- rename "objectstorage" concept to "cache". KV is more of a cache while R2 is the object storage offering.
+- local dev with remote bindings
+- UAT type environment that you can optionally deploy to after smoke tests on preview, with a real discord integration
