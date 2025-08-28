@@ -23,13 +23,14 @@
     "@noble/ed25519": "^3.0.0",
     "discord-api-types": "^0.38.21",
     "itty-router": "^5.0.22",
+    "openapi-fetch": "^0.12.4",
     "reflect-metadata": "^0.2.2",
-  "tsyringe": "^4.10.0",
-  "openapi-fetch": "^0.12.4"
+    "tsyringe": "^4.10.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250826.0",
     "@types/node": "^24.3.0",
+    "@types/swagger2openapi": "^7.0.4",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
