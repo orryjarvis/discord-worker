@@ -37,7 +37,7 @@ secrets_store_secrets = [
 [env.test.vars]
 DISCORD_APPLICATION_ID = "TEST_APPLICATION"
 DISCORD_TOKEN = "not-a-real-token"
-SIGNATURE_PUBLIC_KEY = "341f4fe431b3393a285cd42b4a01ae872978aedee5a2284fa3683e63ee772da4"
+SIGNATURE_PUBLIC_KEY = "d392fc518bebf4dbc2fc3f7dead4237f87b60bb1d7bbd57a2a91a05da5003a26"
 
 [env.prod]
 name = "discord-worker"

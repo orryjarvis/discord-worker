@@ -127,23 +127,3 @@ jobs:
         env:
           DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-  cleanup-preview:
-    if: |
-      github.event_name == 'pull_request' &&
-      github.event.action == 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    environment: test
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 24
-      - run: npm ci
-      - name: Delete PR preview Worker
-        run: |
-          WORKER_NAME="discord-worker-pr-${{ github.event.number }}"
-          npx wrangler delete --name "$WORKER_NAME" --env test || true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}

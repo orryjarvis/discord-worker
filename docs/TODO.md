@@ -21,14 +21,12 @@ TODO:
     - separate key for dependabot
 - Pipeline for building services from API specs (like OpenDota spec)
 - script to clear kv cache?
-- test bot in same server as prod bot? support multiple servers per bot?
-    - figure out state of global commands and how to refresh
+- figure out state of global commands and how to refresh
 - worker logging / stack trace observability
 - Feature flagging
 - revamp documentation
 - discord interaction "follow-up"?? does this allow for slower replies to not fail?
-- http client injection?
-- Rework “config” DI to just be the env. Config was a premature efficiency “optimization”
+- http client/fetch injection?
 - Editor config
 - rethink  default GET path
 - split out “integrations” from common services
