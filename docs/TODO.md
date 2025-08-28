@@ -31,3 +31,7 @@ TODO:
 - open dota integration reliability
 - Bluesky integration
 - rename "objectstorage" concept to "cache". KV is more of a cache while R2 is the object storage offering.
+- local dev with remote bindings
+- Dependabot secrets and merge when checks met
+- Require workflows to pass for PRs, do not allow bypass
+- UAT type environment that you can optionally deploy to after smoke tests on preview, with a real discord integration
