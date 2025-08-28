@@ -1,0 +1,23 @@
+{
+  "providers": [
+    {
+      "name": "opendota",
+      "specUrl": "https://api.opendota.com/api",
+      "allowlist": [
+        "/heroes",
+        "/heroes/{hero_id}/matchups"
+      ],
+      "output": "src/generated/opendota.ts"
+    },
+    {
+      "name": "discord",
+      "specUrl": "https://raw.githubusercontent.com/discord/discord-api-spec/refs/heads/main/specs/openapi.json",
+      "allowlist": [
+        "/webhooks/{application.id}/{interaction.token}",
+        "/webhooks/{application.id}/{interaction.token}/messages/@original",
+        "/webhooks/{application.id}/{interaction.token}/messages/{message.id}"
+      ],
+      "output": "src/generated/discord.ts"
+    }
+  ]
+}

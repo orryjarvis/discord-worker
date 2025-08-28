@@ -14,10 +14,10 @@
     "smoke": "vitest --config ./test/e2e/vitest.smoke.config.ts",
     "deploy_commands": "tsx scripts/deploy_commands.ts",
     "generate_test_keys": "tsx scripts/generate_test_keys.ts",
-    "generate:opendota": "tsx scripts/generate_opendota_types.ts",
+    "generate:types": "tsx scripts/generate_types.ts",
     "publish:test": "wrangler deploy --env test",
     "publish:prod": "wrangler deploy --env prod",
-    "postinstall": "npm run generate:opendota"
+    "postinstall": "npm run generate:types"
   },
   "dependencies": {
     "@noble/ed25519": "^3.0.0",
@@ -34,6 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
+    "openapi-sampler": "^1.5.1",
     "openapi-typescript": "^7.4.2",
     "swagger2openapi": "^7.0.8",
     "tsx": "^4.20.5",
