@@ -1,3 +1,5 @@
+import createClient from 'openapi-fetch';
+import type { paths } from '../generated/opendota';
 import type { DotaHero, DotaMatchup } from '../types/commandTypes';
 import { inject, injectable } from 'tsyringe';
 import type { Env } from '../types.js';
@@ -12,9 +14,13 @@ export class DotaService {
     constructor(@inject('Env') private env: Env, @inject(ObjectStorage) private kv: ObjectStorage) {}
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
-        const res = await fetch(`${OPENDOTA_API_BASE}/heroes`);
-        const heroes = await res.json() as DotaHero[];
-        const hero = heroes.find((h) =>
+    const client = createClient<paths>({ baseUrl: OPENDOTA_API_BASE, fetch });
+    const { data: heroes, response: heroesResp } = await client.GET('/heroes');
+    if (!heroesResp.ok) throw new Error(`OpenDota error fetching heroes: ${heroesResp.status}`);
+    // The generated type for heroes items is components["schemas"]["HeroObjectResponse"],
+    // we map to our minimal local DotaHero shape used elsewhere.
+    const heroesSlim: DotaHero[] = (heroes ?? []).map((h) => ({ id: (h as any).id, localized_name: (h as any).localized_name }));
+    const hero = heroesSlim.find((h) =>
             h.localized_name.toLowerCase() === heroName.toLowerCase()
         );
         return hero ? hero.id : null;
@@ -33,9 +39,13 @@ export class DotaService {
         const heroId = await this.getHeroIdByName(heroName);
         if (!heroId) throw new Error(`Hero "${heroName}" not found.`);
 
-        // Fetch matchup data
-        const res = await fetch(`${OPENDOTA_API_BASE}/heroes/${heroId}/matchups`);
-        const matchups = await res.json() as DotaMatchup[];
+        // Fetch matchup data using typed client
+    const client = createClient<paths>({ baseUrl: OPENDOTA_API_BASE, fetch });
+    const { data: matchupData, response: matchupsResp } = await client.GET('/heroes/{hero_id}/matchups', {
+            params: { path: { hero_id: heroId } }
+        });
+    if (!matchupsResp.ok) throw new Error(`OpenDota error fetching matchups: ${matchupsResp.status}`);
+        const matchups = (matchupData ?? []) as unknown as DotaMatchup[];
 
         // Sort by highest win rate against the hero
         const counters = matchups
@@ -46,9 +56,10 @@ export class DotaService {
             .sort((a, b) => a.win_rate - b.win_rate)
             .slice(0, topN);
 
-        // Fetch hero names for counter IDs
-        const allHeroesRes = await fetch(`${OPENDOTA_API_BASE}/heroes`);
-        const allHeroes = await allHeroesRes.json() as DotaHero[];
+    // Fetch hero names for counter IDs using typed client
+    const { data: allHeroesData, response: heroes2Resp } = await client.GET('/heroes');
+    if (!heroes2Resp.ok) throw new Error(`OpenDota error fetching heroes: ${heroes2Resp.status}`);
+    const allHeroes = (allHeroesData ?? []).map((h) => ({ id: (h as any).id, localized_name: (h as any).localized_name })) as DotaHero[];
 
         const counterNames = counters.map((c) => {
             const hero = allHeroes.find((h) => h.id === c.hero_id);

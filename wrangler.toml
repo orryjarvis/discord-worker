@@ -4,8 +4,13 @@ workers_dev = true
 account_id = "ac4880feb8f60847f0577d5967bf2b59"
 find_additional_modules = true
 rules = [
-  { type = "ESModule", globs = ["src/commands/**/.ts", "src/services/**/*.ts"], fallthrough = true }
+    { type = "ESModule", globs = ["src/commands/**/*.ts", "src/services/**/*.ts", "src/generated/**/*.ts"], fallthrough = true }
 ]
+
+[build]
+command = "npm run generate:opendota"
+# When these change, rerun build command during dev
+watch_dir = ["scripts", "scripts/opendota.allowlist.json"]
 
 [env.dev]
 name = "discord-worker-dev"

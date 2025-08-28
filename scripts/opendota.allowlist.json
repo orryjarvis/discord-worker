@@ -1,0 +1,6 @@
+{
+  "paths": [
+    "/heroes",
+    "/heroes/{hero_id}/matchups"
+  ]
+}
