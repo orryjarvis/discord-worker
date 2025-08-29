@@ -13,11 +13,29 @@
       "name": "discord",
       "specUrl": "https://raw.githubusercontent.com/discord/discord-api-spec/refs/heads/main/specs/openapi.json",
       "allowlist": [
-        "/webhooks/{application.id}/{interaction.token}",
-        "/webhooks/{application.id}/{interaction.token}/messages/@original",
-        "/webhooks/{application.id}/{interaction.token}/messages/{message.id}"
+  "/webhooks/{application_id}/{interaction_token}",
+  "/webhooks/{application_id}/{interaction_token}/messages/@original",
+  "/webhooks/{application_id}/{interaction_token}/messages/{message_id}",
+  "/applications/{application_id}/commands",
+  "/applications/{application_id}/guilds/{guild_id}/commands"
       ],
       "output": "src/generated/discord.ts"
+    },
+    {
+      "name": "reddit",
+      "allowlist": [
+        "/api/v1/access_token",
+        "/r/{subreddit}/hot.json"
+      ],
+      "output": "src/generated/reddit.ts",
+      "preprocess": {
+        "module": "scripts/preprocessors/reddit.ts",
+        "export": "default",
+        "config": {
+          "sampleSubreddit": "aww",
+          "inferFromSample": true
+        }
+      }
     }
   ]
 }

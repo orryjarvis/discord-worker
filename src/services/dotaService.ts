@@ -1,9 +1,8 @@
-import createClient from 'openapi-fetch';
-import type { paths } from '../generated/opendota';
-import type { DotaHero, DotaMatchup } from '../types/commandTypes';
+import type { paths as OpenDotaAPI } from '../generated/opendota';
 import { inject, injectable } from 'tsyringe';
 import type { Env } from '../types.js';
 import { ObjectStorage } from './objectStorage';
+import { ApiClientFactory } from './apiClientFactory';
 
 const OPENDOTA_API_BASE = 'https://api.opendota.com/api';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
@@ -11,18 +10,19 @@ const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 @injectable()
 export class DotaService {
 
-    constructor(@inject('Env') private env: Env, @inject(ObjectStorage) private kv: ObjectStorage) {}
+    constructor(
+        @inject('Env') private env: Env,
+        @inject(ObjectStorage) private kv: ObjectStorage,
+        @inject(ApiClientFactory) private api: ApiClientFactory<OpenDotaAPI>,
+    ) {}
 
     async getHeroIdByName(heroName: string): Promise<number | null> {
-    const client = createClient<paths>({ baseUrl: OPENDOTA_API_BASE, fetch });
-    const { data: heroes, response: heroesResp } = await client.GET('/heroes');
+    const client = this.api.create({ baseUrl: OPENDOTA_API_BASE });
+    const { data: heroes, response: heroesResp } = await client.GET('/heroes', { fetch });
     if (!heroesResp.ok) throw new Error(`OpenDota error fetching heroes: ${heroesResp.status}`);
-    // The generated type for heroes items is components["schemas"]["HeroObjectResponse"],
-    // we map to our minimal local DotaHero shape used elsewhere.
-    const heroesSlim: DotaHero[] = (heroes ?? []).map((h) => ({ id: (h as any).id, localized_name: (h as any).localized_name }));
-    const hero = heroesSlim.find((h) =>
-            h.localized_name.toLowerCase() === heroName.toLowerCase()
-        );
+    const hero = (heroes ?? []).find((h) =>
+            (h as any).localized_name?.toLowerCase() === heroName.toLowerCase()
+        ) as any;
         return hero ? hero.id : null;
     }
 
@@ -40,30 +40,31 @@ export class DotaService {
         if (!heroId) throw new Error(`Hero "${heroName}" not found.`);
 
         // Fetch matchup data using typed client
-    const client = createClient<paths>({ baseUrl: OPENDOTA_API_BASE, fetch });
+    const client = this.api.create({ baseUrl: OPENDOTA_API_BASE }) as unknown as import('openapi-fetch').Client<paths>;
     const { data: matchupData, response: matchupsResp } = await client.GET('/heroes/{hero_id}/matchups', {
-            params: { path: { hero_id: heroId } }
+            params: { path: { hero_id: heroId } },
+            fetch,
         });
     if (!matchupsResp.ok) throw new Error(`OpenDota error fetching matchups: ${matchupsResp.status}`);
-        const matchups = (matchupData ?? []) as unknown as DotaMatchup[];
+    const matchups = (matchupData ?? []) as Array<{ hero_id?: number; wins?: number; games_played?: number }>;
 
         // Sort by highest win rate against the hero
         const counters = matchups
             .map((m) => ({
-                hero_id: m.hero_id,
-                win_rate: m.wins / m.games_played,
+                hero_id: m.hero_id ?? -1,
+                win_rate: (m.wins ?? 0) / Math.max(1, m.games_played ?? 1),
             }))
             .sort((a, b) => a.win_rate - b.win_rate)
             .slice(0, topN);
 
     // Fetch hero names for counter IDs using typed client
-    const { data: allHeroesData, response: heroes2Resp } = await client.GET('/heroes');
+    const { data: allHeroesData, response: heroes2Resp } = await client.GET('/heroes', { fetch });
     if (!heroes2Resp.ok) throw new Error(`OpenDota error fetching heroes: ${heroes2Resp.status}`);
-    const allHeroes = (allHeroesData ?? []).map((h) => ({ id: (h as any).id, localized_name: (h as any).localized_name })) as DotaHero[];
+    const allHeroes = (allHeroesData ?? []).map((h) => ({ id: (h as any).id, localized_name: (h as any).localized_name })) as Array<{ id: number; localized_name?: string }>;
 
         const counterNames = counters.map((c) => {
             const hero = allHeroes.find((h) => h.id === c.hero_id);
-            return hero ? hero.localized_name : `Hero ID ${c.hero_id}`;
+            return hero ? (hero.localized_name ?? `Hero ID ${c.hero_id}`) : `Hero ID ${c.hero_id}`;
         });
 
         // Store in KV

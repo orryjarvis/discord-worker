@@ -12,9 +12,14 @@ import { spawn } from 'node:child_process';
 
 type Provider = {
     name: string;
-    specUrl: string; // URL or ENV:VARNAME to read from env
+    specUrl?: string; // URL or ENV:VARNAME to read from env (optional when preprocess is used)
     allowlist: string[]; // array of path templates
     output: string; // relative to repo root
+    preprocess?: {
+        module: string; // module path relative to repo root (ts/js supported via tsx)
+        export?: string; // named export to call (default: default)
+        config?: Record<string, unknown>; // arbitrary config passed to preprocessor
+    };
 };
 
 type Config = {
@@ -66,6 +71,18 @@ async function fetchWithRetry(url: string, attempts = 3, timeoutMs = 15000): Pro
 }
 
 async function loadSpec(provider: Provider): Promise<OpenAPISchema> {
+    // If a preprocess hook is configured, use it to obtain or synthesize an OpenAPI schema.
+    if (provider.preprocess) {
+        const modPath = path.resolve(REPO_ROOT, provider.preprocess.module);
+        const expName = provider.preprocess.export ?? 'default';
+        const mod = await import(modPath);
+        const fn: ((p: Provider) => Promise<OpenAPISchema> | OpenAPISchema) | undefined = mod[expName];
+        if (typeof fn !== 'function') {
+            throw new Error(`Preprocess export '${expName}' not found or not a function in ${provider.preprocess.module}`);
+        }
+        const out = await fn({ ...provider });
+        return out;
+    }
     if (!provider.specUrl) throw new Error('No specUrl provided');
     return await fetchWithRetry(provider.specUrl);
 }
