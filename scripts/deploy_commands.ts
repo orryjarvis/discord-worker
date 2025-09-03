@@ -1,10 +1,21 @@
 import 'reflect-metadata';
+// Generate commands from decorator-based registry
+import { registry } from "../src/commanding/registry.js";
+import { toDiscordCommand } from "../src/commanding/discordAdapters.js";
 import { COMMANDS } from "../src/commands.js";
 import { DiscordService } from "../src/services/discordService.js";
 import { Env } from '../src/types.js';
+import createClient from 'openapi-fetch';
+import type { paths as DiscordPaths } from '../src/generated/discord';
 
 export async function deployCommands() {
-    const creationResponse = await new DiscordService(process.env as unknown as Env).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
+    const env = process.env as unknown as Env;
+    const client = createClient<DiscordPaths>({ baseUrl: env.DISCORD_URL, fetch });
+    const discord = new DiscordService(env, client as any);
+    const decorated = registry.map(r => toDiscordCommand(r.def));
+    const manual = COMMANDS.filter(c => c.name !== 'reddit');
+    const combined = [...manual, ...decorated];
+    const creationResponse = await discord.upsertCommands(combined as unknown[], process.env.DISCORD_GUILD_ID);
     if (creationResponse.ok) {
         console.log('Registered all commands');
     } else {

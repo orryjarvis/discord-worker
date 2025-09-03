@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe';
 import { DotaService } from '../services/dotaService';
-import { ICommandHandler } from '../types';
+import { ICommandHandler } from '../commanding/handler';
 import { APIChatInputApplicationCommandInteraction, APIApplicationCommandInteractionDataOption } from 'discord-api-types/v10';
 
 @injectable({ token: 'ICommandHandler' })

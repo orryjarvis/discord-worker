@@ -1,12 +1,16 @@
 import { inject, injectable } from 'tsyringe';
-import type { RedditApiResponse } from '../types/commandTypes';
 import type { Env } from '../types.js';
+import { ApiClientTokens } from '../generated';
+import type { RedditClient } from '../generated';
 
 @injectable()
 export class RedditService {
   private cachedToken: { value: string; expiresAt: number } | null = null;
 
-  constructor(@inject('Env') private env: Env) { }
+  constructor(
+    @inject('Env') private env: Env,
+  @inject(ApiClientTokens.reddit) private client: RedditClient,
+  ) { }
 
   private async getAccessToken(): Promise<string> {
     const now = Date.now();
@@ -41,31 +45,27 @@ export class RedditService {
 
   async getMedia(subreddit: string): Promise<string> {
     const token = await this.getAccessToken();
-    const response = await fetch(`https://oauth.reddit.com/r/${subreddit}/hot.json`, {
+    const { data, response } = await this.client.GET('/r/{subreddit}/hot.json', {
+      params: { path: { subreddit } },
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'User-Agent': 'discord-worker:1.0.0 (by /u/twiitchz)',
       },
     });
-
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`Reddit API error: ${response.status} ${text}`);
     }
 
-    const data = await response.json() as RedditApiResponse;
-    const posts = data.data.children
-      .map((post) => {
-        if (post.is_gallery) {
-          return '';
-        }
-        return (
-          post.data?.media?.reddit_video?.fallback_url ||
-          post.data?.secure_media?.reddit_video?.fallback_url ||
-          post.data?.url || ''
-        );
+    const posts = (data?.data?.children ?? [])
+      .map((child: any) => {
+        const p = (child as any)?.data as any;
+        if (!p) return '';
+        if (p.is_gallery) return '';
+        const url = typeof p.url === 'string' ? p.url : '';
+        return url;
       })
-      .filter((post) => post !== '');
+      .filter((post: string) => post !== '');
     const randomIndex = Math.floor(Math.random() * posts.length);
     const randomPost = posts[randomIndex] ?? '';
     return randomPost;

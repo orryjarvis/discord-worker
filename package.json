@@ -14,22 +14,29 @@
     "smoke": "vitest --config ./test/e2e/vitest.smoke.config.ts",
     "deploy_commands": "tsx scripts/deploy_commands.ts",
     "generate_test_keys": "tsx scripts/generate_test_keys.ts",
+    "generate:types": "tsx scripts/generate_types.ts",
     "publish:test": "wrangler deploy --env test",
-    "publish:prod": "wrangler deploy --env prod"
+    "publish:prod": "wrangler deploy --env prod",
+    "postinstall": "npm run generate:types"
   },
   "dependencies": {
     "@noble/ed25519": "^3.0.0",
     "discord-api-types": "^0.38.22",
     "itty-router": "^5.0.22",
+    "openapi-fetch": "^0.12.4",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250831.0",
     "@types/node": "^24.3.0",
+    "@types/swagger2openapi": "^7.0.4",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
+    "openapi-sampler": "^1.5.1",
+    "openapi-typescript": "^7.4.2",
+    "swagger2openapi": "^7.0.8",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4",
