@@ -1,7 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 import { JsonResponse } from '../types';
 import { DiscordService } from '../services/discordService';
-import { ICommandHandler } from '../types';
+import { ICommandHandler } from '../commanding/handler';
 
 @injectable({token: 'ICommandHandler'})
 export class InviteCommand implements ICommandHandler {

@@ -2,7 +2,7 @@ import { inject, injectable } from 'tsyringe';
 import { ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
 import { JsonResponse } from '../types';
 import { ReactService } from '../services/reactService';
-import { ICommandHandler } from '../types';
+import { ICommandHandler } from '../commanding/handler';
 
 @injectable({token: 'ICommandHandler'})
 export class ReactCommand implements ICommandHandler {

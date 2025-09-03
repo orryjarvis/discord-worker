@@ -4,7 +4,12 @@ workers_dev = true
 account_id = "ac4880feb8f60847f0577d5967bf2b59"
 find_additional_modules = true
 rules = [
-    { type = "ESModule", globs = ["src/commands/**/*.ts", "src/services/**/*.ts", "src/generated/**/*.ts"], fallthrough = true }
+    { type = "ESModule", globs = [
+        "src/commands/**/*.ts",
+        "src/services/**/*.ts",
+        "src/generated/**/*.ts",
+        "src/commanding/**/*.ts"
+    ], fallthrough = true }
 ]
 
 [env.dev]

@@ -1,5 +1,3 @@
-import { APIInteraction } from "discord-api-types/v10";
-
 export interface Env {
   KV: KVNamespace;
   SIGNATURE_PUBLIC_KEY: string;
@@ -15,12 +13,6 @@ export interface Env {
 
   OPENDOTA_URL: string;
 }
-
-export interface ICommandHandler {
-  commandId: string;
-  handle(interaction: APIInteraction): Promise<Response>;
-}
-
 export class JsonResponse extends Response {
   constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
     const jsonBody = JSON.stringify(body);

@@ -9,6 +9,7 @@ import {
 import 'reflect-metadata';
 import { CommandLoader } from './loader';
 import { CommandFactory } from './factory';
+import { DiscordCommandParser } from './commanding/discord/discordCommandParser.js';
 import { Auth } from './auth';
 import type { Env } from './types.js';
 
@@ -19,6 +20,7 @@ export class DiscordApplicationRouter {
     constructor(
         @inject(CommandLoader) private loader: CommandLoader,
         @inject(CommandFactory) private factory: CommandFactory,
+        @inject(DiscordCommandParser) private parser: DiscordCommandParser,
         @inject(Auth) private auth: Auth,
         @inject('Env') private env: Env
     ) {
@@ -41,15 +43,20 @@ export class DiscordApplicationRouter {
         }
 
         if (interaction.type === InteractionType.ApplicationCommand) {
-            const commandName = interaction.data.name.toLowerCase();
-            await this.loader.loadCommand(commandName);
-            const command = this.factory.getCommand(commandName);
-            if (command) {
-                return await command.handle(interaction);
-            } else {
+            // Use parser to resolve command id and validate input, but keep handlers unchanged
+            const native = this.parser.parse(interaction);
+            await this.loader.loadCommand(native.commandId);
+            const command = this.factory.getCommand(native.commandId);
+            if (!command) {
                 console.error('Unknown Command');
                 return new Response('Unknown Command', { status: 400 });
             }
+            const maybeNative = command as any;
+            if (typeof maybeNative.handleNative === 'function') {
+                const result = await maybeNative.handleNative(native);
+                return new JsonResponse(this.parser.toResponse(result) as unknown as Record<string, unknown>);
+            }
+            return await command.handle(interaction);
         }
 
         console.error('Unknown Interaction Type');
