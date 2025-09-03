@@ -2,11 +2,13 @@ import 'reflect-metadata';
 import { COMMANDS } from "../src/commands.js";
 import { DiscordService } from "../src/services/discordService.js";
 import { Env } from '../src/types.js';
-import { ApiClientFactory } from '../src/services/apiClientFactory.js';
+import createClient from 'openapi-fetch';
+import type { paths as DiscordPaths } from '../src/generated/discord';
 
 export async function deployCommands() {
     const env = process.env as unknown as Env;
-    const discord = new DiscordService(env, new ApiClientFactory());
+    const client = createClient<DiscordPaths>({ baseUrl: env.DISCORD_URL, fetch });
+    const discord = new DiscordService(env, client as any);
     const creationResponse = await discord.upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
     if (creationResponse.ok) {
         console.log('Registered all commands');

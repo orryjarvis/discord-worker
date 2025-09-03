@@ -1,17 +1,15 @@
 import { inject, injectable } from 'tsyringe';
 import type { Env } from '../types.js';
-import { ApiClientFactory } from './apiClientFactory';
-import type { paths as DiscordAPI } from '../generated/discord';
-import type { Client } from 'openapi-fetch';
+import { ApiClientTokens } from '../generated';
+import type { DiscordClient } from '../generated';
 
 @injectable()
 export class DiscordService {
-  private client: Client<DiscordAPI>;
 
-  constructor(@inject('Env') private env: Env, @inject(ApiClientFactory) api: ApiClientFactory<discordPaths>) {
-    // Discord REST base
-    this.client = api.create({ baseUrl: 'https://discord.com/api/v10' });
-  }
+  constructor(
+    @inject('Env') private env: Env,
+  @inject(ApiClientTokens.discord) private client: DiscordClient,
+  ) { }
 
   getInviteUrl(): string {
     const applicationId = this.env.DISCORD_APPLICATION_ID;

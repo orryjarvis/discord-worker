@@ -23,6 +23,9 @@ remote = true
 DISCORD_APPLICATION_ID = "TEST_APPLICATION"
 DISCORD_TOKEN = "not-a-real-token"
 SIGNATURE_PUBLIC_KEY = "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e"
+DISCORD_URL = "https://discord.com/api/v10"
+REDDIT_URL = "https://oauth.reddit.com"
+OPENDOTA_URL = "https://api.opendota.com/api"
 
 [env.test]
 name = "discord-worker-test"
@@ -38,6 +41,9 @@ secrets_store_secrets = [
 DISCORD_APPLICATION_ID = "TEST_APPLICATION"
 DISCORD_TOKEN = "not-a-real-token"
 SIGNATURE_PUBLIC_KEY = "d392fc518bebf4dbc2fc3f7dead4237f87b60bb1d7bbd57a2a91a05da5003a26"
+DISCORD_URL = "https://discord.com/api/v10"
+REDDIT_URL = "https://oauth.reddit.com"
+OPENDOTA_URL = "https://api.opendota.com/api"
 
 [env.prod]
 name = "discord-worker"

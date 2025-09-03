@@ -1,14 +1,16 @@
 import { inject, injectable } from 'tsyringe';
-import createClient from 'openapi-fetch';
-import type { paths as RedditAPI } from '../generated/reddit';
 import type { Env } from '../types.js';
-import { ApiClientFactory } from './apiClientFactory';
+import { ApiClientTokens } from '../generated';
+import type { RedditClient } from '../generated';
 
 @injectable()
 export class RedditService {
   private cachedToken: { value: string; expiresAt: number } | null = null;
 
-  constructor(@inject('Env') private env: Env, @inject(ApiClientFactory) private api: ApiClientFactory<RedditAPI>) { }
+  constructor(
+    @inject('Env') private env: Env,
+  @inject(ApiClientTokens.reddit) private client: RedditClient,
+  ) { }
 
   private async getAccessToken(): Promise<string> {
     const now = Date.now();
@@ -43,13 +45,11 @@ export class RedditService {
 
   async getMedia(subreddit: string): Promise<string> {
     const token = await this.getAccessToken();
-    const client = createClient<paths>({ baseUrl: 'https://oauth.reddit.com' });
-
-    const { data, response } = await client.GET('/r/{subreddit}/hot.json', {
+    const { data, response } = await this.client.GET('/r/{subreddit}/hot.json', {
       params: { path: { subreddit } },
       headers: {
         Authorization: `Bearer ${token}`,
-  'User-Agent': 'discord-worker:1.0.0 (by /u/twiitchz)',
+        'User-Agent': 'discord-worker:1.0.0 (by /u/twiitchz)',
       },
     });
     if (!response.ok) {
@@ -58,14 +58,14 @@ export class RedditService {
     }
 
     const posts = (data?.data?.children ?? [])
-      .map((child) => {
+      .map((child: any) => {
         const p = (child as any)?.data as any;
         if (!p) return '';
         if (p.is_gallery) return '';
         const url = typeof p.url === 'string' ? p.url : '';
         return url;
       })
-      .filter((post) => post !== '');
+      .filter((post: string) => post !== '');
     const randomIndex = Math.floor(Math.random() * posts.length);
     const randomPost = posts[randomIndex] ?? '';
     return randomPost;
