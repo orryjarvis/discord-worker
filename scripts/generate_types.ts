@@ -124,7 +124,7 @@ async function runOpenapiTypescriptCLI(inputPath: string, outputPath: string): P
 async function processProvider(p: Provider): Promise<void> {
     const outputPath = path.resolve(REPO_ROOT, p.output);
     const outputDir = path.dirname(outputPath);
-    const tmpDir = path.resolve(REPO_ROOT, '.tmp');
+    const tmpDir = path.resolve(REPO_ROOT, 'src/generated/.tmp');
     await ensureDir(tmpDir);
     await ensureDir(outputDir);
 
