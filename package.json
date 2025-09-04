@@ -25,7 +25,8 @@
     "itty-router": "^5.0.22",
     "openapi-fetch": "^0.12.4",
     "reflect-metadata": "^0.2.2",
-    "tsyringe": "^4.10.0"
+  "tsyringe": "^4.10.0",
+  "zod": "^3.23.8"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250826.0",

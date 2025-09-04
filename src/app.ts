@@ -9,7 +9,7 @@ import {
 import 'reflect-metadata';
 import { CommandLoader } from './loader';
 import { CommandFactory } from './factory';
-import { DiscordCommandParser } from './commanding/discord/discordCommandParser.js';
+import { DiscordCommandParser } from './commanding/discord/discordCommandParser';
 import { Auth } from './auth';
 import type { Env } from './types.js';
 
@@ -37,26 +37,57 @@ export class DiscordApplicationRouter {
     async post(request: Request): Promise<Response> {
         const interaction: APIInteraction = await request.json();
         if (interaction.type === InteractionType.Ping) {
-            return new JsonResponse({
-                type: InteractionResponseType.Pong,
-            });
+            return new JsonResponse({ type: InteractionResponseType.Pong });
         }
 
         if (interaction.type === InteractionType.ApplicationCommand) {
-            // Use parser to resolve command id and validate input, but keep handlers unchanged
-            const native = this.parser.parse(interaction);
-            await this.loader.loadCommand(native.commandId);
-            const command = this.factory.getCommand(native.commandId);
+            // Parse once to get the command id even if schema isn't registered yet
+            let preParsed: { commandId: string };
+            try {
+                preParsed = this.parser.parse(interaction);
+            } catch (err) {
+                console.error('Unsupported or malformed interaction:', err);
+                return new Response('Unsupported or malformed interaction', { status: 400 });
+            }
+
+            // Dynamically load command so decorators register schemas
+            await this.loader.loadCommand(preParsed.commandId);
+
+            // Parse again to validate and cast per registered schema
+            let parsed: any;
+            try {
+                parsed = this.parser.parse(interaction);
+            } catch (err: any) {
+                const message = err?.message || 'Validation failed';
+                return new JsonResponse({
+                    type: InteractionResponseType.ChannelMessageWithSource,
+                    data: { content: message },
+                });
+            }
+
+            const command = this.factory.getCommand(parsed.commandId);
             if (!command) {
                 console.error('Unknown Command');
                 return new Response('Unknown Command', { status: 400 });
             }
-            const maybeNative = command as any;
-            if (typeof maybeNative.handleNative === 'function') {
-                const result = await maybeNative.handleNative(native);
-                return new JsonResponse(this.parser.toResponse(result) as unknown as Record<string, unknown>);
+
+            const result = await (command as any).handle(parsed.input);
+            if (result instanceof Response) return result;
+
+            // Map simple object results to a Discord content message.
+            let content: string;
+            if (result && typeof result === 'object' && 'url' in result && typeof (result as any).url === 'string') {
+                content = (result as any).url as string;
+            } else if (typeof result === 'string') {
+                content = result;
+            } else {
+                content = JSON.stringify(result ?? {});
             }
-            return await command.handle(interaction);
+
+            return new JsonResponse({
+                type: InteractionResponseType.ChannelMessageWithSource,
+                data: { content },
+            });
         }
 
         console.error('Unknown Interaction Type');

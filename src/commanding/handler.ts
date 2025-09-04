@@ -1,6 +1,7 @@
-import { Interaction, InteractionResponse } from "./contracts";
+export interface ICommandInput {}
+export interface ICommandOutput {}
 
-export interface ICommandHandler {
+export interface ICommandHandler<I extends ICommandInput, O extends ICommandOutput> {
   commandId: string;
-  handle(interaction: Interaction): Promise<InteractionResponse>;
+  handle(interaction: I): Promise<O>;
 }

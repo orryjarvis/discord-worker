@@ -1,6 +1,6 @@
 import { Lifecycle, registry } from 'tsyringe';
 import type { DependencyContainer } from 'tsyringe';
-import { ICommandHandler } from './types';
+import type { ICommandHandler } from './commanding';
 
 @registry([{
     token: CommandFactory,
