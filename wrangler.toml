@@ -1,5 +1,5 @@
 main = "src/index.ts"
-compatibility_date = "2025-08-27"
+compatibility_date = "2025-09-09"
 workers_dev = true
 account_id = "ac4880feb8f60847f0577d5967bf2b59"
 find_additional_modules = true

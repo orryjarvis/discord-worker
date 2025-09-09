@@ -1,6 +1,6 @@
 import { Lifecycle, registry } from 'tsyringe';
 import type { DependencyContainer } from 'tsyringe';
-import type { ICommandHandler } from './commanding';
+import type { ICommand } from './interfaces';
 
 @registry([{
     token: CommandFactory,
@@ -11,9 +11,9 @@ export class CommandFactory {
 
     constructor(private container: DependencyContainer) { }
 
-    getCommand(commandId: string): ICommandHandler | undefined {
+    getCommand(commandId: string): ICommand | undefined{
         try {
-            const commands = this.container.resolveAll<ICommandHandler>('ICommandHandler');
+            const commands = this.container.resolveAll<ICommand>('ICommandHandler');
             return commands.find(command => command.commandId === commandId);
         } catch (error) {
             console.error('Error fetching commands:', error);

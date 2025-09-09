@@ -7,8 +7,7 @@ import {
   ApplicationCommandType,
   InteractionResponseType,
 } from 'discord-api-types/v10';
-import type { ICommandParser } from '../parser.js';
-import type { Interaction, InteractionResponse } from '../contracts.js';
+import type { ICommandInput, ICommandOutput, ICommandParser } from '../commanding/interfaces.js';
 
 // Minimal schema focusing on Chat Input interactions only (extend later as needed)
 const optionSchema = z.object({
@@ -47,7 +46,7 @@ export class CommandSchemaRegistry {
 export const defaultRegistry = new CommandSchemaRegistry();
 
 // Map our InteractionResponse union to Discord wire format
-export function toDiscordResponse(result: InteractionResponse) {
+export function toDiscordResponse(result: ICommandOutput) {
   switch (result.kind) {
     case 'content':
       return {
@@ -81,11 +80,23 @@ export function toDiscordResponse(result: InteractionResponse) {
   }
 }
 
+export class JsonResponse extends Response {
+  constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
+    const jsonBody = JSON.stringify(body);
+    init = init || {
+      headers: {
+        'content-type': 'application/json;charset=UTF-8',
+      },
+    };
+    super(jsonBody, init);
+  }
+}
+
 @injectable()
-export class DiscordCommandParser implements ICommandParser<APIInteraction, Response> {
+export class DiscordCommandParser implements ICommandParser<APIInteraction, Response, ICommandInput, ICommandOutput> {
   constructor(private registry: CommandSchemaRegistry = defaultRegistry) {}
 
-  parse(interaction: APIInteraction): Interaction {
+  parse(interaction: APIInteraction): ICommandInput {
     const res = chatInputSchema.safeParse(interaction);
     if (!res.success) {
       throw new Error('Unsupported or malformed interaction');
@@ -110,7 +121,7 @@ export class DiscordCommandParser implements ICommandParser<APIInteraction, Resp
     return { commandId: data.name, input };
   }
 
-  toResponse(result: InteractionResponse): Response {
+  toResponse(result: ICommandOutput): Response {
     return new Response(JSON.stringify(toDiscordResponse(result)), {
       headers: { 'content-type': 'application/json;charset=UTF-8' },
     });

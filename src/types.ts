@@ -13,14 +13,4 @@ export interface Env {
 
   OPENDOTA_URL: string;
 }
-export class JsonResponse extends Response {
-  constructor(body: Record<string, unknown>, init?: RequestInit | Request) {
-    const jsonBody = JSON.stringify(body);
-    init = init || {
-      headers: {
-        'content-type': 'application/json;charset=UTF-8',
-      },
-    };
-    super(jsonBody, init);
-  }
-}
+

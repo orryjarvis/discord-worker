@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe';
-import { ICommandHandler, ICommandInput, ICommandOutput } from '../commanding';
-import { Slash } from '../commanding/decorators.js';
+import { ICommand, ICommandInput, ICommandOutput } from '../commanding';
+import { Slash } from '../commanding/decorators';
 import { RedditService } from '../services/redditService';
 import { z } from 'zod';
 
@@ -23,11 +23,11 @@ type RedditCommandOutput = z.infer<typeof RedditCommandOutputSchema> & ICommandO
   output: RedditCommandOutputSchema,
 })
 @injectable({ token: 'ICommandHandler' })
-export class RedditCommand implements ICommandHandler<RedditCommandInput, RedditCommandOutput> {
+export class RedditCommand implements ICommand {
   readonly commandId = 'reddit';
   constructor(@inject(RedditService) private redditService: RedditService) {}
 
-  async handle(input: RedditCommandInput): Promise<RedditCommandOutput> {
+  async execute(input: RedditCommandInput): Promise<RedditCommandOutput> {
     const url = await this.redditService.getMedia(input.subreddit);
     return { url };
   }

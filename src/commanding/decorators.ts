@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ZodTypeAny, ZodObject, ZodEffects, ZodOptional, ZodNullable, ZodDefault } from 'zod';
-import { defaultRegistry } from './discord/discordCommandParser.js';
+import { defaultRegistry } from '../discord/parser';
 
 // Optional, non-breaking per-option overrides store
 type OptionOverride = {
