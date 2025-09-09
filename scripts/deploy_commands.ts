@@ -1,21 +1,39 @@
 import 'reflect-metadata';
-// Generate commands from decorator-based registry
-import { registry } from "../src/commanding/registry.js";
-import { toDiscordCommand } from "../src/commanding/discordAdapters.js";
-import { COMMANDS } from "../src/commands.js";
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import { slashCommandDefinitions } from '../src/commanding/decorators.js';
 import { DiscordService } from "../src/services/discordService.js";
-import { Env } from '../src/types.js';
+import type { Env } from '../src/types.js';
 import createClient from 'openapi-fetch';
 import type { paths as DiscordPaths } from '../src/generated/discord';
 
+async function importAllCommands(): Promise<void> {
+    // Load all modules in src/commands to trigger decorators and registry population
+    const here = path.dirname(fileURLToPath(import.meta.url));
+    const commandsDir = path.resolve(here, '..', 'src', 'commands');
+    const entries = await fs.readdir(commandsDir);
+    const files = entries.filter((f) => f.endsWith('.ts') || f.endsWith('.js'));
+    for (const f of files) {
+        const full = path.resolve(commandsDir, f);
+        // Prefer .ts path for tsx runtime, else .js
+        const specifier = full.endsWith('.ts') ? full : full.replace(/\.js$/, '.js');
+        await import(pathToFileUrlSafe(specifier));
+    }
+}
+
+function pathToFileUrlSafe(p: string): string {
+    const url = new URL('file:' + (p.startsWith('/') ? '' : '/') + p);
+    return url.href;
+}
+
 export async function deployCommands() {
-    const env = process.env as unknown as Env;
-    const client = createClient<DiscordPaths>({ baseUrl: env.DISCORD_URL, fetch });
-    const discord = new DiscordService(env, client as any);
-    const decorated = registry.map(r => toDiscordCommand(r.def));
-    const manual = COMMANDS.filter(c => c.name !== 'reddit');
-    const combined = [...manual, ...decorated];
-    const creationResponse = await discord.upsertCommands(combined as unknown[], process.env.DISCORD_GUILD_ID);
+        const env = process.env as unknown as Env;
+        const client = createClient<DiscordPaths>({ baseUrl: env.DISCORD_URL, fetch });
+        const discord = new DiscordService(env, client as any);
+        await importAllCommands();
+        const combined = [...slashCommandDefinitions];
+        const creationResponse = await discord.upsertCommands(combined as unknown[], process.env.DISCORD_GUILD_ID);
     if (creationResponse.ok) {
         console.log('Registered all commands');
     } else {

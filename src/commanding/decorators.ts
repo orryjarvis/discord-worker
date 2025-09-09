@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ZodTypeAny, ZodObject, ZodEffects, ZodOptional, ZodNullable, ZodDefault } from 'zod';
-import { defaultRegistry } from '../discord/parser';
+import { defaultRegistry } from './registry';
 
 // Optional, non-breaking per-option overrides store
 type OptionOverride = {
@@ -10,11 +10,11 @@ type OptionOverride = {
   choices?: Array<string | number>;
   type?: 'string' | 'integer' | 'number' | 'boolean';
 };
-const optionOverrides = new WeakMap<Function, Record<string, OptionOverride>>();
+const optionOverrides = new WeakMap<object, Record<string, OptionOverride>>();
 
 // Keep this decorator as an optional override (no longer required)
 export function StringOpt(cfg: { name: string; description?: string; required?: boolean; choices?: Array<string | number> }) {
-  return function (target: Function) {
+  return function (target: object) {
     const existing = optionOverrides.get(target) ?? {};
     existing[cfg.name] = { ...(existing[cfg.name] ?? {}), description: cfg.description, required: cfg.required, choices: cfg.choices, type: 'string' };
     optionOverrides.set(target, existing);
@@ -80,7 +80,7 @@ function isIntegerNumber(znum: z.ZodNumber): boolean {
 
 function buildChoices(inner: ZodTypeAny): DiscordChoice[] | undefined {
   if (inner instanceof z.ZodEnum) {
-    return inner.options.map((v) => ({ name: String(v), value: v }));
+    return inner.options.map((v: string) => ({ name: String(v), value: v }));
   }
   if (inner instanceof z.ZodNativeEnum) {
     const values = Object.values(inner.enum).filter((v) => typeof v === 'string' || typeof v === 'number') as Array<string | number>;
@@ -159,14 +159,14 @@ function buildDiscordOptionsFromSchema(input: ZodObject<any>, overrides?: Record
 }
 
 export function Slash(cfg: SlashConfig) {
-  return function (target: Function) {
+  return function (target: object) {
     const finalize = () => {
       // Register input schema in the parser's registry for validation/casting
       if (cfg.input) {
         defaultRegistry.register(cfg.name, cfg.input);
       }
       // Derive options from the input schema + optional overrides (now that other decorators ran)
-      const overrides = optionOverrides.get(target) ?? {};
+  const overrides = optionOverrides.get(target) ?? {};
       const options = cfg.input ? buildDiscordOptionsFromSchema(cfg.input, overrides) : undefined;
       // Push a deploy-ready command definition (dedupe by name)
       const def: DiscordSlashDefinition = {

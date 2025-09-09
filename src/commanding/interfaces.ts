@@ -1,5 +1,5 @@
-export interface ICommandInput {}
-export interface ICommandOutput {}
+export type ICommandInput = Record<string, unknown>;
+export type ICommandOutput = unknown;
 
 export interface ICommandHandler<Req, Res> {
   handle(interaction: Req): Promise<Res>;

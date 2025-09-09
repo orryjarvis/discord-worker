@@ -8,6 +8,7 @@ import {
   InteractionResponseType,
 } from 'discord-api-types/v10';
 import type { ICommandInput, ICommandOutput, ICommandParser } from '../commanding/interfaces.js';
+import { CommandSchemaRegistry, defaultRegistry } from '../commanding/registry.js';
 
 // Minimal schema focusing on Chat Input interactions only (extend later as needed)
 const optionSchema = z.object({
@@ -27,57 +28,19 @@ const chatInputSchema = z.object({
   }),
 });
 
-export type NativeCommandRequest = Interaction;
-
-// Registry of per-command zod schemas to validate and cast input
-export class CommandSchemaRegistry {
-  private schemas: Record<string, z.ZodTypeAny> = {};
-
-  register<T extends z.ZodTypeAny>(command: string, schema: T) {
-    this.schemas[command] = schema;
-  }
-
-  get(command: string) {
-    return this.schemas[command];
-  }
-}
-
-// Shared default registry so registrations apply across app & tests
-export const defaultRegistry = new CommandSchemaRegistry();
+export type NativeCommandRequest = APIInteraction;
 
 // Map our InteractionResponse union to Discord wire format
 export function toDiscordResponse(result: ICommandOutput) {
-  switch (result.kind) {
-    case 'content':
-      return {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          content: result.text,
-          flags: result.ephemeral ? 64 : undefined,
-        },
-      };
-    case 'embed':
-      return {
-        type: InteractionResponseType.ChannelMessageWithSource,
-        data: {
-          embeds: [
-            {
-              title: result.title,
-              description: result.description,
-              fields: result.fields?.map((f) => ({ name: f.name, value: f.value, inline: f.inline })),
-            },
-          ],
-          flags: result.ephemeral ? 64 : undefined,
-        },
-      };
-    case 'deferred':
-      return {
-        type: InteractionResponseType.DeferredChannelMessageWithSource,
-        data: {
-          flags: result.ephemeral ? 64 : undefined,
-        },
-      };
-  }
+  const anyRes: any = result as any;
+  let content: string;
+  if (typeof anyRes?.content === 'string') content = anyRes.content;
+  else if (typeof anyRes?.url === 'string') content = anyRes.url;
+  else content = typeof anyRes === 'string' ? anyRes : JSON.stringify(anyRes);
+  return {
+    type: InteractionResponseType.ChannelMessageWithSource,
+    data: { content },
+  };
 }
 
 export class JsonResponse extends Response {
@@ -93,7 +56,7 @@ export class JsonResponse extends Response {
 }
 
 @injectable()
-export class DiscordCommandParser implements ICommandParser<APIInteraction, Response, ICommandInput, ICommandOutput> {
+export class DiscordCommandParser implements ICommandParser<APIInteraction, Response> {
   constructor(private registry: CommandSchemaRegistry = defaultRegistry) {}
 
   parse(interaction: APIInteraction): ICommandInput {
@@ -111,19 +74,16 @@ export class DiscordCommandParser implements ICommandParser<APIInteraction, Resp
     if (schema) {
       const cast = schema.safeParse(input);
       if (!cast.success) {
-        // Throw here; router can convert this to an ephemeral validation message if desired
         const issues = cast.error.issues.map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`).join('; ');
         throw new Error(`Validation failed for /${data.name}: ${issues}`);
       }
-      return { commandId: data.name, input: cast.data };
+      return { commandId: data.name, input: cast.data } as any;
     }
 
-    return { commandId: data.name, input };
+    return { commandId: data.name, input } as any;
   }
 
   toResponse(result: ICommandOutput): Response {
-    return new Response(JSON.stringify(toDiscordResponse(result)), {
-      headers: { 'content-type': 'application/json;charset=UTF-8' },
-    });
+    return new JsonResponse(toDiscordResponse(result));
   }
 }

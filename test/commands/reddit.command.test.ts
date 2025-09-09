@@ -9,7 +9,7 @@ describe('RedditCommand', () => {
     const svc = { getMedia: async (_: string) => 'https://example.com/x' } as unknown as RedditService;
     container.registerInstance(RedditService, svc);
     const cmd = new RedditCommand(svc);
-    const res = await cmd.handle({ subreddit: 'pics' } as any);
+  const res = await (cmd as any).handle({ subreddit: 'pics' } as any);
     expect(res).toEqual({ url: 'https://example.com/x' });
   });
 });

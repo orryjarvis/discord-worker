@@ -31,4 +31,9 @@ export class RedditCommand implements ICommand {
     const url = await this.redditService.getMedia(input.subreddit);
     return { url };
   }
+
+  // Back-compat for existing unit tests that call handle()
+  async handle(input: RedditCommandInput): Promise<RedditCommandOutput> {
+    return this.execute(input);
+  }
 }

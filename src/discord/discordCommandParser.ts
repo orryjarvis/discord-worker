@@ -1,0 +1,1 @@
+export { DiscordCommandParser } from './parser';

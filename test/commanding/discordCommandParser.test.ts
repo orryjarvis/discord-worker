@@ -17,9 +17,9 @@ describe('DiscordCommandParser', () => {
         ],
       },
     };
-    const res = parser.parse(interaction);
-    expect(res.commandId).toBe('reddit');
-    expect(res.input).toEqual({ subreddit: 'pics' });
+  const res: any = parser.parse(interaction);
+  expect(res.commandId).toBe('reddit');
+  expect(res.input).toEqual({ subreddit: 'pics' });
   });
 
   it('throws on missing required subreddit', () => {
@@ -31,6 +31,6 @@ describe('DiscordCommandParser', () => {
         options: [],
       },
     };
-    expect(() => parser.parse(interaction)).toThrowError(/Validation failed/);
+  expect(() => parser.parse(interaction)).toThrowError(/Validation failed/);
   });
 });

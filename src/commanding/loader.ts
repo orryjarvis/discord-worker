@@ -14,7 +14,13 @@ export class CommandLoader {
 
   async loadCommand(commandId: string): Promise<void> {
     try {
-      const mod = await import(`./commands/${commandId}.ts`);
+      // Import the command module dynamically; try .js then .ts for tsx contexts
+      let mod: any;
+      try {
+        mod = await import(`../commands/${commandId}.js`);
+      } catch {
+        mod = await import(`../commands/${commandId}.ts`);
+      }
       // Register any exported class with a handle() method as an ICommandHandler in this container
       for (const val of Object.values(mod)) {
         if (typeof val === 'function' && val.prototype && typeof val.prototype.handle === 'function') {
