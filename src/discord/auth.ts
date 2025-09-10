@@ -1,9 +1,9 @@
 import { inject, injectable } from 'tsyringe';
 import * as ed from "@noble/ed25519"
-import type { Env } from './env';
+import type { Env } from '../env';
 
 @injectable()
-export class Auth {
+export class DiscordAuth {
 
     constructor(@inject('Env') private env: Env) {}
 

@@ -1,14 +1,14 @@
 import 'reflect-metadata';
 import { container } from 'tsyringe';
 import { Env } from './env';
-import { DiscordApplicationRouter } from './app';
+import { ApplicationRouter } from './app';
 
 
 const fetch = async (request: Request, env: Env) => {
     try {
         const childContainer = container.createChildContainer()
             .register<Env>('Env', { useValue: env})
-        const application = childContainer.resolve(DiscordApplicationRouter);
+        const application = childContainer.resolve(ApplicationRouter);
         return await application.fetch(request);
     } catch (error) {
         console.error('Error occurred while processing request:', error);
