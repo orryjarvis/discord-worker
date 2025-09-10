@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DiscordCommandParser } from '../../src/discord/discordCommandParser.js';
+import { DiscordCommandParser } from '../../src/discord';
 import '../../src/commands/reddit.js';
 import { InteractionType, ApplicationCommandType, ApplicationCommandOptionType } from 'discord-api-types/v10';
 

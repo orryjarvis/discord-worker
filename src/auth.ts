@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe';
 import * as ed from "@noble/ed25519"
-import type { Env } from './types.js';
+import type { Env } from './env';
 
 @injectable()
 export class Auth {

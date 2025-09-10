@@ -1,5 +1,5 @@
 import { inject, injectable } from 'tsyringe';
-import type { Env } from '../types.js';
+import type { Env } from '../env';
 
 @injectable()
 export class ObjectStorage {

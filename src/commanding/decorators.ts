@@ -2,24 +2,7 @@ import { z } from 'zod';
 import type { ZodTypeAny, ZodObject, ZodEffects, ZodOptional, ZodNullable, ZodDefault } from 'zod';
 import { defaultRegistry } from './registry';
 
-// Optional, non-breaking per-option overrides store
-type OptionOverride = {
-  name?: string;
-  description?: string;
-  required?: boolean;
-  choices?: Array<string | number>;
-  type?: 'string' | 'integer' | 'number' | 'boolean';
-};
-const optionOverrides = new WeakMap<object, Record<string, OptionOverride>>();
-
-// Keep this decorator as an optional override (no longer required)
-export function StringOpt(cfg: { name: string; description?: string; required?: boolean; choices?: Array<string | number> }) {
-  return function (target: object) {
-    const existing = optionOverrides.get(target) ?? {};
-    existing[cfg.name] = { ...(existing[cfg.name] ?? {}), description: cfg.description, required: cfg.required, choices: cfg.choices, type: 'string' };
-    optionOverrides.set(target, existing);
-  };
-}
+import { APIApplicationCommand } from 'discord-api-types/v10';
 
 type SlashConfig = {
   name: string;
@@ -129,7 +112,7 @@ function isOptional(schema: ZodTypeAny): boolean {
   return false;
 }
 
-function buildDiscordOptionsFromSchema(input: ZodObject<any>, overrides?: Record<string, OptionOverride>): DiscordOption[] {
+function buildDiscordOptionsFromSchema(input: ZodObject<any>): DiscordOption[] {
   const options: DiscordOption[] = [];
   const shape = (input as z.ZodObject<any>).shape;
 
@@ -138,20 +121,19 @@ function buildDiscordOptionsFromSchema(input: ZodObject<any>, overrides?: Record
     const type = toDiscordType(inner);
     if (!type) continue; // skip unsupported types for now
 
-  const ov = overrides?.[name];
-  const desc = ov?.description ?? (inner as any)._def?.description ?? 'No description';
-  const required = ov?.required ?? !isOptional(schema as ZodTypeAny);
-    const rawChoices = ov?.choices ?? buildChoices(inner);
+    const desc = (inner as any)._def?.description ?? 'No description';
+    const required = !isOptional(schema as ZodTypeAny);
+    const rawChoices = buildChoices(inner);
     const choices: DiscordChoice[] | undefined = Array.isArray(rawChoices)
       ? (rawChoices as any[]).map((v) => (typeof v === 'object' && v && 'name' in v && 'value' in v ? v as DiscordChoice : { name: String(v), value: v as any }))
       : undefined;
 
     options.push({
       type,
-      name: ov?.name ?? name,
+      name: name,
       description: desc,
       required,
-  ...(choices && choices.length ? { choices } : {}),
+      ...(choices && choices.length ? { choices } : {}),
     });
   }
 
@@ -165,9 +147,7 @@ export function Slash(cfg: SlashConfig) {
       if (cfg.input) {
         defaultRegistry.register(cfg.name, cfg.input);
       }
-      // Derive options from the input schema + optional overrides (now that other decorators ran)
-  const overrides = optionOverrides.get(target) ?? {};
-      const options = cfg.input ? buildDiscordOptionsFromSchema(cfg.input, overrides) : undefined;
+      const options = cfg.input ? buildDiscordOptionsFromSchema(cfg.input) : undefined;
       // Push a deploy-ready command definition (dedupe by name)
       const def: DiscordSlashDefinition = {
         name: cfg.name,

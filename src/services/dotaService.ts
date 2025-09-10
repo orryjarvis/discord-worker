@@ -1,6 +1,6 @@
-import type { OpenDotaAPI, OpenDotaClient } from '../generated';
+import type { OpenDotaClient } from '../generated';
 import { inject, injectable } from 'tsyringe';
-import type { Env } from '../types.js';
+import type { Env } from '../env';
 import { ObjectStorage } from './objectStorage';
 import { ApiClientTokens } from '../generated';
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours

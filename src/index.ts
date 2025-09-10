@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { container } from 'tsyringe';
-import { Env } from './types.js';
-import { DiscordApplicationRouter } from './app.js';
+import { Env } from './env';
+import { DiscordApplicationRouter } from './app';
 
 
 const fetch = async (request: Request, env: Env) => {

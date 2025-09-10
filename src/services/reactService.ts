@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe';
-import type { Env } from '../types.js';
-import { ObjectStorage } from './objectStorage.js';
+import type { Env } from '../env';
+import { ObjectStorage } from './objectStorage';
 
 type ReactionType = "sadge" | "pog" | "monak" | "weirdge" | "jebait" | "kappa";
 

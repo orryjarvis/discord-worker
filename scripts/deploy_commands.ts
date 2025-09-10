@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { slashCommandDefinitions } from '../src/commanding/decorators.js';
 import { DiscordService } from "../src/services/discordService.js";
-import type { Env } from '../src/types.js';
+import type { Env } from '../src/env.js';
 import createClient from 'openapi-fetch';
 import type { paths as DiscordPaths } from '../src/generated/discord';
 

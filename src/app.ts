@@ -7,7 +7,7 @@ import {
 } from 'discord-api-types/v10';
 import 'reflect-metadata';
 import { Auth } from './auth';
-import type { Env } from './types.js';
+import type { Env } from './env';
 import { DiscordCommandHandler, JsonResponse } from './discord';
 
 @injectable()

@@ -1,5 +1,5 @@
 import { inject, injectable, registry, type InjectionToken } from 'tsyringe';
-import type { Env } from '../types';
+import type { Env } from '../env';
 
 export interface BaseUrlProvider {
   getBaseUrl(id: string): string;
