@@ -7,5 +7,5 @@ if (!baseUrl) {
 
 export async function signAndSendRequest(body: object): Promise<Response> {
   const request = await signRequest(body);
-  return await fetch(baseUrl + '/', request);
+  return await fetch(baseUrl + '/discord', request);
 }

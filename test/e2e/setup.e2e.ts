@@ -21,7 +21,7 @@ afterAll(async () => {
 
 async function signAndSendRequest(body: object): Promise<Response> {
   const request = await signRequest(body);
-  return await worker.fetch('/', request);
+  return await worker.fetch('/discord', request);
 }
 
 export { signAndSendRequest };

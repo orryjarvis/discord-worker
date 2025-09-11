@@ -3,7 +3,7 @@ import { injectable } from 'tsyringe';
 export class CommandLoader {
   async loadCommand(commandId: string): Promise<void> {
     try {
-      await import(`./commands/${commandId}.ts`);
+      await import(`../commands/${commandId}.ts`);
     } catch (error) {
       console.error(`Failed to load command ${commandId}:`, error);
     }
