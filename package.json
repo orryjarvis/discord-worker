@@ -19,20 +19,20 @@
   },
   "dependencies": {
     "@noble/ed25519": "^3.0.0",
-    "discord-api-types": "^0.38.35",
+    "discord-api-types": "^0.38.36",
     "itty-router": "^5.0.22",
     "reflect-metadata": "^0.2.2",
     "tsyringe": "^4.10.0"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251128.0",
+    "@cloudflare/workers-types": "^4.20251205.0",
     "@types/node": "^24.10.1",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.14",
-    "wrangler": "^4.51.0"
+    "vitest": "^4.0.15",
+    "wrangler": "^4.53.0"
   }
 }
