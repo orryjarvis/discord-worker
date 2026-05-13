@@ -4,6 +4,7 @@ import { RedditApiAdapter } from '../../integrations/reddit/redditApiAdapter.js'
 import { CliFrontend } from '../../frontends/cli/cliFrontend.js';
 import { CliRenderer } from '../../frontends/cli/cliRenderer.js';
 import { DiscordFrontend, DiscordWorkerEnv } from '../../frontends/discord/discordFrontend.js';
+import { DiscordExecutionContext } from '../../frontends/discord/discordFrontend.js';
 import { DiscordRenderer } from '../../frontends/discord/discordRenderer.js';
 import { KvSessionStore } from '../../runtimes/workers/kvSessionStore.js';
 import { localRuntime } from '../../runtimes/local/localRuntime.js';
@@ -19,6 +20,7 @@ export interface DiscordAppDependencies {
   readonly request: Request;
   readonly env: DiscordWorkerEnv & { readonly KV: KVNamespace };
   readonly fetchImpl?: typeof fetch;
+  readonly ctx?: DiscordExecutionContext;
 }
 
 export async function runCliApp(dependencies: CliAppDependencies): Promise<string> {
@@ -49,7 +51,7 @@ export async function runCliApp(dependencies: CliAppDependencies): Promise<strin
 
 export async function runDiscordApp(dependencies: DiscordAppDependencies): Promise<Response> {
   const logger = createConsoleLogger('discord-app');
-  const frontend = new DiscordFrontend(dependencies.env);
+  const frontend = new DiscordFrontend(dependencies.env, dependencies.ctx);
   const renderer = new DiscordRenderer();
   const sessionStore = new KvSessionStore(dependencies.env.KV);
   const registry = new CommandRegistry<{ readonly reddit: RedditApiAdapter }>();

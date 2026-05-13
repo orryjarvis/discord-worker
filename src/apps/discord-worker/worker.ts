@@ -6,7 +6,7 @@ export interface WorkerBindings extends DiscordWorkerEnv {
 }
 
 export default {
-  async fetch(request: Request, env: WorkerBindings): Promise<Response> {
-    return runDiscordApp({ request, env });
+  async fetch(request: Request, env: WorkerBindings, ctx: ExecutionContext): Promise<Response> {
+    return runDiscordApp({ request, env, ctx });
   },
 };

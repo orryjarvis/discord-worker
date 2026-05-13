@@ -9,6 +9,10 @@ export interface DiscordWorkerInput {
   readonly bodyText?: string;
 }
 
+export interface DiscordExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+}
+
 export interface DiscordWorkerEnv {
   readonly DISCORD_APPLICATION_ID: string;
   readonly DISCORD_TOKEN: string;
@@ -50,6 +54,7 @@ class DiscordResponder implements Responder<DiscordTransportMessage, Response> {
   constructor(
     private readonly env: DiscordWorkerEnv,
     private readonly interaction: DiscordInteractionPayload,
+    private readonly ctx?: DiscordExecutionContext,
   ) {}
 
   async ack(): Promise<void> {
@@ -59,7 +64,7 @@ class DiscordResponder implements Responder<DiscordTransportMessage, Response> {
   async reply(message: DiscordTransportMessage): Promise<void> {
     this.replyPayload = message;
     if (this.acked && this.interaction.token) {
-      await fetch(`https://discord.com/api/v10/webhooks/${this.env.DISCORD_APPLICATION_ID}/${this.interaction.token}`, {
+      const followUp = fetch(`https://discord.com/api/v10/webhooks/${this.env.DISCORD_APPLICATION_ID}/${this.interaction.token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,6 +75,11 @@ class DiscordResponder implements Responder<DiscordTransportMessage, Response> {
           flags: message.ephemeral ? DISCORD_MESSAGE_FLAGS_EPHEMERAL : undefined,
         }),
       });
+      if (this.ctx) {
+        this.ctx.waitUntil(followUp);
+      } else {
+        await followUp;
+      }
     }
   }
 
@@ -122,7 +132,10 @@ export class DiscordFrontend {
     supportsMarkdown: true,
   };
 
-  constructor(private readonly env: DiscordWorkerEnv) {}
+  constructor(
+    private readonly env: DiscordWorkerEnv,
+    private readonly ctx?: DiscordExecutionContext,
+  ) {}
 
   async normalize(rawEvent: DiscordWorkerInput): Promise<CommandEnvelope<DiscordWorkerInput> | null> {
     const { request } = rawEvent;
@@ -203,6 +216,6 @@ export class DiscordFrontend {
 
   createResponder(envelope: CommandEnvelope<DiscordWorkerInput>): Responder<DiscordTransportMessage, Response> {
     const interaction = envelope.rawEvent.interaction ?? { type: 0 };
-    return new DiscordResponder(this.env, interaction);
+    return new DiscordResponder(this.env, interaction, this.ctx);
   }
 }

@@ -13,6 +13,8 @@ export default defineConfig({
     },
     env: {
       TEST_SETUP: 'e2e',
+      // Matches env.dev SIGNATURE_PUBLIC_KEY in wrangler.toml
+      SIGNATURE_PRIVATE_KEY: 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cdac1bd4023e',
     },
   },
 });

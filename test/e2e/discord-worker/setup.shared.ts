@@ -6,14 +6,14 @@ type SignedRequest = {
   body: string;
 };
 
-// This private key matches env.dev SIGNATURE_PUBLIC_KEY in wrangler.toml.
-const FALLBACK_DEV_SIGNATURE_PRIVATE_KEY = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cdac1bd4023e';
-
 export async function signRequest(body: object): Promise<SignedRequest> {
   const timestamp = Date.now().toString();
   const json = JSON.stringify(body);
   const message = new TextEncoder().encode(timestamp + json);
-  const privateKeyHex = process.env.SIGNATURE_PRIVATE_KEY ?? FALLBACK_DEV_SIGNATURE_PRIVATE_KEY;
+  const privateKeyHex = process.env.SIGNATURE_PRIVATE_KEY;
+  if (!privateKeyHex) {
+    throw new Error('SIGNATURE_PRIVATE_KEY environment variable is required. Set it to the hex-encoded private key matching the SIGNATURE_PUBLIC_KEY configured for your target environment.');
+  }
   const privateKey = etc.hexToBytes(privateKeyHex);
   const signatureBytes = await signAsync(message, privateKey);
 

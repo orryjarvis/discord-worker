@@ -40,8 +40,8 @@ npm run start:cli -- reddit trending javascript
 
 Discord:
 
-- Configure a slash command that maps to `reddit trending` with a `subreddit` option.
-- Deploy the Worker entrypoint from `src/index.ts`.
+- Register the slash command via `npm run deploy_commands` (registers `reddit trending <subreddit>` as a subcommand).
+- Deploy the Worker: `wrangler deploy` — the entrypoint is `src/index.ts`, which re-exports `src/apps/discord-worker/worker.ts`.
 
 ## Notes
 
