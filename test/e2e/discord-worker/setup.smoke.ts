@@ -1,4 +1,4 @@
-import { signRequest } from './setup.shared.js';
+import { signRequest } from './setup.shared';
 
 const baseUrl = process.env.LIVE_BASE_URL ?? 'http://127.0.0.1:8787';
 

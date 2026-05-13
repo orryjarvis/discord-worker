@@ -1,7 +1,7 @@
-import { CommandFailure, CommandSuccess } from '../../core/effects.js';
-import { RenderContext, Renderer } from '../../core/renderer.js';
-import { DiscordTransportMessage } from './discordFrontend.js';
-import { formatThreadSummary, ThreadSummaryData } from '../../commands/reddit/renderThread.js';
+import { CommandFailure, CommandSuccess } from '@/core/effects';
+import { RenderContext, Renderer } from '@/core/renderer';
+import { DiscordTransportMessage } from './discordFrontend';
+import { formatThreadSummary, ThreadSummaryData } from '@/commands/reddit/renderThread';
 
 export class DiscordRenderer implements Renderer<{ thread: ThreadSummaryData }, DiscordTransportMessage> {
   async renderSuccess(_context: RenderContext, result: CommandSuccess<{ thread: ThreadSummaryData }>): Promise<DiscordTransportMessage> {

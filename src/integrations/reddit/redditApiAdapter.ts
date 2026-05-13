@@ -1,4 +1,4 @@
-import { RedditThread, RedditTrendingPort } from '../../commands/reddit/trending.js';
+import { RedditThread, RedditTrendingPort } from '@/commands/reddit/trending';
 
 export interface RedditApiAdapterConfig {
   readonly fetchImpl?: typeof fetch;

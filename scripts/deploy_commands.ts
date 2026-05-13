@@ -57,6 +57,6 @@ export async function deployCommands(env: DeployCommandsEnv = process.env as Dep
     console.error(await response.text());
 }
 
-if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('deploy_commands.js')) {
+if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('deploy_commands')) {
     void deployCommands();
 }

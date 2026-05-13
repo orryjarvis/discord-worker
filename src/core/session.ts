@@ -1,4 +1,4 @@
-import { SessionState } from './effects.js';
+import { SessionState } from './effects';
 
 export interface SessionStore {
   load(sessionKey: string): Promise<SessionState | null>;

@@ -1,5 +1,5 @@
-import { CommandEnvelope } from './envelope.js';
-import { CommandRegistry } from './registry.js';
+import { CommandEnvelope } from './envelope';
+import { CommandRegistry } from './registry';
 
 export interface RouteMatch<TInput, TOutput, TDependencies, TRawEvent = unknown> {
   readonly definition: {
@@ -9,7 +9,7 @@ export interface RouteMatch<TInput, TOutput, TDependencies, TRawEvent = unknown>
     readonly defer?: boolean;
     parse(envelope: CommandEnvelope<TRawEvent>): TInput | null;
     createHandler(dependencies: TDependencies): {
-      execute(context: import('./command.js').CommandContext<TInput, TRawEvent>): Promise<import('./effects.js').CommandResult<TOutput>>;
+      execute(context: import('./command').CommandContext<TInput, TRawEvent>): Promise<import('./effects').CommandResult<TOutput>>;
     };
   };
   readonly input: TInput;

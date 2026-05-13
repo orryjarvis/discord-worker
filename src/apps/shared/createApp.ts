@@ -1,15 +1,15 @@
-import { CommandRegistry, DefaultRouter, InMemorySessionStore, createCommandPipeline } from '../../core/index.js';
-import { createRedditTrendingCommand } from '../../commands/reddit/trending.js';
-import { RedditApiAdapter } from '../../integrations/reddit/redditApiAdapter.js';
-import { CliFrontend } from '../../frontends/cli/cliFrontend.js';
-import { CliRenderer } from '../../frontends/cli/cliRenderer.js';
-import { DiscordFrontend, DiscordWorkerEnv } from '../../frontends/discord/discordFrontend.js';
-import { DiscordExecutionContext } from '../../frontends/discord/discordFrontend.js';
-import { DiscordRenderer } from '../../frontends/discord/discordRenderer.js';
-import { KvSessionStore } from '../../runtimes/workers/kvSessionStore.js';
-import { localRuntime } from '../../runtimes/local/localRuntime.js';
-import { workersRuntime } from '../../runtimes/workers/workersRuntime.js';
-import { createConsoleLogger } from '../../core/logger.js';
+import { CommandRegistry, DefaultRouter, InMemorySessionStore, createCommandPipeline } from '@/core/index';
+import { createRedditTrendingCommand } from '@/commands/reddit/trending';
+import { RedditApiAdapter } from '@/integrations/reddit/redditApiAdapter';
+import { CliFrontend } from '@/frontends/cli/cliFrontend';
+import { CliRenderer } from '@/frontends/cli/cliRenderer';
+import { DiscordFrontend, DiscordWorkerEnv } from '@/frontends/discord/discordFrontend';
+import { DiscordExecutionContext } from '@/frontends/discord/discordFrontend';
+import { DiscordRenderer } from '@/frontends/discord/discordRenderer';
+import { KvSessionStore } from '@/runtimes/workers/kvSessionStore';
+import { localRuntime } from '@/runtimes/local/localRuntime';
+import { workersRuntime } from '@/runtimes/workers/workersRuntime';
+import { createConsoleLogger } from '@/core/logger';
 
 export interface CliAppDependencies {
   readonly argv: readonly string[];

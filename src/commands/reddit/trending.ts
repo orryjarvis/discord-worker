@@ -1,4 +1,4 @@
-import { CommandDefinition, CommandHandler, createCommandFailure } from '../../core/index.js';
+import { CommandDefinition, CommandResult, CommandHandler, CommandContext, createCommandFailure } from '@/core';
 
 export interface RedditThread {
   readonly title: string;
@@ -29,7 +29,7 @@ export interface RedditTrendingOutput {
 class RedditTrendingHandler implements CommandHandler<RedditTrendingInput, RedditTrendingOutput> {
   constructor(private readonly dependencies: RedditTrendingDependencies) {}
 
-  async execute(context: import('../../core/index.js').CommandContext<RedditTrendingInput>): Promise<import('../../core/index.js').CommandResult<RedditTrendingOutput>> {
+  async execute(context: CommandContext<RedditTrendingInput>): Promise<CommandResult<RedditTrendingOutput>> {
     const { subreddit } = context.input;
 
     if (!subreddit) {

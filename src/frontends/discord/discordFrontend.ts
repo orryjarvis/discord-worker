@@ -1,6 +1,6 @@
 import { etc, verifyAsync } from '@noble/ed25519';
-import { CommandEnvelope, FrontendCapabilities } from '../../core/index.js';
-import { Responder } from '../../core/responder.js';
+import { CommandEnvelope, FrontendCapabilities } from '@/core/index';
+import { Responder } from '@/core/responder';
 
 export interface DiscordWorkerInput {
   readonly request: Request;

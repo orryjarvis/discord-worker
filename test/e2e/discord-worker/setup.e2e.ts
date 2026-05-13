@@ -2,7 +2,7 @@ import { afterAll, beforeAll } from 'vitest';
 import { unstable_dev } from 'wrangler';
 import type { Response } from 'undici';
 import type { Unstable_DevWorker } from 'wrangler';
-import { signRequest } from './setup.shared.js';
+import { signRequest } from './setup.shared';
 
 let worker: Unstable_DevWorker;
 

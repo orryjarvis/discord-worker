@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { signAndSendRequest } from './signAndSendRequest.js';
+import { signAndSendRequest } from './signAndSendRequest';
 
 describe('discord-worker e2e', () => {
   it('responds to ping with interaction pong', async () => {

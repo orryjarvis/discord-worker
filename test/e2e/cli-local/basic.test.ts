@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { runCliApp } from '../../../src/apps/shared/createApp.js';
+import { runCliApp } from '@/../src/apps/shared/createApp';
 
 describe('cli-local e2e', () => {
   it('executes reddit trending end-to-end through app composition', async () => {

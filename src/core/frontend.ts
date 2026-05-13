@@ -1,5 +1,5 @@
-import { CommandEnvelope } from './envelope.js';
-import { Responder } from './responder.js';
+import { CommandEnvelope } from './envelope';
+import { Responder } from './responder';
 
 export interface FrontendAdapter<TRawEvent, TTransport, TCompletion = TTransport> {
   readonly name: string;

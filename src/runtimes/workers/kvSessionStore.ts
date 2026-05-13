@@ -1,5 +1,5 @@
-import { SessionState } from '../../core/effects.js';
-import { SessionStore } from '../../core/session.js';
+import { SessionState } from '@/core/effects';
+import { SessionStore } from '@/core/session';
 
 export class KvSessionStore implements SessionStore {
   constructor(private readonly kv: KVNamespace) {}

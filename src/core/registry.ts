@@ -1,4 +1,4 @@
-import { CommandDefinition } from './command.js';
+import { CommandDefinition } from './command';
 
 export class CommandRegistry<TDependencies> {
   private readonly definitions = new Map<string, CommandDefinition<TDependencies, unknown, unknown, unknown>>();

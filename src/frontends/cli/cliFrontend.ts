@@ -1,5 +1,5 @@
-import { CommandEnvelope, FrontendCapabilities } from '../../core/index.js';
-import { Responder } from '../../core/responder.js';
+import { CommandEnvelope, FrontendCapabilities } from '@/core/index';
+import { Responder } from '@/core/responder';
 
 export interface CliInvocation {
   readonly argv: readonly string[];

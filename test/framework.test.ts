@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { etc, keygenAsync, signAsync } from '@noble/ed25519';
-import { runCliApp, runDiscordApp } from '../src/apps/shared/createApp.js';
+import { runCliApp, runDiscordApp } from '@/apps/shared/createApp';
 
 function createKvNamespace(): KVNamespace {
   const store = new Map<string, string>();

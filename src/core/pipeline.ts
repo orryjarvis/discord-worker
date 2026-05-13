@@ -1,12 +1,12 @@
-import { CommandContext } from './command.js';
-import { CommandEnvelope } from './envelope.js';
-import { CommandRegistry } from './registry.js';
-import { Router } from './router.js';
-import { Renderer, RenderContext } from './renderer.js';
-import { FrontendAdapter } from './frontend.js';
-import { Logger } from './logger.js';
-import { SessionState } from './effects.js';
-import { SessionStore, createEmptySession } from './session.js';
+import { CommandContext } from './command';
+import { CommandEnvelope } from './envelope';
+import { CommandRegistry } from './registry';
+import { Router } from './router';
+import { Renderer, RenderContext } from './renderer';
+import { FrontendAdapter } from './frontend';
+import { Logger } from './logger';
+import { SessionState } from './effects';
+import { SessionStore, createEmptySession } from './session';
 
 export interface CommandPipelineDependencies<TDependencies, TRawEvent, TTransport, TCompletion> {
   readonly frontend: FrontendAdapter<TRawEvent, TTransport, TCompletion>;
@@ -25,7 +25,7 @@ export function createCommandPipeline<TDependencies, TRawEvent, TTransport, TCom
 ) {
   const { frontend, router, registry, renderer, sessionStore, logger, dependencies, runtimeName, runtimeMode } = config;
 
-  function applyEffects(effects: readonly import('./effects.js').CommandEffect[] | undefined, session: SessionState): SessionState {
+  function applyEffects(effects: readonly import('./effects').CommandEffect[] | undefined, session: SessionState): SessionState {
     if (!effects || effects.length === 0) {
       return session;
     }

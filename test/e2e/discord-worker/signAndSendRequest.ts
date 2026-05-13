@@ -3,7 +3,7 @@ type SetupModule = {
 };
 
 const setupChoice = (process.env.TEST_SETUP ?? 'e2e').toLowerCase();
-const setupPath = setupChoice === 'smoke' ? './setup.smoke.js' : './setup.e2e.js';
+const setupPath = setupChoice === 'smoke' ? './setup.smoke' : './setup.e2e';
 const setupModulePromise = import(setupPath) as Promise<SetupModule>;
 
 export async function signAndSendRequest(body: object): Promise<Response> {

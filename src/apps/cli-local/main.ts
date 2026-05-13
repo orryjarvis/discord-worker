@@ -1,4 +1,4 @@
-import { runCliApp } from '../shared/createApp.js';
+import { runCliApp } from '@/apps/shared/createApp';
 
 const output = await runCliApp({
   argv: process.argv.slice(2),

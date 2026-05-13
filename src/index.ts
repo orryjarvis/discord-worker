@@ -1,1 +1,1 @@
-export { default } from './apps/discord-worker/worker.js';
+export { default } from './apps/discord-worker/worker';

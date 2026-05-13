@@ -1,6 +1,6 @@
-import { CommandFailure, CommandSuccess, SessionState } from './effects.js';
-import { CommandEnvelope } from './envelope.js';
-import { Logger } from './logger.js';
+import { CommandFailure, CommandSuccess, SessionState } from './effects';
+import { CommandEnvelope } from './envelope';
+import { Logger } from './logger';
 
 export interface RenderContext<TRawEvent = unknown> {
   readonly envelope: CommandEnvelope<TRawEvent>;

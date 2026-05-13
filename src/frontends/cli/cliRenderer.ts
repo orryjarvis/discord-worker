@@ -1,7 +1,7 @@
-import { CommandFailure, CommandSuccess } from '../../core/effects.js';
-import { RenderContext, Renderer } from '../../core/renderer.js';
-import { CliTransportMessage } from './cliFrontend.js';
-import { formatThreadSummary, ThreadSummaryData } from '../../commands/reddit/renderThread.js';
+import { CommandFailure, CommandSuccess } from '@/core/effects';
+import { RenderContext, Renderer } from '@/core/renderer';
+import { CliTransportMessage } from './cliFrontend';
+import { formatThreadSummary, ThreadSummaryData } from '@/commands/reddit/renderThread';
 
 export class CliRenderer implements Renderer<{ thread: ThreadSummaryData }, CliTransportMessage> {
   async renderSuccess(_context: RenderContext, result: CommandSuccess<{ thread: ThreadSummaryData }>): Promise<CliTransportMessage> {

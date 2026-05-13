@@ -1,4 +1,4 @@
-import { RuntimeAdapter } from '../../core/index.js';
+import { RuntimeAdapter } from '@/core/index';
 
 export const localRuntime: RuntimeAdapter = {
   name: 'local',

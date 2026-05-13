@@ -1,5 +1,5 @@
-import { runDiscordApp } from '../shared/createApp.js';
-import { DiscordWorkerEnv } from '../../frontends/discord/discordFrontend.js';
+import { runDiscordApp } from '@/apps/shared/createApp';
+import { DiscordWorkerEnv } from '@/frontends/discord/discordFrontend';
 
 export interface WorkerBindings extends DiscordWorkerEnv {
   readonly KV: KVNamespace;
