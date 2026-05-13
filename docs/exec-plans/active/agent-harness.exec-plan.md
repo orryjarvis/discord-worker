@@ -79,7 +79,7 @@ Design and implement legible feedback signals so agents can validate locally and
 
 - [ ] `AGENTS.md` exists at repo root and is ~100 lines (table of contents, not encyclopedia)
 - [ ] All knowledge lives in `docs/` with clear structure: design-docs/, references/, exec-plans/
-- [ ] `.github/instructions/` contains 5 skill files; each is <200 lines and teaches one concrete pattern
+- [x] `.github/instructions/` contains 5 skill files; each is <200 lines and teaches one concrete pattern
 - [ ] `.github/prompts/` contains 6 workflow files; each is tested to work end-to-end
 - [ ] `scripts/lint-architecture.ts` and `lint-docs.ts` exist and pass on clean codebase
 - [ ] `test/architecture.test.ts` passes; covers file naming, import rules, test coverage
@@ -151,6 +151,27 @@ Design and implement legible feedback signals so agents can validate locally and
 ---
 
 ## Progress Log
+
+### Entry: 2026-05-13 — Phase 2 (Agent Skills)
+
+**Status:** Completed
+
+- **Completed:**
+  - Created `.github/instructions/` directory
+  - Added `add-command.instructions.md`
+  - Added `add-service.instructions.md`
+  - Added `testing.instructions.md`
+  - Added `architecture.instructions.md`
+  - Added `ci-cd.instructions.md`
+
+- **Notes:**
+  - Each skill is scoped with `applyTo` patterns and points to Phase 1 docs.
+  - Skills include concrete workflow checklists and definitions of done.
+
+- **Next:**
+  - Phase 3: Create workflow prompts in `.github/prompts/`
+  - Phase 4a: Implement architecture enforcement scripts and tests
+  - Phase 4b: Add observability-friendly validation outputs
 
 ### Entry: 2026-05-13 — Planning
 

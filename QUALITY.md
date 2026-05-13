@@ -85,13 +85,13 @@ Tracking progress toward the agent-harness initiative (see [docs/exec-plans/acti
 - [x] Create docs/ directory structure (design-docs/, references/, exec-plans/)
 - [x] Create AGENTS.md (TOC)
 - [x] Create ARCHITECTURE.md (system design)
-- [ ] Create design-docs/ files (commands, services, testing, error-handling, architecture-rules)
-- [ ] Create references/ files (local-dev, error-messages, code-patterns, glossary)
-- [ ] Refactor copilot-instructions.md to point to AGENTS.md
+- [x] Create design-docs/ files (commands, services, testing, error-handling, architecture-rules)
+- [x] Create references/ files (local-dev, error-messages, code-patterns, glossary)
+- [x] Refactor copilot-instructions.md to point to AGENTS.md
 
 ### Phase 2 — Agent Skills
 
-- [ ] Create .github/instructions/*.instructions.md files
+- [x] Create .github/instructions/*.instructions.md files
 
 ### Phase 3 — Workflow Prompts
 
@@ -116,6 +116,7 @@ Tracking progress toward the agent-harness initiative (see [docs/exec-plans/acti
 ### Recent Changes
 
 - **2026-05-13:** Phase 1 kickoff; created exec-plan, established knowledge foundation structure
+- **2026-05-13:** Phase 2 completed; added 5 targeted Copilot instruction skill files under `.github/instructions/`
 
 ### Observations
 
