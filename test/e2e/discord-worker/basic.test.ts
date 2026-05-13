@@ -19,7 +19,13 @@ describe('discord-worker e2e', () => {
       id: 'missing-subreddit-test',
       data: {
         name: 'reddit',
-        options: [],
+        options: [
+          {
+            type: 1,
+            name: 'trending',
+            options: [],
+          },
+        ],
       },
     });
 

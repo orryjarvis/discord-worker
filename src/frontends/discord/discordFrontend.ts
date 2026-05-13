@@ -20,15 +20,24 @@ export interface DiscordTransportMessage {
   readonly ephemeral?: boolean;
 }
 
+interface DiscordInteractionOption {
+  readonly type?: number;
+  readonly name?: string;
+  readonly value?: string;
+  readonly options?: readonly DiscordInteractionOption[];
+}
+
 interface DiscordInteractionPayload {
   readonly type: number;
   readonly data?: {
     readonly name?: string;
-    readonly options?: Array<{ readonly name?: string; readonly value?: string }>;
+    readonly options?: readonly DiscordInteractionOption[];
   };
   readonly token?: string;
   readonly id?: string;
 }
+
+const DISCORD_SUBCOMMAND_OPTION_TYPE = 1;
 
 const DISCORD_DEFERRED_CHANNEL_MESSAGE = 5;
 const DISCORD_CHANNEL_MESSAGE_WITH_SOURCE = 4;
@@ -135,10 +144,12 @@ export class DiscordFrontend {
       return null;
     }
 
-    const interaction = JSON.parse(body) as DiscordInteractionPayload & {
-      readonly type?: number;
-      readonly data?: { readonly options?: Array<{ readonly name?: string; readonly value?: string }> };
-    };
+    let interaction: DiscordInteractionPayload;
+    try {
+      interaction = JSON.parse(body) as DiscordInteractionPayload;
+    } catch {
+      return null;
+    }
 
     if (interaction.type === 1) {
       return {
@@ -162,12 +173,15 @@ export class DiscordFrontend {
     }
 
     const commandName = interaction.data?.name ?? 'unknown';
-    const options = interaction.data?.options ?? [];
-    const subreddit = options.find((option) => option.name === 'subreddit')?.value ?? '';
+    const topLevelOptions = interaction.data?.options ?? [];
+    const subcommandOption = topLevelOptions.find((o) => o.type === DISCORD_SUBCOMMAND_OPTION_TYPE);
+    const path = subcommandOption ? [commandName, subcommandOption.name ?? 'unknown'] : [commandName];
+    const leafOptions = subcommandOption ? (subcommandOption.options ?? []) : topLevelOptions;
+    const subreddit = leafOptions.find((o) => o.name === 'subreddit')?.value ?? '';
 
     return {
       id: interaction.id ?? `discord-${Date.now()}`,
-      path: ['reddit', 'trending'],
+      path,
       args: [subreddit],
       source: { name: this.name, mode: 'worker' },
       runtime: { name: 'cloudflare-workers', mode: 'worker' },

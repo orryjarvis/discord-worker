@@ -71,7 +71,13 @@ describe('framework bootstrap', () => {
       id: 'interaction-1',
       data: {
         name: 'reddit',
-        options: [{ name: 'subreddit', value: 'typescript' }],
+        options: [
+          {
+            type: 1,
+            name: 'trending',
+            options: [{ name: 'subreddit', value: 'typescript' }],
+          },
+        ],
       },
     });
     const timestamp = '1715550000';

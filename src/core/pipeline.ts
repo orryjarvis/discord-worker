@@ -54,24 +54,7 @@ export function createCommandPipeline<TDependencies, TRawEvent, TTransport, TCom
     return session;
   }
 
-  async function execute(rawEvent: TRawEvent): Promise<TCompletion> {
-    const envelope = await frontend.normalize(rawEvent);
-    if (!envelope) {
-      logger.debug('frontend ignored event', { runtimeName, runtimeMode });
-      return frontend.createResponder({
-        id: 'noop',
-        path: [],
-        args: [],
-        source: { name: frontend.name, mode: runtimeMode },
-        runtime: { name: runtimeName, mode: runtimeMode },
-        rawEvent,
-        sessionKey: 'noop',
-        receivedAt: new Date().toISOString(),
-        capabilities: frontend.capabilities,
-        metadata: {},
-      }).finish();
-    }
-
+  async function executeEnvelope(envelope: CommandEnvelope<TRawEvent>): Promise<TCompletion> {
     const responder = frontend.createResponder(envelope);
 
     if (frontend.admit) {
@@ -111,8 +94,8 @@ export function createCommandPipeline<TDependencies, TRawEvent, TTransport, TCom
       }
 
       const effectSession = applyEffects(result.effects, session);
-      const nextSession = result.session ?? effectSession ?? {
-        ...session,
+      const nextSession = result.session ?? {
+        ...effectSession,
         status: result.ok ? 'active' : 'failed',
         updatedAt: new Date().toISOString(),
       };
@@ -140,7 +123,29 @@ export function createCommandPipeline<TDependencies, TRawEvent, TTransport, TCom
     }
   }
 
+  async function execute(rawEvent: TRawEvent): Promise<TCompletion> {
+    const envelope = await frontend.normalize(rawEvent);
+    if (!envelope) {
+      logger.debug('frontend ignored event', { runtimeName, runtimeMode });
+      return frontend.createResponder({
+        id: 'noop',
+        path: [],
+        args: [],
+        source: { name: frontend.name, mode: 'unknown' },
+        runtime: { name: runtimeName, mode: runtimeMode },
+        rawEvent,
+        sessionKey: 'noop',
+        receivedAt: new Date().toISOString(),
+        capabilities: frontend.capabilities,
+        metadata: {},
+      }).finish();
+    }
+
+    return executeEnvelope(envelope);
+  }
+
   return {
     execute,
+    executeEnvelope,
   };
 }

@@ -1,6 +1,6 @@
 import { RuntimeAdapter } from '../../core/index.js';
 
-export class LocalRuntime implements RuntimeAdapter {
-  readonly name = 'local';
-  readonly mode = 'process';
-}
+export const localRuntime: RuntimeAdapter = {
+  name: 'local',
+  mode: 'process',
+};

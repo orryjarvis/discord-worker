@@ -7,13 +7,20 @@ type DeployCommandsEnv = {
 const COMMANDS = [
     {
         name: 'reddit',
-        description: 'Show the currently trending thread for a subreddit.',
+        description: 'Reddit commands.',
         options: [
             {
-                name: 'subreddit',
-                description: 'The subreddit to inspect.',
-                type: 3,
-                required: true,
+                name: 'trending',
+                description: 'Show the currently trending thread for a subreddit.',
+                type: 1, // SUBCOMMAND
+                options: [
+                    {
+                        name: 'subreddit',
+                        description: 'The subreddit to inspect.',
+                        type: 3,
+                        required: true,
+                    },
+                ],
             },
         ],
     },
