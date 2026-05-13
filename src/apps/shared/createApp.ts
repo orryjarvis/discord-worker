@@ -18,6 +18,7 @@ export interface CliAppDependencies {
 export interface DiscordAppDependencies {
   readonly request: Request;
   readonly env: DiscordWorkerEnv & { readonly KV: KVNamespace };
+  readonly fetchImpl?: typeof fetch;
 }
 
 export async function runCliApp(dependencies: CliAppDependencies): Promise<string> {
@@ -54,7 +55,7 @@ export async function runDiscordApp(dependencies: DiscordAppDependencies): Promi
   const renderer = new DiscordRenderer();
   const sessionStore = new KvSessionStore(dependencies.env.KV);
   const registry = new CommandRegistry<{ readonly reddit: RedditApiAdapter }>();
-  const reddit = new RedditApiAdapter({ fetchImpl: fetch });
+  const reddit = new RedditApiAdapter({ fetchImpl: dependencies.fetchImpl ?? fetch });
 
   registry.register(createRedditTrendingCommand({ reddit }));
 

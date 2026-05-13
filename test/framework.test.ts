@@ -88,8 +88,34 @@ describe('framework bootstrap', () => {
       body,
     });
 
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          data: {
+            children: [
+              {
+                data: {
+                  title: 'Example trending thread',
+                  subreddit: 'typescript',
+                  author: 'example_author',
+                  score: 42,
+                  num_comments: 10,
+                  url: 'https://www.reddit.com/r/typescript/comments/example',
+                  permalink: '/r/typescript/comments/example',
+                },
+              },
+            ],
+          },
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
     const response = await runDiscordApp({
       request,
+      fetchImpl,
       env: {
         DISCORD_APPLICATION_ID: 'application-id',
         DISCORD_TOKEN: 'bot-token',
