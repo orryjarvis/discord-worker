@@ -1,20 +1,36 @@
-import 'reflect-metadata';
-import { COMMANDS } from "../src/commands.js";
-import { DiscordService } from "../src/services/discordService.js";
-import { Env } from '../src/types.js';
+const TEST_COMMAND = {
+  name: 'test',
+  description: 'Test deferred response flow',
+  type: 1,
+};
 
-export async function deployCommands() {
-    const creationResponse = await new DiscordService(process.env as unknown as Env).upsertCommands(COMMANDS, process.env.DISCORD_GUILD_ID);
-    if (creationResponse.ok) {
-        console.log('Registered all commands');
-    } else {
-        console.error('Error registering commands');
-        const text = await creationResponse.text();
-        console.error(text);
-    }
+async function deployCommands() {
+  const applicationId = process.env.DISCORD_APPLICATION_ID;
+  const botToken = process.env.DISCORD_BOT_TOKEN ?? process.env.DISCORD_TOKEN;
+  const guildId = process.env.DISCORD_GUILD_ID;
+
+  if (!applicationId || !botToken) {
+    console.error('DISCORD_APPLICATION_ID and DISCORD_BOT_TOKEN (or DISCORD_TOKEN) are required');
+    process.exit(1);
+  }
+
+  const url = `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ''}commands`;
+
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bot ${botToken}`,
+    },
+    body: JSON.stringify([TEST_COMMAND]),
+  });
+
+  if (response.ok) {
+    console.log('Registered command: test');
+  } else {
+    console.error('Error registering commands');
+    console.error(await response.text());
+  }
 }
 
-// Remove CommonJS require.main check for ESM compatibility
-if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('deploy_commands.js')) {
-    deployCommands();
-}
+deployCommands();

@@ -9,9 +9,21 @@ describe('Discord Worker E2E', () => {
     expect((await res.json() as any).type).toBe(1); // InteractionResponseType.Pong
   });
 
+  it('responds to /test command with deferred response (type 5)', async () => {
+    const body = {
+      type: 2, // InteractionType.ApplicationCommand
+      token: 'e2e-test-token',
+      data: { name: 'test' },
+    };
+    const res = await signAndSendRequest(body);
+    expect(res.status).toBe(200);
+    expect((await res.json() as any).type).toBe(5);
+  });
+
   it('responds to unknown command with 400', async () => {
     const body = {
       type: 2, // InteractionType.ApplicationCommand
+      token: 'e2e-test-token',
       data: { name: 'notacommand' },
     };
     const res = await signAndSendRequest(body);
