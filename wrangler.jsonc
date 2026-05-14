@@ -7,7 +7,7 @@
   "rules": [
     {
       "type": "ESModule",
-      "globs": ["src/commands/**/.ts", "src/services/**/*.ts"],
+      "globs": ["src/commands/**/.*ts", "src/services/**/*.ts"],
       "fallthrough": true
     }
   ],
@@ -87,13 +87,12 @@
           "secret_name": "REDDIT_TOKEN"
         }
       ]
+    // Vars managed externally
+    //   "vars": {
+    //     "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
+    //     "DISCORD_TOKEN": "not-a-real-token",
+    //     "SIGNATURE_PUBLIC_KEY": "d392fc518bebf4dbc2fc3f7dead4237f87b60bb1d7bbd57a2a91a05da5003a26"
+    //   }
     }
   }
-  // Note: Commented out secrets configuration
-  // Secrets should be set via CLI: wrangler secret put SIGNATURE_PUBLIC_KEY
-  // or configured in the appropriate environment section
-  // [secrets]
-  // SIGNATURE_PUBLIC_KEY
-  // DISCORD_APPLICATION_ID
-  // DISCORD_TOKEN
 }
