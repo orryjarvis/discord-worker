@@ -9,6 +9,7 @@ interface Env {
   SIGNATURE_PUBLIC_KEY: string;
   DISCORD_TOKEN: string;
   FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
+  DISCORD_API_BASE?: string;
 }
 
 interface Interaction {
@@ -67,6 +68,7 @@ export default {
         message.body.token,
         env.DISCORD_TOKEN,
         'Hello World',
+        env.DISCORD_API_BASE,
       );
       message.ack();
     }
