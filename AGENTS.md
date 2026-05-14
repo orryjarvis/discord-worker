@@ -2,7 +2,8 @@
 
 This file is a map, not a manual. Read it to orient yourself, then go to the code.
 
-For deeper operating principles, see [docs/design-docs/index.md](docs/design-docs/index.md).
+For deeper operating principles, see [docs/design-docs/index.md](docs/design-docs/index.md).  
+GitHub Copilot agents: see [`.github/copilot-instructions.md`](.github/copilot-instructions.md) — it is the Copilot-specific bootstrap entrypoint and routes here.
 
 ---
 
@@ -28,8 +29,8 @@ Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 | What | Where |
 |---|---|
 | Worker entry point | `src/index.ts` |
-| Discord helpers (verify, respond, sleep) | `src/discord.ts` |
-| Unit tests | `test/basic.test.ts` |
+| Discord helpers (verify, respond) | `src/discord.ts` |
+| Unit tests | `test/worker.test.ts` |
 | E2E / smoke tests | `test/e2e/` |
 | E2E test config | `test/e2e/vitest.e2e.config.ts` |
 | Smoke test config | `test/e2e/vitest.smoke.config.ts` |
@@ -39,6 +40,7 @@ Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 | Cloudflare config | `wrangler.jsonc` |
 | TypeScript config | `tsconfig.json` |
 | Design docs | `docs/design-docs/` |
+| Copilot agent bootstrap | `.github/copilot-instructions.md` |
 
 ---
 
