@@ -19,10 +19,7 @@
   },
   "dependencies": {
     "@noble/ed25519": "^3.0.0",
-    "discord-api-types": "^0.38.37",
-    "itty-router": "^5.0.22",
-    "reflect-metadata": "^0.2.2",
-    "tsyringe": "^4.10.0"
+    "discord-api-types": "^0.38.37"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260111.0",
