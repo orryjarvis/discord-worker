@@ -19,6 +19,11 @@
           "binding": "KV",
           "id": "4000434490424208b40ea5817cf0f86e",
           "preview_id": "4000434490424208b40ea5817cf0f86e"
+        },
+        {
+          "binding": "TEST_FOLLOWUPS",
+          "id": "00000000000000000000000000000001",
+          "preview_id": "00000000000000000000000000000001"
         }
       ],
       "secrets_store_secrets": [
@@ -42,7 +47,8 @@
       "vars": {
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
-        "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e"
+        "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e",
+        "DISCORD_API_BASE_URL": "http://localhost:8787/__test/discord/api/v10"
       }
     },
     "test": {
@@ -51,6 +57,10 @@
         {
           "binding": "KV",
           "id": "f7b9e2cbd87640a286eb71509304ce9b"
+        },
+        {
+          "binding": "TEST_FOLLOWUPS",
+          "id": "00000000000000000000000000000002"
         }
       ],
       "secrets_store_secrets": [
