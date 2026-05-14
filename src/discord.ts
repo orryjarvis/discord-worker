@@ -30,9 +30,9 @@ export async function editOriginalInteractionResponse(
   token: string,
   botToken: string,
   content: string,
-  apiBase = 'https://discord.com',
+  apiBaseUrl = 'https://discord.com/api/v10',
 ): Promise<Response> {
-  const url = `${apiBase}/api/v10/webhooks/${applicationId}/${token}/messages/@original`;
+  const url = `${apiBaseUrl}/webhooks/${applicationId}/${token}/messages/@original`;
   return fetch(url, {
     method: 'PATCH',
     headers: {

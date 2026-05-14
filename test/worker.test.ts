@@ -82,7 +82,7 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     const json = await res.json() as any;
     expect(json.type).toBe(5);
-    expect(mockQueue.send).toHaveBeenCalledWith({ token: 'tok' }, { delaySeconds: 5 });
+    expect(mockQueue.send).toHaveBeenCalledWith({ token: 'tok' });
   });
 
   it('responds to unknown command with 400', async () => {
