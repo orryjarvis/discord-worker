@@ -25,18 +25,15 @@ export function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export async function editOriginalInteractionResponse(
   applicationId: string,
   token: string,
   botToken: string,
   content: string,
-): Promise<void> {
-  const url = `https://discord.com/api/v10/webhooks/${applicationId}/${token}/messages/@original`;
-  await fetch(url, {
+  apiBase = 'https://discord.com',
+): Promise<Response> {
+  const url = `${apiBase}/api/v10/webhooks/${applicationId}/${token}/messages/@original`;
+  return fetch(url, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',

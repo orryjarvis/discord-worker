@@ -4,6 +4,7 @@
 type SetupModule = {
   // Keep the type broad to avoid cross-env Response typing issues (undici vs lib-dom).
   signAndSendRequest: (body: object) => Promise<any>;
+  waitForFollowUp: (token: string, timeoutMs?: number) => Promise<any>;
 };
 
 const setupChoice = (process.env.TEST_SETUP || 'e2e').toLowerCase();
@@ -15,4 +16,9 @@ const setupModulePromise = import(setupPath) as Promise<SetupModule>;
 export async function signAndSendRequest(body: object): Promise<any> {
   const mod = await setupModulePromise;
   return mod.signAndSendRequest(body);
+}
+
+export async function waitForFollowUp(token: string, timeoutMs?: number): Promise<any> {
+  const mod = await setupModulePromise;
+  return mod.waitForFollowUp(token, timeoutMs);
 }

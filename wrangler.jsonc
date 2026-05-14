@@ -33,8 +33,12 @@
           "secret_name": "REDDIT_TOKEN"
         }
       ],
+      "queues": {
+        "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue-dev" }],
+        "consumers": [{ "queue": "discord-follow-up-queue-dev" }]
+      },
       "upload_source_maps": true,
-      "remote": true,
+      "remote": false,
       "vars": {
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
@@ -61,6 +65,10 @@
           "secret_name": "REDDIT_TOKEN"
         }
       ],
+      "queues": {
+        "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue-test" }],
+        "consumers": [{ "queue": "discord-follow-up-queue-test" }]
+      },
       "vars": {
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
@@ -86,7 +94,11 @@
           "store_id": "bcfe20a10506483d95a91e302bd42d41",
           "secret_name": "REDDIT_TOKEN"
         }
-      ]
+      ],
+      "queues": {
+        "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue" }],
+        "consumers": [{ "queue": "discord-follow-up-queue" }]
+      }
     // Vars managed externally
     //   "vars": {
     //     "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
