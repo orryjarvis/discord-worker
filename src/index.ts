@@ -63,13 +63,18 @@ export default {
 
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
-      await editOriginalInteractionResponse(
+      const response = await editOriginalInteractionResponse(
         env.DISCORD_APPLICATION_ID,
         message.body.token,
         env.DISCORD_TOKEN,
         'Hello World',
         env.DISCORD_API_BASE,
       );
+
+      if (!response.ok) {
+        throw new Error(`Failed to edit original interaction response: ${response.status} ${response.statusText}`);
+      }
+
       message.ack();
     }
   },

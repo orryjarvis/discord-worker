@@ -38,7 +38,7 @@
         "consumers": [{ "queue": "discord-follow-up-queue-dev" }]
       },
       "upload_source_maps": true,
-      "remote": true,
+      "remote": false,
       "vars": {
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",

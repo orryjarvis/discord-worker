@@ -20,7 +20,7 @@ Runtime: Cloudflare Workers (no Node.js APIs at runtime).
 Language: TypeScript.  
 Deployment: Wrangler (`wrangler.jsonc`).  
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
-`DISCORD_TOKEN`.
+`DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`.
 
 ---
 
@@ -96,8 +96,9 @@ npm run test    # Unit tests (Vitest)
 npm run e2e     # E2E tests (requires wrangler dev environment)
 ```
 
-Unit tests use fake timers and a stubbed `fetch` to exercise the deferred
-`waitUntil` task without a real network or clock.
+Unit tests should cover the current follow-up flow by asserting that the worker
+enqueues work with `FOLLOW_UP_QUEUE.send`. Do not rely on the removed
+`waitUntil`/fake-timer path when updating or adding tests.
 
 E2E tests use Wrangler's `unstable_dev` with `env: 'dev'` and `local: true`. Queue bindings require local mode — remote mode (`local: false`) does not support queues and causes 503s on all requests.
 

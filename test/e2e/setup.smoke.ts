@@ -1,6 +1,16 @@
 import { signRequest } from "./setup.shared";
 
-const baseUrl = process.env.LIVE_BASE_URL ?? 'http://localhost:8787';
+function requireLiveBaseUrl(): string {
+  const liveBaseUrl = process.env.LIVE_BASE_URL?.trim();
+
+  if (!liveBaseUrl) {
+    throw new Error('LIVE_BASE_URL must be set for smoke tests');
+  }
+
+  return liveBaseUrl;
+}
+
+const baseUrl = requireLiveBaseUrl();
 
 export async function signAndSendRequest(body: object): Promise<Response> {
   const request = await signRequest(body);
