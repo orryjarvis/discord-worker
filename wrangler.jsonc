@@ -16,14 +16,10 @@
       "name": "discord-worker-dev",
       "kv_namespaces": [
         {
-          "binding": "KV",
-          "id": "4000434490424208b40ea5817cf0f86e",
-          "preview_id": "4000434490424208b40ea5817cf0f86e"
+          "binding": "KV"
         },
         {
-          "binding": "TEST_FOLLOWUPS",
-          "id": "00000000000000000000000000000001",
-          "preview_id": "00000000000000000000000000000001"
+          "binding": "TEST_FOLLOWUPS"
         }
       ],
       "secrets_store_secrets": [
@@ -60,7 +56,7 @@
         },
         {
           "binding": "TEST_FOLLOWUPS",
-          "id": "00000000000000000000000000000002"
+          "id": "139eee6b068f4b4a8fb738839025e249"
         }
       ],
       "secrets_store_secrets": [

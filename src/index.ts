@@ -109,7 +109,7 @@ export default {
     if (interaction.type === 2) {
       const commandName = interaction.data?.name?.toLowerCase();
       if (commandName === 'test') {
-        await env.FOLLOW_UP_QUEUE.send({ token: interaction.token }, { delaySeconds: 5 });
+        await env.FOLLOW_UP_QUEUE.send({ token: interaction.token });
         return jsonResponse({ type: 5 });
       }
       return new Response('Unknown Command', { status: 400 });
