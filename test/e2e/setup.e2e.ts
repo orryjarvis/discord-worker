@@ -11,7 +11,7 @@ beforeAll(async () => {
     experimental: { disableExperimentalWarning: true },
     env: 'dev',
     logLevel: 'log',
-    local: false
+    local: true
   });
 });
 

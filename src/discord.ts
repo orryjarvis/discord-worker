@@ -25,10 +25,6 @@ export function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export async function editOriginalInteractionResponse(
   applicationId: string,
   token: string,

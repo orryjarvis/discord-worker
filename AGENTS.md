@@ -97,9 +97,7 @@ npm run e2e     # E2E tests (requires wrangler dev environment)
 Unit tests use fake timers and a stubbed `fetch` to exercise the deferred
 `waitUntil` task without a real network or clock.
 
-E2E tests use Wrangler's `unstable_dev` with `env: 'dev'` and `local: false`.
-Smoke tests hit a live URL via `LIVE_BASE_URL` and use the shared request
-signer in `test/e2e/signAndSendRequest.ts`.
+E2E tests use Wrangler's `unstable_dev` with `env: 'dev'` and `local: true`. Queue bindings require local mode — remote mode (`local: false`) does not support queues and causes 503s on all requests.
 
 Do not delete or rewrite test helpers without understanding what they test.
 

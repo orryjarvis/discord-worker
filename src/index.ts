@@ -1,9 +1,14 @@
-import { verifyDiscordRequest, jsonResponse, sleep, editOriginalInteractionResponse } from './discord.js';
+import { verifyDiscordRequest, jsonResponse, editOriginalInteractionResponse } from './discord.js';
+
+interface FollowUpMessage {
+  token: string;
+}
 
 interface Env {
   DISCORD_APPLICATION_ID: string;
   SIGNATURE_PUBLIC_KEY: string;
   DISCORD_TOKEN: string;
+  FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
 }
 
 interface Interaction {
@@ -14,18 +19,8 @@ interface Interaction {
   };
 }
 
-async function runTestCommand(interaction: Interaction, env: Env): Promise<void> {
-  await sleep(5000);
-  await editOriginalInteractionResponse(
-    env.DISCORD_APPLICATION_ID,
-    interaction.token,
-    env.DISCORD_TOKEN,
-    'Hello World',
-  );
-}
-
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -56,12 +51,24 @@ export default {
     if (interaction.type === 2) {
       const commandName = interaction.data?.name?.toLowerCase();
       if (commandName === 'test') {
-        ctx.waitUntil(runTestCommand(interaction, env));
+        await env.FOLLOW_UP_QUEUE.send({ token: interaction.token }, { delaySeconds: 5 });
         return jsonResponse({ type: 5 });
       }
       return new Response('Unknown Command', { status: 400 });
     }
 
     return new Response('Unknown Interaction Type', { status: 400 });
+  },
+
+  async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
+    for (const message of batch.messages) {
+      await editOriginalInteractionResponse(
+        env.DISCORD_APPLICATION_ID,
+        message.body.token,
+        env.DISCORD_TOKEN,
+        'Hello World',
+      );
+      message.ack();
+    }
   },
 };
