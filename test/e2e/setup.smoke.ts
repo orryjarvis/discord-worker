@@ -17,6 +17,14 @@ export async function signAndSendRequest(body: object): Promise<Response> {
   return await fetch(baseUrl + '/', request);
 }
 
-export function waitForFollowUp(_token: string): Promise<never> {
-  return Promise.reject(new Error('waitForFollowUp is not available in smoke mode'));
+export async function waitForFollowUp(correlationId: string, timeoutMs = 15000): Promise<any> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await fetch(`${baseUrl}/__test/followups/${correlationId}`);
+    if (res.status === 200) {
+      return res.json();
+    }
+    await new Promise<void>(r => setTimeout(r, 1000));
+  }
+  throw new Error(`No follow-up for correlationId "${correlationId}" received within ${timeoutMs}ms`);
 }

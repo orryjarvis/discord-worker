@@ -2,86 +2,57 @@ import { beforeAll, afterAll } from 'vitest';
 import { unstable_dev } from 'wrangler';
 import type { Unstable_DevWorker } from 'wrangler';
 import type { Response } from 'undici';
-import http from 'http';
+import * as net from 'net';
 import { signRequest } from './setup.shared';
 
 let worker: Unstable_DevWorker;
 
-type FollowUpRequest = { path: string; body: string };
-const received = new Map<string, FollowUpRequest>();
-const waiters = new Map<string, Array<(req: FollowUpRequest) => void>>();
-
-function tokenFromPath(path: string): string | null {
-  const m = path.match(/\/webhooks\/[^/]+\/([^/]+)\/messages/);
-  return m ? m[1] : null;
+function getFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      const port = typeof address === 'object' && address ? address.port : null;
+      server.close(() => {
+        if (port) resolve(port);
+        else reject(new Error('Could not allocate free port'));
+      });
+    });
+    server.on('error', reject);
+  });
 }
 
-const mockDiscordServer = http.createServer((req, res) => {
-  let body = '';
-  req.on('data', chunk => { body += chunk; });
-  req.on('end', () => {
-    if (req.method === 'PATCH') {
-      const token = tokenFromPath(req.url ?? '');
-      if (token) {
-        const captured: FollowUpRequest = { path: req.url ?? '', body };
-        received.set(token, captured);
-        const resolvers = waiters.get(token) ?? [];
-        waiters.delete(token);
-        resolvers.forEach(r => r(captured));
-      }
-    }
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end('{}');
-  });
-});
-
 beforeAll(async () => {
-  const port = await new Promise<number>((resolve) => {
-    mockDiscordServer.listen(0, '127.0.0.1', () => {
-      resolve((mockDiscordServer.address() as { port: number }).port);
-    });
-  });
-
+  const port = await getFreePort();
   worker = await unstable_dev('src/index.ts', {
     experimental: { disableExperimentalWarning: true },
     env: 'dev',
     logLevel: 'log',
     local: true,
-    vars: { DISCORD_API_BASE: `http://127.0.0.1:${port}` },
+    port,
+    vars: { DISCORD_API_BASE_URL: `http://localhost:${port}/__test/discord/api/v10` },
   });
 });
 
 afterAll(async () => {
   await worker.stop();
-  await new Promise<void>((resolve) => mockDiscordServer.close(() => resolve()));
 });
 
-async function signAndSendRequest(body: object): Promise<Response> {
+export async function signAndSendRequest(body: object): Promise<Response> {
   const request = await signRequest(body);
   return await worker.fetch('/', request);
 }
 
-export function waitForFollowUp(token: string, timeoutMs = 10000): Promise<FollowUpRequest> {
-  const existing = received.get(token);
-  if (existing) {
-    received.delete(token);
-    return Promise.resolve(existing);
+export async function waitForFollowUp(correlationId: string, timeoutMs = 15000): Promise<any> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await worker.fetch(`/__test/followups/${correlationId}`);
+    if (res.status === 200) {
+      return res.json();
+    }
+    await new Promise<void>(r => setTimeout(r, 1000));
   }
-  return new Promise((resolve, reject) => {
-    const resolvers = waiters.get(token) ?? [];
-    const timer = setTimeout(() => {
-      const list = waiters.get(token);
-      if (list) {
-        const idx = list.indexOf(resolver);
-        if (idx !== -1) list.splice(idx, 1);
-      }
-      reject(new Error(`No follow-up for token "${token}" received within ${timeoutMs}ms`));
-    }, timeoutMs);
-    const resolver = (req: FollowUpRequest) => { clearTimeout(timer); resolve(req); };
-    resolvers.push(resolver);
-    waiters.set(token, resolvers);
-  });
+  throw new Error(`No follow-up for correlationId "${correlationId}" received within ${timeoutMs}ms`);
 }
 
-export { signAndSendRequest };
 
