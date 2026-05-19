@@ -1,6 +1,6 @@
 const TEST_COMMAND = {
   name: 'test',
-  description: 'Test deferred response flow',
+  description: 'Open a button and modal flow that stores text',
   type: 1,
 };
 

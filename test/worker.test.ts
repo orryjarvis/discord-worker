@@ -7,12 +7,18 @@ const TEST_PRIVATE_KEY = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cd
 const TEST_PUBLIC_KEY = '04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e';
 
 const mockQueue = { send: vi.fn().mockResolvedValue(undefined) };
+const mockKv = {
+  put: vi.fn().mockResolvedValue(undefined),
+  get: vi.fn().mockResolvedValue(null),
+  delete: vi.fn().mockResolvedValue(undefined),
+};
 
 const TEST_ENV = {
   DISCORD_APPLICATION_ID: 'test-app-id',
   SIGNATURE_PUBLIC_KEY: TEST_PUBLIC_KEY,
   DISCORD_TOKEN: 'test-token',
   FOLLOW_UP_QUEUE: mockQueue,
+  KV: mockKv,
 };
 
 async function signedRequest(body: object): Promise<Request> {
@@ -35,6 +41,9 @@ async function signedRequest(body: object): Promise<Request> {
 afterEach(() => {
   vi.unstubAllGlobals();
   mockQueue.send.mockClear();
+  mockKv.put.mockClear();
+  mockKv.get.mockClear();
+  mockKv.delete.mockClear();
 });
 
 describe('Discord Worker', () => {
@@ -77,7 +86,7 @@ describe('Discord Worker', () => {
   });
 
   it('responds to /test command with deferred response (type 5) and enqueues follow-up', async () => {
-    const req = await signedRequest({ type: 2, token: 'tok', data: { name: 'test' } });
+    const req = await signedRequest({ id: 'cmd-1', type: 2, token: 'tok', data: { name: 'test' } });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(200);
     const json = await res.json() as any;
@@ -85,8 +94,75 @@ describe('Discord Worker', () => {
     expect(mockQueue.send).toHaveBeenCalledWith({ token: 'tok' });
   });
 
+  it('responds to button component interaction with a modal response (type 9)', async () => {
+    const req = await signedRequest({
+      id: 'cmp-1',
+      type: 3,
+      token: 'tok',
+      data: { custom_id: 'test_open_modal' },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(200);
+    const json = await res.json() as any;
+    expect(json).toMatchObject({
+      type: 9,
+      data: {
+        custom_id: 'test_modal',
+        title: 'Submit Text',
+      },
+    });
+  });
+
+  it('stores modal submission data in KV and returns ephemeral confirmation', async () => {
+    const req = await signedRequest({
+      id: 'modal-123',
+      type: 5,
+      token: 'tok',
+      guild_id: 'guild-1',
+      channel_id: 'channel-1',
+      member: { user: { id: 'user-1' } },
+      data: {
+        custom_id: 'test_modal',
+        components: [
+          {
+            components: [
+              {
+                custom_id: 'test_modal_text',
+                value: 'hello modal',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    const json = await res.json() as any;
+    expect(json).toEqual({
+      type: 4,
+      data: {
+        content: 'Submission saved.',
+        flags: 64,
+      },
+    });
+    expect(mockKv.put).toHaveBeenCalledTimes(1);
+    const [key, value] = mockKv.put.mock.calls[0] as [string, string];
+    expect(key).toBe('modal-123');
+    expect(JSON.parse(value)).toMatchObject({
+      interactionId: 'modal-123',
+      userId: 'user-1',
+      guildId: 'guild-1',
+      channelId: 'channel-1',
+      customId: 'test_modal',
+      text: 'hello modal',
+    });
+  });
+
   it('responds to unknown command with 400', async () => {
-    const req = await signedRequest({ type: 2, token: 'tok', data: { name: 'notacommand' } });
+    const req = await signedRequest({ id: 'cmd-2', type: 2, token: 'tok', data: { name: 'notacommand' } });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(400);
     expect(await res.text()).toMatch(/Unknown Command/);
@@ -110,7 +186,22 @@ describe('Discord Worker', () => {
       'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
       expect.objectContaining({
         method: 'PATCH',
-        body: JSON.stringify({ content: 'Hello World' }),
+        body: JSON.stringify({
+          content: 'Click to open the form.',
+          components: [
+            {
+              type: 1,
+              components: [
+                {
+                  type: 2,
+                  custom_id: 'test_open_modal',
+                  label: 'Open form',
+                  style: 1,
+                },
+              ],
+            },
+          ],
+        }),
       }),
     );
     expect(ack).toHaveBeenCalled();

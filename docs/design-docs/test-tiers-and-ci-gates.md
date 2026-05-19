@@ -39,6 +39,9 @@ Run the cheapest tier that gives you enough confidence for the current context.
   `SIGNATURE_PRIVATE_KEY` to sign requests. The worker must have `TEST_FOLLOWUPS`
   KV bound and `DISCORD_API_BASE_URL` pointing to itself so the test sink routes
   (`/__test/*`) work correctly.
+- **Local secrets workflow:** `npm run smoke` loads `.env.smoke.local` when
+  present (via `scripts/run_smoke.sh`). Keep secrets there; do not commit it.
+  Use `.env.smoke.example` as a template.
 - **Speed:** Slow (~60–70 s; includes follow-up polling against real queues).
 - **Source:** `test/e2e/interactions.test.ts` via `test/e2e/setup.smoke.ts`
 - **When to run:** After deploying to the test environment, before releasing to

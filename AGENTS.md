@@ -12,8 +12,9 @@ A Cloudflare Worker that receives Discord slash command interactions, verifies
 the request signature, and handles commands.
 
 Current commands:
-- `/test` — Defers the interaction immediately (type 5 response), waits 5
-  seconds, then edits the original response to `Hello World`.
+- `/test` — Defers the interaction immediately (type 5 response), then edits
+  the original response with a button that opens a modal; modal submissions are
+  stored in `KV` and acknowledged ephemerally.
 
 Runtime: Cloudflare Workers (no Node.js APIs at runtime).  
 Language: TypeScript.  
@@ -93,6 +94,14 @@ npm run check   # TypeScript type check
 npm run lint    # ESLint
 npm run test    # Unit tests (Vitest)
 npm run e2e     # E2E tests (requires wrangler dev environment)
+
+# Optional (live shared test env): smoke tests. Run only after
+# `npm run publish:test` has completed and team coordination confirms the
+# shared environment is ready. `npm run smoke` auto-loads `.env.smoke.local`
+# when present.
+# Agent policy: do not run `npm run smoke` directly; instead suggest it to the
+# user when live-environment validation is appropriate.
+npm run smoke
 ```
 
 Unit tests should cover the current follow-up flow by asserting that the worker
