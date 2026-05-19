@@ -1,8 +1,10 @@
+import { ApplicationCommandType, type RESTPostAPIApplicationCommandsJSONBody } from 'discord-api-types/v10';
+
 const TEST_COMMAND = {
   name: 'test',
   description: 'Open a button and modal flow that stores text',
-  type: 1,
-};
+  type: ApplicationCommandType.ChatInput,
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
 
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;

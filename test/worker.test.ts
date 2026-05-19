@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as ed from '@noble/ed25519';
+import {
+  ButtonStyle,
+  ComponentType,
+  InteractionResponseType,
+  InteractionType,
+  MessageFlags,
+} from 'discord-api-types/v10';
 import worker from '../src/index.js';
 
 // Test key pair - matches test/e2e/setup.shared.ts defaults
@@ -17,6 +24,7 @@ const TEST_ENV = {
   DISCORD_APPLICATION_ID: 'test-app-id',
   SIGNATURE_PUBLIC_KEY: TEST_PUBLIC_KEY,
   DISCORD_TOKEN: 'test-token',
+  DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
   FOLLOW_UP_QUEUE: mockQueue,
   KV: mockKv,
 };
@@ -56,7 +64,7 @@ describe('Discord Worker', () => {
   it('returns 401 for missing signature headers', async () => {
     const req = new Request('http://localhost/', {
       method: 'POST',
-      body: JSON.stringify({ type: 1 }),
+      body: JSON.stringify({ type: InteractionType.Ping }),
       headers: { 'content-type': 'application/json' },
     });
     const res = await worker.fetch(req, TEST_ENV as any);
@@ -66,7 +74,7 @@ describe('Discord Worker', () => {
   it('returns 401 for invalid signature', async () => {
     const req = new Request('http://localhost/', {
       method: 'POST',
-      body: JSON.stringify({ type: 1 }),
+      body: JSON.stringify({ type: InteractionType.Ping }),
       headers: {
         'content-type': 'application/json',
         'x-signature-ed25519': 'deadbeef'.repeat(8),
@@ -78,26 +86,31 @@ describe('Discord Worker', () => {
   });
 
   it('responds to PING with PONG (type 1)', async () => {
-    const req = await signedRequest({ type: 1 });
+    const req = await signedRequest({ type: InteractionType.Ping });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(200);
     const json = await res.json() as any;
-    expect(json.type).toBe(1);
+    expect(json.type).toBe(InteractionResponseType.Pong);
   });
 
   it('responds to /test command with deferred response (type 5) and enqueues follow-up', async () => {
-    const req = await signedRequest({ id: 'cmd-1', type: 2, token: 'tok', data: { name: 'test' } });
+    const req = await signedRequest({
+      id: 'cmd-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'tok',
+      data: { name: 'test' },
+    });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(200);
     const json = await res.json() as any;
-    expect(json.type).toBe(5);
+    expect(json.type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
     expect(mockQueue.send).toHaveBeenCalledWith({ token: 'tok' });
   });
 
   it('responds to button component interaction with a modal response (type 9)', async () => {
     const req = await signedRequest({
       id: 'cmp-1',
-      type: 3,
+      type: InteractionType.MessageComponent,
       token: 'tok',
       data: { custom_id: 'test_open_modal' },
     });
@@ -106,7 +119,7 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     const json = await res.json() as any;
     expect(json).toMatchObject({
-      type: 9,
+      type: InteractionResponseType.Modal,
       data: {
         custom_id: 'test_modal',
         title: 'Submit Text',
@@ -117,7 +130,7 @@ describe('Discord Worker', () => {
   it('stores modal submission data in KV and returns ephemeral confirmation', async () => {
     const req = await signedRequest({
       id: 'modal-123',
-      type: 5,
+      type: InteractionType.ModalSubmit,
       token: 'tok',
       guild_id: 'guild-1',
       channel_id: 'channel-1',
@@ -142,10 +155,10 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     const json = await res.json() as any;
     expect(json).toEqual({
-      type: 4,
+      type: InteractionResponseType.ChannelMessageWithSource,
       data: {
         content: 'Submission saved.',
-        flags: 64,
+        flags: MessageFlags.Ephemeral,
       },
     });
     expect(mockKv.put).toHaveBeenCalledTimes(1);
@@ -162,7 +175,12 @@ describe('Discord Worker', () => {
   });
 
   it('responds to unknown command with 400', async () => {
-    const req = await signedRequest({ id: 'cmd-2', type: 2, token: 'tok', data: { name: 'notacommand' } });
+    const req = await signedRequest({
+      id: 'cmd-2',
+      type: InteractionType.ApplicationCommand,
+      token: 'tok',
+      data: { name: 'notacommand' },
+    });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(400);
     expect(await res.text()).toMatch(/Unknown Command/);
@@ -190,13 +208,13 @@ describe('Discord Worker', () => {
           content: 'Click to open the form.',
           components: [
             {
-              type: 1,
+              type: ComponentType.ActionRow,
               components: [
                 {
-                  type: 2,
+                  type: ComponentType.Button,
                   custom_id: 'test_open_modal',
                   label: 'Open form',
-                  style: 1,
+                  style: ButtonStyle.Primary,
                 },
               ],
             },
