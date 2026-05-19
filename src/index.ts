@@ -1,4 +1,12 @@
 import { verifyDiscordRequest, jsonResponse, editOriginalInteractionResponse } from './discord.js';
+import {
+  ButtonStyle,
+  ComponentType,
+  InteractionResponseType,
+  InteractionType,
+  MessageFlags,
+  TextInputStyle,
+} from 'discord-api-types/v10';
 
 interface FollowUpMessage {
   token: string;
@@ -20,13 +28,13 @@ interface Env {
   DISCORD_TOKEN: string;
   FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
   KV: KVNamespace;
-  DISCORD_API_BASE_URL?: string;
+  DISCORD_API_BASE_URL: string;
   TEST_FOLLOWUPS?: KVNamespace;
 }
 
 interface Interaction {
   id: string;
-  type: number;
+  type: InteractionType;
   token: string;
   guild_id?: string;
   channel_id?: string;
@@ -173,38 +181,38 @@ export default {
       return new Response('Bad request.', { status: 400 });
     }
 
-    if (interaction.type === 1) {
-      return jsonResponse({ type: 1 });
+    if (interaction.type === InteractionType.Ping) {
+      return jsonResponse({ type: InteractionResponseType.Pong });
     }
 
-    if (interaction.type === 2) {
+    if (interaction.type === InteractionType.ApplicationCommand) {
       const commandName = interaction.data?.name?.toLowerCase();
       if (commandName === 'test') {
         await env.FOLLOW_UP_QUEUE.send({ token: interaction.token });
-        return jsonResponse({ type: 5 });
+        return jsonResponse({ type: InteractionResponseType.DeferredChannelMessageWithSource });
       }
       return new Response('Unknown Command', { status: 400 });
     }
 
-    if (interaction.type === 3) {
+    if (interaction.type === InteractionType.MessageComponent) {
       if (interaction.data?.custom_id !== OPEN_MODAL_BUTTON_ID) {
         return new Response('Unknown Component', { status: 400 });
       }
 
       return jsonResponse({
-        type: 9,
+        type: InteractionResponseType.Modal,
         data: {
           custom_id: MODAL_ID,
           title: 'Submit Text',
           components: [
             {
-              type: 1,
+              type: ComponentType.ActionRow,
               components: [
                 {
-                  type: 4,
+                  type: ComponentType.TextInput,
                   custom_id: MODAL_TEXT_INPUT_ID,
                   label: 'Text',
-                  style: 2,
+                  style: TextInputStyle.Paragraph,
                   min_length: 1,
                   max_length: 1000,
                   required: true,
@@ -217,7 +225,7 @@ export default {
       });
     }
 
-    if (interaction.type === 5) {
+    if (interaction.type === InteractionType.ModalSubmit) {
       if (interaction.data?.custom_id !== MODAL_ID) {
         return new Response('Unknown Modal', { status: 400 });
       }
@@ -240,10 +248,10 @@ export default {
       await env.KV.put(interaction.id, JSON.stringify(submission));
 
       return jsonResponse({
-        type: 4,
+        type: InteractionResponseType.ChannelMessageWithSource,
         data: {
           content: 'Submission saved.',
-          flags: 64,
+          flags: MessageFlags.Ephemeral,
         },
       });
     }
@@ -261,13 +269,13 @@ export default {
           content: 'Click to open the form.',
           components: [
             {
-              type: 1,
+              type: ComponentType.ActionRow,
               components: [
                 {
-                  type: 2,
+                  type: ComponentType.Button,
                   custom_id: OPEN_MODAL_BUTTON_ID,
                   label: 'Open form',
-                  style: 1,
+                  style: ButtonStyle.Primary,
                 },
               ],
             },

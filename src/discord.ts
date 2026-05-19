@@ -1,17 +1,7 @@
 import * as ed from '@noble/ed25519';
+import type { RESTPatchAPIWebhookWithTokenMessageJSONBody } from 'discord-api-types/v10';
 
-export interface EditOriginalInteractionPayload {
-  content: string;
-  components?: Array<{
-    type: number;
-    components: Array<{
-      type: number;
-      custom_id: string;
-      label: string;
-      style: number;
-    }>;
-  }>;
-}
+export type EditOriginalInteractionPayload = RESTPatchAPIWebhookWithTokenMessageJSONBody;
 
 export async function verifyDiscordRequest(
   signature: string,
@@ -43,7 +33,7 @@ export async function editOriginalInteractionResponse(
   token: string,
   botToken: string,
   payload: EditOriginalInteractionPayload,
-  apiBaseUrl = 'https://discord.com/api/v10',
+  apiBaseUrl: string,
 ): Promise<Response> {
   const url = `${apiBaseUrl}/webhooks/${applicationId}/${token}/messages/@original`;
   return fetch(url, {
