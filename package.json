@@ -4,6 +4,10 @@
   "description": "Fun experiment with Cloudflare workers and a discord bot",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": "26",
+    "npm": "11"
+  },
   "scripts": {
     "start": "wrangler dev --env dev --port 8787",
     "lint": "eslint . --ext .ts",
