@@ -186,6 +186,17 @@ describe('Discord Worker', () => {
     expect(await res.text()).toMatch(/Unknown Command/);
   });
 
+  it('responds to unknown interaction type with 400', async () => {
+    const req = await signedRequest({
+      id: 'unknown-1',
+      type: 999,
+      token: 'tok',
+    });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(400);
+    expect(await res.text()).toMatch(/Unknown Interaction Type/);
+  });
+
   it('queue consumer calls edit-original-response endpoint', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
