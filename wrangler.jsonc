@@ -16,12 +16,10 @@
       "name": "discord-worker-dev",
       "kv_namespaces": [
         {
-          "binding": "KV",
-          "id": "4000434490424208b40ea5817cf0f86e",
+          "binding": "KV"
         },
         {
-          "binding": "TEST_FOLLOWUPS",
-          "id": "4000434490424208b40ea5817cf0f86e",
+          "binding": "TEST_FOLLOWUPS"
         }
       ],
       "queues": {
