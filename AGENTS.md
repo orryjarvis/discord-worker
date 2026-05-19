@@ -2,8 +2,7 @@
 
 This file is a map, not a manual. Read it to orient yourself, then go to the code.
 
-For deeper operating principles, see [docs/design-docs/index.md](docs/design-docs/index.md).  
-GitHub Copilot agents: see [`.github/copilot-instructions.md`](.github/copilot-instructions.md) — it is the Copilot-specific bootstrap entrypoint and routes here.
+For deeper operating principles, see [docs/design-docs/index.md](docs/design-docs/index.md).
 
 ---
 

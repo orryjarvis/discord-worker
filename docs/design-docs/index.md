@@ -13,6 +13,7 @@ content.
 | File | Purpose |
 |---|---|
 | [core-beliefs.md](core-beliefs.md) | Agent-first operating principles for this repo |
+| [test-tiers-and-ci-gates.md](test-tiers-and-ci-gates.md) | Three-tier test model, shared-test-file pattern, and PR vs. main gate structure |
 
 ---
 
