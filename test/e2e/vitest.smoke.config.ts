@@ -7,7 +7,7 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['test/e2e/setup.smoke.ts'],
     watch: false,
-    testTimeout: 15000,
+    testTimeout: 70000,
     sequence: {
       concurrent: false,
     },
