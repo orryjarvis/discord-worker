@@ -44,3 +44,15 @@ export async function waitForFollowUp(correlationId: string, timeoutMs = default
   }
   throw new Error(`No follow-up for correlationId "${correlationId}" received within ${timeoutMs}ms`);
 }
+
+export async function waitForSubmission(interactionId: string, timeoutMs = defaultFollowUpTimeoutMs): Promise<any> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await fetch(`${baseUrl}/__test/submissions/${interactionId}`);
+    if (res.status === 200) {
+      return res.json();
+    }
+    await new Promise<void>(r => setTimeout(r, 1000));
+  }
+  throw new Error(`No submission for interactionId "${interactionId}" received within ${timeoutMs}ms`);
+}

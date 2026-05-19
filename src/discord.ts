@@ -1,5 +1,18 @@
 import * as ed from '@noble/ed25519';
 
+export interface EditOriginalInteractionPayload {
+  content: string;
+  components?: Array<{
+    type: number;
+    components: Array<{
+      type: number;
+      custom_id: string;
+      label: string;
+      style: number;
+    }>;
+  }>;
+}
+
 export async function verifyDiscordRequest(
   signature: string,
   timestamp: string,
@@ -29,7 +42,7 @@ export async function editOriginalInteractionResponse(
   applicationId: string,
   token: string,
   botToken: string,
-  content: string,
+  payload: EditOriginalInteractionPayload,
   apiBaseUrl = 'https://discord.com/api/v10',
 ): Promise<Response> {
   const url = `${apiBaseUrl}/webhooks/${applicationId}/${token}/messages/@original`;
@@ -39,6 +52,6 @@ export async function editOriginalInteractionResponse(
       'Content-Type': 'application/json',
       Authorization: `Bot ${botToken}`,
     },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(payload),
   });
 }
