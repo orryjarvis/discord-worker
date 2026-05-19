@@ -18,18 +18,18 @@
     "publish:prod": "wrangler deploy --env prod"
   },
   "dependencies": {
-    "@noble/ed25519": "^3.0.0",
-    "discord-api-types": "^0.38.37"
+    "@noble/ed25519": "^3.1.0",
+    "discord-api-types": "^0.38.47"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260111.0",
-    "@types/node": "^25.0.6",
+    "@types/node": "^25.9.0",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "^8.25.0",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.0.16",
+    "vitest": "^4.1.6",
     "wrangler": "^4.58.0"
   }
 }
