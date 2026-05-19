@@ -120,16 +120,20 @@ async function handleTestSink(request: Request, env: Env, pathname: string): Pro
   }
 
   const submissionMatch = GET_SUBMISSION_RE.exec(pathname);
-  if (request.method === 'GET' && submissionMatch) {
+  if (request.method === 'GET' && submissionMatch && env.TEST_FOLLOWUPS) {
     const interactionId = submissionMatch[1];
     const entry = await env.KV.get(interactionId);
     if (!entry) {
       return new Response('Not Found', { status: 404 });
     }
-    return jsonResponse(JSON.parse(entry) as unknown);
+    try {
+      return jsonResponse(JSON.parse(entry) as unknown);
+    } catch {
+      return new Response('Not Found', { status: 404 });
+    }
   }
 
-  if (request.method === 'DELETE' && submissionMatch) {
+  if (request.method === 'DELETE' && submissionMatch && env.TEST_FOLLOWUPS) {
     const interactionId = submissionMatch[1];
     await env.KV.delete(interactionId);
     return new Response(null, { status: 204 });
