@@ -7,46 +7,11 @@
   "rules": [
     {
       "type": "ESModule",
-      "globs": ["src/commands/**/.*ts", "src/services/**/*.ts"],
+      "globs": ["src/**/.*ts"],
       "fallthrough": true
     }
   ],
   "env": {
-    "dev": {
-      "name": "discord-worker-dev",
-      "kv_namespaces": [
-        {
-          "binding": "KV"
-        },
-        {
-          "binding": "TEST_FOLLOWUPS"
-        }
-      ],
-      "secrets_store_secrets": [
-        {
-          "binding": "REDDIT_APPLICATION_ID",
-          "store_id": "bcfe20a10506483d95a91e302bd42d41",
-          "secret_name": "REDDIT_APPLICATION_ID"
-        },
-        {
-          "binding": "REDDIT_TOKEN",
-          "store_id": "bcfe20a10506483d95a91e302bd42d41",
-          "secret_name": "REDDIT_TOKEN"
-        }
-      ],
-      "queues": {
-        "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue-dev" }],
-        "consumers": [{ "queue": "discord-follow-up-queue-dev" }]
-      },
-      "upload_source_maps": true,
-      "remote": false,
-      "vars": {
-        "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
-        "DISCORD_TOKEN": "not-a-real-token",
-        "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e",
-        "DISCORD_API_BASE_URL": "http://localhost:8787/__test/discord/api/v10"
-      }
-    },
     "test": {
       "name": "discord-worker-test",
       "kv_namespaces": [
@@ -78,7 +43,8 @@
       "vars": {
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
-        "SIGNATURE_PUBLIC_KEY": "d392fc518bebf4dbc2fc3f7dead4237f87b60bb1d7bbd57a2a91a05da5003a26"
+        "SIGNATURE_PUBLIC_KEY": "d392fc518bebf4dbc2fc3f7dead4237f87b60bb1d7bbd57a2a91a05da5003a26",
+        "DISCORD_API_BASE_URL": "https://discord-worker-test.orry.workers.dev/__test/discord/api/v10"
       }
     },
     "prod": {
