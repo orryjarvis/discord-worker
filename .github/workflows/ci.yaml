@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: package.json
       - run: npm ci
       - name: Deploy to Cloudflare test environment
         run: npm run publish:test
@@ -25,10 +25,10 @@ jobs:
     environment: test
     needs: [release-test]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: package.json
       - run: npm ci
       - run: npm run smoke
         env:
@@ -39,10 +39,10 @@ jobs:
     environment: prod
     needs: [smoke-test]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: package.json
       - run: npm ci
       - run: npm run publish:prod
         env:
@@ -54,10 +54,10 @@ jobs:
     environment: prod
     needs: [release]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version-file: package.json
       - run: npm ci
       - run: npm run deploy_commands
         env:
