@@ -12,6 +12,7 @@ content.
 
 | File | Purpose |
 |---|---|
+| [architecture-layering.md](architecture-layering.md) | Intentional layering model and allowed dependency directions |
 | [core-beliefs.md](core-beliefs.md) | Agent-first operating principles for this repo |
 | [test-tiers-and-ci-gates.md](test-tiers-and-ci-gates.md) | Three-tier test model, shared-test-file pattern, and PR vs. main gate structure |
 
@@ -40,10 +41,5 @@ content.
 
 ## Future docs
 
-A layering/architecture doc is appropriate once the codebase has enough real
-structure to justify one — for example, when there are multiple commands,
-service integrations, or deployment targets with distinct dependency
-requirements. At that point, the doc should describe allowed dependency
-directions before any enforcement is added.
-
-Do not create that doc preemptively.
+Add new docs only when a new stable boundary, operating assumption, or test/deploy
+invariant emerges that is not already captured by the current set.

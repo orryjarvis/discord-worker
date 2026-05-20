@@ -29,6 +29,10 @@ Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 | What | Where |
 |---|---|
 | Worker entry point | `src/index.ts` |
+| App adapter (Discord <-> app transforms) | `src/app.ts` |
+| Command definitions | `src/command.ts` |
+| Dispatch router | `src/dispatch.ts` |
+| Core request/result interfaces | `src/core.ts` |
 | Discord helpers (verify, respond) | `src/discord.ts` |
 | Unit tests | `test/worker.test.ts` |
 | E2E / smoke tests | `test/e2e/` |
@@ -63,22 +67,32 @@ Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 
 ## Architecture boundaries
 
-The codebase is intentionally small. There is currently no layered architecture.
+The codebase is intentionally small but now uses a documented layering split:
 
-The Worker is direct and shippable: `src/index.ts` handles the HTTP request,
-verifies the signature, dispatches to a command function, and returns.
-`src/discord.ts` holds Discord-specific helpers. That is the full current
-structure.
+- `src/app.ts` is the Discord-facing app adapter. It validates/signature-checks
+  requests, transforms Discord payloads to flat app requests, calls dispatch,
+  and maps dispatch results back to Discord responses.
+- `src/dispatch.ts` is the routing core. It chooses a command handler by name
+  and does not import Discord-specific code.
+- `src/command.ts` defines command behavior and command constants. It works in
+  terms of core request/result interfaces and does not import dispatch.
+- `src/core.ts` defines shared interfaces used by app, dispatch, and command.
 
-The long-term goal is an intentional dependency DAG — dependencies point in
-explicit, documented directions with limited allowed edges. However:
+Dependency direction (allowed edges):
 
-- **Do not create a layer before there is a concrete boundary to protect.**
-- If a real boundary emerges (a second command, a service integration, a
-  separate deployment target), document the allowed dependency direction
-  first, then add the folder or abstraction.
-- Any future architecture doc should describe allowed dependency directions
-  before adding enforcement.
+- `app -> dispatch`
+- `app -> command`
+- `app -> core`
+- `dispatch -> core`
+- `command -> core`
+
+Disallowed edges:
+
+- `dispatch -> command`
+- `command -> dispatch`
+- Any lower layer importing from `app`
+
+`src/index.ts` should remain a thin entrypoint that re-exports `src/app.ts`.
 
 See [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) for
 the reasoning behind this.
@@ -130,7 +144,7 @@ Do not delete or rewrite test helpers without understanding what they test.
 
 - A command framework or plugin registry.
 - Generated documentation or table-of-contents machinery.
-- A layered architecture with enforced import rules.
+- Strict import-boundary enforcement tooling (ESLint/import graph rules).
 - Execution-plan systems or quality scorecards.
 - Doc-gardening automation.
 - A broad `docs/` hierarchy beyond `docs/design-docs/`.

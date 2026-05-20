@@ -174,6 +174,32 @@ describe('Discord Worker', () => {
     });
   });
 
+  it('responds with 400 when modal text input is missing', async () => {
+    const req = await signedRequest({
+      id: 'modal-missing-text',
+      type: InteractionType.ModalSubmit,
+      token: 'tok',
+      data: {
+        custom_id: 'test_modal',
+        components: [
+          {
+            components: [
+              {
+                custom_id: 'not_the_text_input',
+                value: 'ignored',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(400);
+    expect(await res.text()).toMatch(/Missing Modal Text/);
+    expect(mockKv.put).not.toHaveBeenCalled();
+  });
+
   it('responds to unknown command with 400', async () => {
     const req = await signedRequest({
       id: 'cmd-2',
@@ -184,6 +210,17 @@ describe('Discord Worker', () => {
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(400);
     expect(await res.text()).toMatch(/Unknown Command/);
+  });
+
+  it('responds to unknown interaction type with 400', async () => {
+    const req = await signedRequest({
+      id: 'unknown-1',
+      type: 999,
+      token: 'tok',
+    });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(400);
+    expect(await res.text()).toMatch(/Unknown Interaction Type/);
   });
 
   it('queue consumer calls edit-original-response endpoint', async () => {

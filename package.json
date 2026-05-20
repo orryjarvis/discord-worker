@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "@noble/ed25519": "^3.1.0",
-    "discord-api-types": "^0.38.47"
+    "discord-api-types": "^0.38.47",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260111.0",
