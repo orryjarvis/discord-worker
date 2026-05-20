@@ -332,6 +332,23 @@ async function generatePastifiedText(idea: string, env: Env): Promise<string> {
   return output;
 }
 
+function describeError(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    const typedError = error as Error & { cause?: unknown; code?: string };
+    return {
+      name: typedError.name,
+      message: typedError.message,
+      code: typedError.code,
+      stack: typedError.stack,
+      cause: typedError.cause,
+    };
+  }
+
+  return {
+    message: String(error),
+  };
+}
+
 async function handleTestSink(request: Request, env: Env, pathname: string): Promise<Response> {
   const patchMatch = PATCH_SINK_RE.exec(pathname);
   if (request.method === 'PATCH' && patchMatch && env.TEST_FOLLOWUPS) {
@@ -440,6 +457,10 @@ export default {
       let content: string;
       const idea = message.body.idea?.trim();
       if (!idea) {
+        console.warn('Pastify follow-up payload missing idea', {
+          messageId: message.id,
+          token: message.body.token,
+        });
         content = 'Could not process follow-up payload. Please try again.';
       } else {
         try {
@@ -448,7 +469,9 @@ export default {
           console.error('Pastify generation failed', {
             messageId: message.id,
             token: message.body.token,
-            error,
+            model: PASTIFY_MODEL,
+            ideaLength: idea.length,
+            error: describeError(error),
           });
           content = 'Could not pastify that idea right now. Try again in a moment.';
         }
