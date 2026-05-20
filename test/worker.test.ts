@@ -269,6 +269,85 @@ describe('Discord Worker', () => {
     expect(ack).toHaveBeenCalled();
   });
 
+  it('extracts text from choices[].message.content response shape', async () => {
+    mockAI.run.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: 'PASTA FROM CHOICES',
+          },
+        },
+      ],
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '1',
+        timestamp: new Date(),
+        body: { token: 'interaction-token', idea: 'clutch baron steal' },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ content: 'PASTA FROM CHOICES' }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('extracts text from output/content response shape', async () => {
+    mockAI.run.mockResolvedValue({
+      output: [
+        {
+          content: [
+            { type: 'output_text', text: 'FIRST LINE' },
+            { type: 'output_text', text: 'SECOND LINE' },
+          ],
+        },
+      ],
+    });
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '1',
+        timestamp: new Date(),
+        body: { token: 'interaction-token', idea: 'mid diff speech' },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ content: 'FIRST LINE\nSECOND LINE' }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
   it('queue consumer does not call AI when follow-up idea is missing', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
