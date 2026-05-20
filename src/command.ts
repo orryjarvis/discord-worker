@@ -1,26 +1,19 @@
 import type { CommandMap, CommandRequest, CommandResult } from './core.js';
 
-export const TEST_COMMAND_NAME = 'test';
-export const TEST_OPEN_MODAL_BUTTON_ID = 'test_open_modal';
-export const TEST_MODAL_ID = 'test_modal';
-export const TEST_MODAL_TEXT_INPUT_ID = 'test_modal_text';
+export const PASTIFY_COMMAND_NAME = 'pastify';
+export const PASTIFY_MODAL_ID = 'pastify_modal';
+export const PASTIFY_MODAL_TEXT_INPUT_ID = 'pastify_modal_text';
 
-async function handleTestCommand(request: CommandRequest): Promise<CommandResult> {
+async function handlePastifyCommand(request: CommandRequest): Promise<CommandResult> {
   switch (request.kind) {
     case 'command':
       return {
-        kind: 'defer-follow-up',
-        token: request.token,
-      };
-
-    case 'component':
-      return {
         kind: 'show-modal',
-        modalId: TEST_MODAL_ID,
-        title: 'Submit Text',
-        inputId: TEST_MODAL_TEXT_INPUT_ID,
-        inputLabel: 'Text',
-        inputPlaceholder: 'Enter free-form text',
+        modalId: PASTIFY_MODAL_ID,
+        title: 'Pastify Idea',
+        inputId: PASTIFY_MODAL_TEXT_INPUT_ID,
+        inputLabel: 'Idea to Pastify',
+        inputPlaceholder: 'Describe the idea to turn into a copypasta',
         inputMinLength: 1,
         inputMaxLength: 1000,
         inputRequired: true,
@@ -28,19 +21,13 @@ async function handleTestCommand(request: CommandRequest): Promise<CommandResult
 
     case 'modal-submit':
       return {
-        kind: 'save-submission',
-        submission: {
-          interactionId: request.interactionId,
-          userId: request.userId,
-          guildId: request.guildId,
-          channelId: request.channelId,
-          customId: TEST_MODAL_ID,
-          text: request.text,
-          submittedAt: new Date().toISOString(),
-        },
-        content: 'Submission saved.',
-        ephemeral: true,
+        kind: 'enqueue-pastify',
+        token: request.token,
+        idea: request.text,
       };
+
+    case 'component':
+      throw new Error('Unhandled command request');
 
     default:
       throw new Error('Unhandled command request');
@@ -48,5 +35,5 @@ async function handleTestCommand(request: CommandRequest): Promise<CommandResult
 }
 
 export const commands: CommandMap = {
-  [TEST_COMMAND_NAME]: handleTestCommand,
+  [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
 };

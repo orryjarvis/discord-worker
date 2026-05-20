@@ -15,6 +15,9 @@
   "env": {
     "dev": {
       "name": "discord-worker-dev",
+      "ai": {
+        "binding": "AI"
+      },
       "kv_namespaces": [
         {
           "binding": "KV"
@@ -31,11 +34,15 @@
       "vars": {
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
-        "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e"
+        "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e",
+        "DISCORD_API_BASE_URL": "https://discord-worker-dev.orry.workers.dev/__test/discord/api/v10"
       }
     },
     "test": {
       "name": "discord-worker-test",
+      "ai": {
+        "binding": "AI"
+      },
       "observability": {
         "enabled": true,
         "traces": {
@@ -65,6 +72,9 @@
     },
     "prod": {
       "name": "discord-worker",
+      "ai": {
+        "binding": "AI"
+      },
       "observability": {
         "enabled": true,
         "traces": {
