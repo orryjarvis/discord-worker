@@ -1,8 +1,8 @@
 import { ApplicationCommandType, type RESTPostAPIApplicationCommandsJSONBody } from 'discord-api-types/v10';
 
-const TEST_COMMAND = {
-  name: 'test',
-  description: 'Open a button and modal flow that stores text',
+const PASTIFY_COMMAND = {
+  name: 'pastify',
+  description: 'Turn an idea into a Twitch-style copypasta',
   type: ApplicationCommandType.ChatInput,
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
@@ -24,11 +24,11 @@ async function deployCommands() {
       'Content-Type': 'application/json',
       Authorization: `Bot ${botToken}`,
     },
-    body: JSON.stringify([TEST_COMMAND]),
+    body: JSON.stringify([PASTIFY_COMMAND]),
   });
 
   if (response.ok) {
-    console.log('Registered command: test');
+    console.log('Registered command: pastify');
   } else {
     console.error('Error registering commands');
     console.error(await response.text());

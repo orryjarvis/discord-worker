@@ -12,15 +12,15 @@ A Cloudflare Worker that receives Discord slash command interactions, verifies
 the request signature, and handles commands.
 
 Current commands:
-- `/test` — Defers the interaction immediately (type 5 response), then edits
-  the original response with a button that opens a modal; modal submissions are
-  stored in `KV` and acknowledged ephemerally.
+- `/pastify` — Opens a modal immediately, accepts a free-form idea, defers
+  publicly on submit, then generates a channel-visible Twitch-style copypasta
+  through Workers AI.
 
 Runtime: Cloudflare Workers (no Node.js APIs at runtime).  
 Language: TypeScript.  
 Deployment: Wrangler (`wrangler.jsonc`).  
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
-`DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`.
+`DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
 
 ---
 

@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as ed from '@noble/ed25519';
 import {
-  ButtonStyle,
-  ComponentType,
   InteractionResponseType,
   InteractionType,
-  MessageFlags,
 } from 'discord-api-types/v10';
 import worker from '../src/index.js';
 
@@ -14,6 +11,7 @@ const TEST_PRIVATE_KEY = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cd
 const TEST_PUBLIC_KEY = '04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e';
 
 const mockQueue = { send: vi.fn().mockResolvedValue(undefined) };
+const mockAI = { run: vi.fn() };
 const mockKv = {
   put: vi.fn().mockResolvedValue(undefined),
   get: vi.fn().mockResolvedValue(null),
@@ -21,6 +19,7 @@ const mockKv = {
 };
 
 const TEST_ENV = {
+  AI: mockAI,
   DISCORD_APPLICATION_ID: 'test-app-id',
   SIGNATURE_PUBLIC_KEY: TEST_PUBLIC_KEY,
   DISCORD_TOKEN: 'test-token',
@@ -49,6 +48,7 @@ async function signedRequest(body: object): Promise<Request> {
 afterEach(() => {
   vi.unstubAllGlobals();
   mockQueue.send.mockClear();
+  mockAI.run.mockClear();
   mockKv.put.mockClear();
   mockKv.get.mockClear();
   mockKv.delete.mockClear();
@@ -93,55 +93,41 @@ describe('Discord Worker', () => {
     expect(json.type).toBe(InteractionResponseType.Pong);
   });
 
-  it('responds to /test command with deferred response (type 5) and enqueues follow-up', async () => {
+  it('responds to /pastify command with modal response (type 9)', async () => {
     const req = await signedRequest({
       id: 'cmd-1',
       type: InteractionType.ApplicationCommand,
       token: 'tok',
-      data: { name: 'test' },
+      data: { name: 'pastify' },
     });
-    const res = await worker.fetch(req, TEST_ENV as any);
-    expect(res.status).toBe(200);
-    const json = await res.json() as any;
-    expect(json.type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
-    expect(mockQueue.send).toHaveBeenCalledWith({ token: 'tok' });
-  });
-
-  it('responds to button component interaction with a modal response (type 9)', async () => {
-    const req = await signedRequest({
-      id: 'cmp-1',
-      type: InteractionType.MessageComponent,
-      token: 'tok',
-      data: { custom_id: 'test_open_modal' },
-    });
-
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(200);
     const json = await res.json() as any;
     expect(json).toMatchObject({
       type: InteractionResponseType.Modal,
       data: {
-        custom_id: 'test_modal',
-        title: 'Submit Text',
+        custom_id: 'pastify_modal',
+        title: 'Pastify Idea',
       },
     });
+    expect(mockQueue.send).not.toHaveBeenCalled();
   });
 
-  it('stores modal submission data in KV and returns ephemeral confirmation', async () => {
+  it('defers publicly and enqueues generation on modal submit', async () => {
     const req = await signedRequest({
       id: 'modal-123',
       type: InteractionType.ModalSubmit,
-      token: 'tok',
+      token: 'modal-token',
       guild_id: 'guild-1',
       channel_id: 'channel-1',
       member: { user: { id: 'user-1' } },
       data: {
-        custom_id: 'test_modal',
+        custom_id: 'pastify_modal',
         components: [
           {
             components: [
               {
-                custom_id: 'test_modal_text',
+                custom_id: 'pastify_modal_text',
                 value: 'hello modal',
               },
             ],
@@ -155,23 +141,10 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     const json = await res.json() as any;
     expect(json).toEqual({
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: {
-        content: 'Submission saved.',
-        flags: MessageFlags.Ephemeral,
-      },
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
     });
-    expect(mockKv.put).toHaveBeenCalledTimes(1);
-    const [key, value] = mockKv.put.mock.calls[0] as [string, string];
-    expect(key).toBe('modal-123');
-    expect(JSON.parse(value)).toMatchObject({
-      interactionId: 'modal-123',
-      userId: 'user-1',
-      guildId: 'guild-1',
-      channelId: 'channel-1',
-      customId: 'test_modal',
-      text: 'hello modal',
-    });
+    expect(mockQueue.send).toHaveBeenCalledWith({ token: 'modal-token', idea: 'hello modal' });
+    expect(mockKv.put).not.toHaveBeenCalled();
   });
 
   it('responds with 400 when modal text input is missing', async () => {
@@ -180,7 +153,7 @@ describe('Discord Worker', () => {
       type: InteractionType.ModalSubmit,
       token: 'tok',
       data: {
-        custom_id: 'test_modal',
+        custom_id: 'pastify_modal',
         components: [
           {
             components: [
@@ -224,13 +197,60 @@ describe('Discord Worker', () => {
   });
 
   it('queue consumer calls edit-original-response endpoint', async () => {
+    mockAI.run.mockResolvedValue({ response: 'PASTIFIED CHAT ENERGY' });
     const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     const ack = vi.fn();
     const batch = {
       queue: 'discord-follow-up-queue',
-      messages: [{ id: '1', timestamp: new Date(), body: { token: 'interaction-token' }, ack, retry: vi.fn() }],
+      messages: [{
+        id: '1',
+        timestamp: new Date(),
+        body: { token: 'interaction-token', idea: 'streamer misses one minion' },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(mockAI.run).toHaveBeenCalledWith(
+      '@cf/qwen/qwen3-30b-a3b-fp8',
+      expect.objectContaining({
+        messages: expect.any(Array),
+      }),
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: 'PASTIFIED CHAT ENERGY',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts fallback message when AI generation fails', async () => {
+    mockAI.run.mockRejectedValue(new Error('model unavailable'));
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '1',
+        timestamp: new Date(),
+        body: { token: 'interaction-token', idea: 'some idea' },
+        ack,
+        retry: vi.fn(),
+      }],
       ackAll: vi.fn(),
       retryAll: vi.fn(),
     };
@@ -242,20 +262,7 @@ describe('Discord Worker', () => {
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({
-          content: 'Click to open the form.',
-          components: [
-            {
-              type: ComponentType.ActionRow,
-              components: [
-                {
-                  type: ComponentType.Button,
-                  custom_id: 'test_open_modal',
-                  label: 'Open form',
-                  style: ButtonStyle.Primary,
-                },
-              ],
-            },
-          ],
+          content: 'Could not pastify that idea right now. Try again in a moment.',
         }),
       }),
     );

@@ -15,6 +15,9 @@
   "env": {
     "dev": {
       "name": "discord-worker-dev",
+      "ai": {
+        "binding": "AI"
+      },
       "kv_namespaces": [
         {
           "binding": "KV"
@@ -36,6 +39,9 @@
     },
     "test": {
       "name": "discord-worker-test",
+      "ai": {
+        "binding": "AI"
+      },
       "observability": {
         "enabled": true,
         "traces": {
@@ -65,6 +71,9 @@
     },
     "prod": {
       "name": "discord-worker",
+      "ai": {
+        "binding": "AI"
+      },
       "observability": {
         "enabled": true,
         "traces": {

@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { verifyDiscordRequest, jsonResponse, editOriginalInteractionResponse } from './discord.js';
 import {
-  ButtonStyle,
   ComponentType,
   InteractionResponseType,
   InteractionType,
@@ -10,10 +9,9 @@ import {
 } from 'discord-api-types/v10';
 import {
   commands,
-  TEST_COMMAND_NAME,
-  TEST_MODAL_ID,
-  TEST_MODAL_TEXT_INPUT_ID,
-  TEST_OPEN_MODAL_BUTTON_ID,
+  PASTIFY_COMMAND_NAME,
+  PASTIFY_MODAL_ID,
+  PASTIFY_MODAL_TEXT_INPUT_ID,
 } from './command.js';
 import { dispatchRequest } from './dispatch.js';
 import type {
@@ -26,9 +24,11 @@ import type {
 
 interface FollowUpMessage {
   token: string;
+  idea: string;
 }
 
 interface Env {
+  AI: Ai;
   DISCORD_APPLICATION_ID: string;
   SIGNATURE_PUBLIC_KEY: string;
   DISCORD_TOKEN: string;
@@ -74,6 +74,7 @@ type ModalComponentRows = Array<{
 const PATCH_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)\/messages\/@original$/;
 const GET_FOLLOWUP_RE = /^\/__test\/followups\/([^/]+)$/;
 const GET_SUBMISSION_RE = /^\/__test\/submissions\/([^/]+)$/;
+const PASTIFY_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
 
 const BaseInteractionSchema = z.object({
   type: z.number(),
@@ -103,6 +104,7 @@ const MessageComponentInteractionSchema = BaseInteractionSchema.extend({
 const ModalSubmitInteractionSchema = BaseInteractionSchema.extend({
   type: z.literal(InteractionType.ModalSubmit),
   id: z.string(),
+  token: z.string(),
   guild_id: z.string().optional(),
   channel_id: z.string().optional(),
   member: z.object({
@@ -136,7 +138,7 @@ function flattenModalText(components: ModalComponentRows | undefined): string | 
     }
 
     for (const input of inputs) {
-      if (input.custom_id === TEST_MODAL_TEXT_INPUT_ID && typeof input.value === 'string') {
+      if (input.custom_id === PASTIFY_MODAL_TEXT_INPUT_ID && typeof input.value === 'string') {
         return input.value;
       }
     }
@@ -182,15 +184,7 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         return new Response('Bad request.', { status: 400 });
       }
 
-      if (parsed.data.data.custom_id !== TEST_OPEN_MODAL_BUTTON_ID) {
-        return new Response('Unknown Component', { status: 400 });
-      }
-
-      const request: CommandRequest = {
-        kind: 'component',
-        commandName: TEST_COMMAND_NAME,
-      };
-      return request;
+      return new Response('Unknown Component', { status: 400 });
     }
 
     case InteractionType.ModalSubmit: {
@@ -199,7 +193,7 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         return new Response('Bad request.', { status: 400 });
       }
 
-      if (parsed.data.data.custom_id !== TEST_MODAL_ID) {
+      if (parsed.data.data.custom_id !== PASTIFY_MODAL_ID) {
         return new Response('Unknown Modal', { status: 400 });
       }
 
@@ -210,7 +204,8 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
 
       const request: CommandRequest = {
         kind: 'modal-submit',
-        commandName: TEST_COMMAND_NAME,
+        commandName: PASTIFY_COMMAND_NAME,
+        token: parsed.data.token,
         interactionId: parsed.data.id,
         userId: parsed.data.member?.user?.id ?? parsed.data.user?.id ?? null,
         guildId: parsed.data.guild_id ?? null,
@@ -258,11 +253,15 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
       return jsonResponse({ type: InteractionResponseType.Pong });
 
     case 'defer-follow-up':
-      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token });
+      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token, idea: '' });
       return jsonResponse({ type: InteractionResponseType.DeferredChannelMessageWithSource });
 
     case 'show-modal':
       return toModalResponse(outcome);
+
+    case 'enqueue-pastify':
+      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token, idea: outcome.idea });
+      return jsonResponse({ type: InteractionResponseType.DeferredChannelMessageWithSource });
 
     case 'save-submission':
       await env.KV.put(outcome.submission.interactionId, JSON.stringify(outcome.submission));
@@ -277,6 +276,60 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
     case 'unknown-command':
       return new Response('Unknown Command', { status: 400 });
   }
+}
+
+function extractAiText(result: unknown): string | null {
+  if (typeof result === 'string') {
+    return result.trim() || null;
+  }
+
+  if (!result || typeof result !== 'object') {
+    return null;
+  }
+
+  const obj = result as Record<string, unknown>;
+  const directText = obj.response ?? obj.text ?? obj.output_text;
+  if (typeof directText === 'string' && directText.trim()) {
+    return directText.trim();
+  }
+
+  const nested = obj.result;
+  if (nested && typeof nested === 'object') {
+    const nestedObj = nested as Record<string, unknown>;
+    const nestedText = nestedObj.response ?? nestedObj.text ?? nestedObj.output_text;
+    if (typeof nestedText === 'string' && nestedText.trim()) {
+      return nestedText.trim();
+    }
+  }
+
+  return null;
+}
+
+async function generatePastifiedText(idea: string, env: Env): Promise<string> {
+  const promptMessages = [
+    {
+      role: 'system',
+      content:
+        'You are a Twitch chat copypasta writer. Turn the idea into one energetic, funny, copy/paste-ready message. Keep it to 2-5 lines, avoid slurs/harassment, and output only the final copypasta text.',
+    },
+    {
+      role: 'user',
+      content: `Idea: ${idea}`,
+    },
+  ];
+
+  const rawResult = await env.AI.run(PASTIFY_MODEL, {
+    messages: promptMessages,
+    max_tokens: 220,
+    temperature: 0.9,
+  });
+
+  const output = extractAiText(rawResult);
+  if (!output) {
+    throw new Error('Workers AI returned no text output');
+  }
+
+  return output;
 }
 
 async function handleTestSink(request: Request, env: Env, pathname: string): Promise<Response> {
@@ -384,25 +437,19 @@ export default {
 
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
+      let content: string;
+      try {
+        content = await generatePastifiedText(message.body.idea, env);
+      } catch {
+        content = 'Could not pastify that idea right now. Try again in a moment.';
+      }
+
       const response = await editOriginalInteractionResponse(
         env.DISCORD_APPLICATION_ID,
         message.body.token,
         env.DISCORD_TOKEN,
         {
-          content: 'Click to open the form.',
-          components: [
-            {
-              type: ComponentType.ActionRow,
-              components: [
-                {
-                  type: ComponentType.Button,
-                  custom_id: TEST_OPEN_MODAL_BUTTON_ID,
-                  label: 'Open form',
-                  style: ButtonStyle.Primary,
-                },
-              ],
-            },
-          ],
+          content,
         },
         env.DISCORD_API_BASE_URL,
       );
