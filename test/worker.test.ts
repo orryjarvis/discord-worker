@@ -268,5 +268,38 @@ describe('Discord Worker', () => {
     );
     expect(ack).toHaveBeenCalled();
   });
+
+  it('queue consumer does not call AI when follow-up idea is missing', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '1',
+        timestamp: new Date(),
+        body: { token: 'interaction-token' },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(mockAI.run).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: 'Could not process follow-up payload. Please try again.',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
 });
 

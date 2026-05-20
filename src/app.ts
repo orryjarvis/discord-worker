@@ -24,7 +24,7 @@ import type {
 
 interface FollowUpMessage {
   token: string;
-  idea: string;
+  idea?: string;
 }
 
 interface Env {
@@ -34,7 +34,7 @@ interface Env {
   DISCORD_TOKEN: string;
   FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
   KV: KVNamespace;
-  DISCORD_API_BASE_URL: string;
+  DISCORD_API_BASE_URL?: string;
   TEST_FOLLOWUPS?: KVNamespace;
 }
 
@@ -253,7 +253,7 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
       return jsonResponse({ type: InteractionResponseType.Pong });
 
     case 'defer-follow-up':
-      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token, idea: '' });
+      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token });
       return jsonResponse({ type: InteractionResponseType.DeferredChannelMessageWithSource });
 
     case 'show-modal':
@@ -438,12 +438,23 @@ export default {
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
       let content: string;
-      try {
-        content = await generatePastifiedText(message.body.idea, env);
-      } catch {
-        content = 'Could not pastify that idea right now. Try again in a moment.';
+      const idea = message.body.idea?.trim();
+      if (!idea) {
+        content = 'Could not process follow-up payload. Please try again.';
+      } else {
+        try {
+          content = await generatePastifiedText(idea, env);
+        } catch (error) {
+          console.error('Pastify generation failed', {
+            messageId: message.id,
+            token: message.body.token,
+            error,
+          });
+          content = 'Could not pastify that idea right now. Try again in a moment.';
+        }
       }
 
+      const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
       const response = await editOriginalInteractionResponse(
         env.DISCORD_APPLICATION_ID,
         message.body.token,
@@ -451,7 +462,7 @@ export default {
         {
           content,
         },
-        env.DISCORD_API_BASE_URL,
+        apiBaseUrl,
       );
 
       if (!response.ok) {
