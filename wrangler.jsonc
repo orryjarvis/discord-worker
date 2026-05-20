@@ -36,7 +36,10 @@
     "test": {
       "name": "discord-worker-test",
       "observability": {
-        "enabled": true
+        "enabled": true,
+        "traces": {
+          "enabled": true
+        }
       },
       "kv_namespaces": [
         {
@@ -62,7 +65,10 @@
     "prod": {
       "name": "discord-worker",
       "observability": {
-        "enabled": true
+        "enabled": true,
+        "traces": {
+          "enabled": true
+        }
       },
       "kv_namespaces": [
         {
