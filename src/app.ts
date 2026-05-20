@@ -274,9 +274,6 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
         },
       });
 
-    case 'missing-modal-text':
-      return new Response('Missing Modal Text', { status: 400 });
-
     case 'unknown-command':
       return new Response('Unknown Command', { status: 400 });
   }

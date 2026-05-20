@@ -60,15 +60,10 @@ export type SaveSubmissionResult = {
   ephemeral: boolean;
 };
 
-export type MissingModalTextResult = {
-  kind: 'missing-modal-text';
-};
-
 export type CommandResult =
   | DeferFollowUpResult
   | ShowModalResult
-  | SaveSubmissionResult
-  | MissingModalTextResult;
+  | SaveSubmissionResult;
 
 export type CommandHandler = (request: CommandRequest) => Promise<CommandResult> | CommandResult;
 
