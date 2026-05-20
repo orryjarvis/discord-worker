@@ -4,6 +4,7 @@
   "workers_dev": true,
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
   "find_additional_modules": true,
+  "name": "discord-worker",
   "rules": [
     {
       "type": "ESModule",
@@ -36,7 +37,10 @@
     "test": {
       "name": "discord-worker-test",
       "observability": {
-        "enabled": true
+        "enabled": true,
+        "traces": {
+          "enabled": true
+        }
       },
       "kv_namespaces": [
         {
@@ -62,7 +66,10 @@
     "prod": {
       "name": "discord-worker",
       "observability": {
-        "enabled": true
+        "enabled": true,
+        "traces": {
+          "enabled": true
+        }
       },
       "kv_namespaces": [
         {
