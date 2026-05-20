@@ -35,6 +35,9 @@
     },
     "test": {
       "name": "discord-worker-test",
+      "observability": {
+        "enabled": true
+      },
       "kv_namespaces": [
         {
           "binding": "KV",
@@ -58,6 +61,9 @@
     },
     "prod": {
       "name": "discord-worker",
+      "observability": {
+        "enabled": true
+      },
       "kv_namespaces": [
         {
           "binding": "KV",
