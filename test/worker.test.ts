@@ -150,7 +150,7 @@ describe('Discord Worker', () => {
     });
   });
 
-  it('defers ephemerally and enqueues insult generation for user context command target', async () => {
+  it('defers publicly and enqueues insult generation for user context command target', async () => {
     const req = await signedRequest({
       id: 'cmd-insult-context-1',
       type: InteractionType.ApplicationCommand,
@@ -167,9 +167,6 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       type: InteractionResponseType.DeferredChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-      },
     });
     expect(mockQueue.send).toHaveBeenCalledWith({
       token: 'insult-context-token',
@@ -177,6 +174,47 @@ describe('Discord Worker', () => {
         commandName: 'insult',
         payload: {
           targetUserId: 'user-context-2',
+        },
+      },
+    });
+  });
+
+  it('defers publicly and enqueues 8ball generation for message context command target', async () => {
+    const req = await signedRequest({
+      id: 'cmd-8ball-context-1',
+      type: InteractionType.ApplicationCommand,
+      token: '8ball-context-token',
+      data: {
+        name: '8ball',
+        type: ApplicationCommandType.Message,
+        target_id: 'message-ctx-1',
+        resolved: {
+          messages: {
+            'message-ctx-1': {
+              content: 'Should I queue one more ranked game?',
+              author: {
+                id: 'message-author-1',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: '8ball-context-token',
+      task: {
+        commandName: '8ball',
+        payload: {
+          targetMessageId: 'message-ctx-1',
+          targetMessageContent: 'Should I queue one more ranked game?',
+          targetMessageAuthorId: 'message-author-1',
         },
       },
     });
@@ -478,6 +516,97 @@ describe('Discord Worker', () => {
         method: 'PATCH',
         body: JSON.stringify({
           content: '<@user-42> I had a light-hearted roast ready, but the punchline got lost. Try again in a moment.',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts a snarky 8ball response for message command', async () => {
+    mockAI.run.mockResolvedValue({ response: 'Outlook says no, but your chaos energy says yes.' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '8ball-1',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: '8ball',
+            payload: {
+              targetMessageId: 'message-1',
+              targetMessageContent: 'Should we full send this?',
+              targetMessageAuthorId: 'user-8ball-1',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(mockAI.run).toHaveBeenCalledWith(
+      '@cf/qwen/qwen3-30b-a3b-fp8',
+      expect.objectContaining({
+        messages: expect.any(Array),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: 'Outlook says no, but your chaos energy says yes.',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts 8ball fallback message when message payload is missing text', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '8ball-2',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: '8ball',
+            payload: {
+              targetMessageId: 'message-1',
+              targetMessageAuthorId: 'user-8ball-1',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(mockAI.run).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: 'The magic 8-ball needs a message with text to read. Try again on a text message.',
         }),
       }),
     );

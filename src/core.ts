@@ -18,7 +18,8 @@ export interface SlashCommandRequest {
   token: string;
   options: Record<string, string | number | boolean>;
   targetId: string | number | boolean | null;
-  responseVisibility: 'public' | 'ephemeral';
+  targetMessageContent: string | null;
+  targetMessageAuthorId: string | null;
 }
 
 export interface ComponentRequest {

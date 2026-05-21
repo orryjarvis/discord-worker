@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { verifyDiscordRequest, jsonResponse, editOriginalInteractionResponse } from './discord.js';
+import {
+  verifyDiscordRequest,
+  jsonResponse,
+  editOriginalInteractionResponse,
+} from './discord.js';
 import {
   ApplicationCommandType,
   ComponentType,
@@ -57,6 +61,14 @@ type RawInteraction = {
     name?: string;
     type?: number;
     target_id?: string;
+    resolved?: {
+      messages?: Record<string, {
+        content?: string;
+        author?: {
+          id?: string;
+        };
+      }>;
+    };
     options?: Array<{
       name?: string;
       type?: number;
@@ -97,8 +109,18 @@ const ApplicationCommandInteractionSchema = BaseInteractionSchema.extend({
       type: z.number(),
       value: z.union([z.string(), z.number(), z.boolean()]).optional(),
     })).optional(),
+    resolved: z.object({
+      messages: z.record(z.string(), z.object({
+        content: z.string().optional(),
+        author: z.object({
+          id: z.string().optional(),
+        }).optional(),
+      })).optional(),
+    }).optional(),
   }),
 });
+
+type ParsedApplicationCommandData = z.infer<typeof ApplicationCommandInteractionSchema>['data'];
 
 const MessageComponentInteractionSchema = BaseInteractionSchema.extend({
   type: z.literal(InteractionType.MessageComponent),
@@ -157,6 +179,31 @@ function extractSlashCommandOptions(
   return extracted;
 }
 
+function extractTargetMessageContext(data: ParsedApplicationCommandData): {
+  targetMessageContent: string | null;
+  targetMessageAuthorId: string | null;
+} {
+  if (!data.target_id) {
+    return {
+      targetMessageContent: null,
+      targetMessageAuthorId: null,
+    };
+  }
+
+  const targetMessage = data.resolved?.messages?.[data.target_id];
+  if (!targetMessage) {
+    return {
+      targetMessageContent: null,
+      targetMessageAuthorId: null,
+    };
+  }
+
+  return {
+    targetMessageContent: targetMessage.content?.trim() || null,
+    targetMessageAuthorId: targetMessage.author?.id ?? null,
+  };
+}
+
 function parseAppRequest(raw: RawInteraction): AppRequest | Response {
   const typeResult = z.object({ type: z.number() }).safeParse(raw);
   if (!typeResult.success) {
@@ -182,19 +229,29 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
 
       const options = extractSlashCommandOptions(parsed.data.data.options);
       const isUserContextCommand = parsed.data.data.type === ApplicationCommandType.User;
-      if (isUserContextCommand && !parsed.data.data.target_id) {
+      const isMessageContextCommand = parsed.data.data.type === ApplicationCommandType.Message;
+      const isTargetContextCommand = isUserContextCommand || isMessageContextCommand;
+      if (isTargetContextCommand && !parsed.data.data.target_id) {
         return new Response('Bad request.', { status: 400 });
       }
+
+      const messageContext = isMessageContextCommand
+        ? extractTargetMessageContext(parsed.data.data)
+        : {
+          targetMessageContent: null,
+          targetMessageAuthorId: null,
+        };
 
       const request: CommandRequest = {
         kind: 'command',
         commandName: parsed.data.data.name.toLowerCase(),
         token: parsed.data.token,
         options,
-        targetId: isUserContextCommand
+        targetId: isTargetContextCommand
           ? parsed.data.data.target_id ?? null
           : options.target ?? null,
-        responseVisibility: isUserContextCommand ? 'ephemeral' : 'public',
+        targetMessageContent: messageContext.targetMessageContent,
+        targetMessageAuthorId: messageContext.targetMessageAuthorId,
       };
       return request;
     }
