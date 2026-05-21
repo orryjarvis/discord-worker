@@ -22,6 +22,12 @@ Deployment: Wrangler (`wrangler.jsonc`).
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 `DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
 
+## Agent bootstrap
+
+- `.vscode/mcp.json` is the repo's source of truth for MCP servers.
+- `skills-lock.json` pins the Cloudflare skills bundle installed under the gitignored `.agents/skills/` directory.
+- If `.agents/skills/` is missing, reinstall it from the repo root with `npx skills experimental_install`; if skills are suspected to be stale then run `npx skills update -p` then keep the lock file in sync.
+
 ---
 
 ## Where to look
