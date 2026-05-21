@@ -82,7 +82,7 @@ export function parsePastifyModalSubmit(data: {
   };
 }
 
-function extractAiText(result: unknown): string | null {
+export function extractAiText(result: unknown): string | null {
   const fromString = (value: unknown): string | null => {
     if (typeof value !== 'string') {
       return null;
@@ -273,9 +273,9 @@ async function generatePastifiedText(idea: string, env: PastifyRuntimeEnv): Prom
     temperature: 0.9,
   });
 
-  console.log('Pastify raw model output', {
+  console.log('Pastify model output received', {
     model: PASTIFY_MODEL,
-    rawResult,
+    shape: summarizeAiResultShape(rawResult),
   });
 
   const output = extractAiText(rawResult);
@@ -300,7 +300,6 @@ export async function executePastifyFollowUp(
   if (!idea) {
     console.warn('Pastify follow-up payload missing idea', {
       messageId: context.messageId,
-      token: context.token,
     });
     return PASTIFY_MISSING_PAYLOAD_MESSAGE;
   }
@@ -310,7 +309,6 @@ export async function executePastifyFollowUp(
   } catch (error) {
     console.error('Pastify generation failed', {
       messageId: context.messageId,
-      token: context.token,
       model: PASTIFY_MODEL,
       ideaLength: idea.length,
       error: describeError(error),

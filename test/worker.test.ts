@@ -420,5 +420,60 @@ describe('Discord Worker', () => {
     );
     expect(ack).toHaveBeenCalled();
   });
+
+  it('retries failed message and continues processing remaining queue messages', async () => {
+    mockAI.run.mockResolvedValue({ response: 'SAFE OUTPUT' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const firstAck = vi.fn();
+    const firstRetry = vi.fn();
+    const secondAck = vi.fn();
+    const secondRetry = vi.fn();
+
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [
+        {
+          id: 'm1',
+          timestamp: new Date(),
+          body: {
+            token: 'interaction-token-1',
+            task: {
+              commandName: 'unknown-command',
+              payload: {},
+            },
+          },
+          ack: firstAck,
+          retry: firstRetry,
+        },
+        {
+          id: 'm2',
+          timestamp: new Date(),
+          body: {
+            token: 'interaction-token-2',
+            task: {
+              commandName: 'pastify',
+              payload: {
+                idea: 'still runs after first failure',
+              },
+            },
+          },
+          ack: secondAck,
+          retry: secondRetry,
+        },
+      ],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(firstRetry).toHaveBeenCalled();
+    expect(firstAck).not.toHaveBeenCalled();
+    expect(secondAck).toHaveBeenCalled();
+    expect(secondRetry).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 

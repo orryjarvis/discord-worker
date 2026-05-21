@@ -316,6 +316,18 @@ async function handleTestSink(request: Request, env: Env, pathname: string): Pro
   return new Response('Not Found', { status: 404 });
 }
 
+function describeError(error: unknown): Record<string, unknown> {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+    };
+  }
+
+  return { message: String(error) };
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -358,29 +370,37 @@ export default {
 
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
-      const content = message.body.task
-        ? await executeFollowUpTask(message.body.task, { AI: env.AI }, {
+      try {
+        const content = message.body.task
+          ? await executeFollowUpTask(message.body.task, { AI: env.AI }, {
+            messageId: message.id,
+            token: message.body.token,
+          })
+          : 'Could not process follow-up payload. Please try again.';
+
+        const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
+        const response = await editOriginalInteractionResponse(
+          env.DISCORD_APPLICATION_ID,
+          message.body.token,
+          env.DISCORD_TOKEN,
+          {
+            content,
+          },
+          apiBaseUrl,
+        );
+
+        if (!response.ok) {
+          throw new Error(`Failed to edit original interaction response: ${response.status} ${response.statusText}`);
+        }
+
+        message.ack();
+      } catch (error) {
+        console.error('Follow-up queue message processing failed', {
           messageId: message.id,
-          token: message.body.token,
-        })
-        : 'Could not process follow-up payload. Please try again.';
-
-      const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-      const response = await editOriginalInteractionResponse(
-        env.DISCORD_APPLICATION_ID,
-        message.body.token,
-        env.DISCORD_TOKEN,
-        {
-          content,
-        },
-        apiBaseUrl,
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to edit original interaction response: ${response.status} ${response.statusText}`);
+          error: describeError(error),
+        });
+        message.retry();
       }
-
-      message.ack();
     }
   },
 };
