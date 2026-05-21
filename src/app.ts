@@ -449,7 +449,6 @@ async function generatePastifiedText(idea: string, env: Env): Promise<string> {
 
   const rawResult = await env.AI.run(PASTIFY_MODEL, {
     messages: promptMessages,
-    max_tokens: 220,
     temperature: 0.9,
   });
 
