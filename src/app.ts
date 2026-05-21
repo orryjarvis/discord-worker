@@ -453,6 +453,11 @@ async function generatePastifiedText(idea: string, env: Env): Promise<string> {
     temperature: 0.9,
   });
 
+  console.log('Pastify raw model output', {
+    model: PASTIFY_MODEL,
+    rawResult,
+  });
+
   const output = extractAiText(rawResult);
   if (!output) {
     console.error('Pastify model output had no extractable text', {
