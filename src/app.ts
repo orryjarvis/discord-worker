@@ -9,22 +9,22 @@ import {
 } from 'discord-api-types/v10';
 import {
   commands,
-  PASTIFY_COMMAND_NAME,
-  PASTIFY_MODAL_ID,
-  PASTIFY_MODAL_TEXT_INPUT_ID,
+  executeFollowUpTask,
+  parseCommandModalSubmit,
 } from './command.js';
 import { dispatchRequest } from './dispatch.js';
 import type {
   AppRequest,
   CommandRequest,
   DispatchOutcome,
+  FollowUpTask,
   PingRequest,
   ShowModalResult,
 } from './core.js';
 
 interface FollowUpMessage {
   token: string;
-  idea?: string;
+  task?: FollowUpTask;
 }
 
 interface Env {
@@ -64,17 +64,9 @@ type RawInteraction = {
   };
 };
 
-type ModalComponentRows = Array<{
-  components?: Array<{
-    custom_id?: string;
-    value?: string;
-  }>;
-}>;
-
 const PATCH_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)\/messages\/@original$/;
 const GET_FOLLOWUP_RE = /^\/__test\/followups\/([^/]+)$/;
 const GET_SUBMISSION_RE = /^\/__test\/submissions\/([^/]+)$/;
-const PASTIFY_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
 
 const BaseInteractionSchema = z.object({
   type: z.number(),
@@ -126,27 +118,6 @@ const ModalSubmitInteractionSchema = BaseInteractionSchema.extend({
   }),
 });
 
-function flattenModalText(components: ModalComponentRows | undefined): string | null {
-  if (!components) {
-    return null;
-  }
-
-  for (const row of components) {
-    const inputs = row.components;
-    if (!inputs) {
-      continue;
-    }
-
-    for (const input of inputs) {
-      if (input.custom_id === PASTIFY_MODAL_TEXT_INPUT_ID && typeof input.value === 'string') {
-        return input.value;
-      }
-    }
-  }
-
-  return null;
-}
-
 function parseAppRequest(raw: RawInteraction): AppRequest | Response {
   const typeResult = z.object({ type: z.number() }).safeParse(raw);
   if (!typeResult.success) {
@@ -193,24 +164,28 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         return new Response('Bad request.', { status: 400 });
       }
 
-      if (parsed.data.data.custom_id !== PASTIFY_MODAL_ID) {
+      const modalResult = parseCommandModalSubmit({
+        customId: parsed.data.data.custom_id,
+        components: parsed.data.data.components,
+      });
+
+      if (modalResult.kind === 'unknown-modal') {
         return new Response('Unknown Modal', { status: 400 });
       }
 
-      const text = flattenModalText(parsed.data.data.components);
-      if (!text) {
+      if (modalResult.kind === 'missing-text') {
         return new Response('Missing Modal Text', { status: 400 });
       }
 
       const request: CommandRequest = {
         kind: 'modal-submit',
-        commandName: PASTIFY_COMMAND_NAME,
+        commandName: modalResult.commandName,
         token: parsed.data.token,
         interactionId: parsed.data.id,
         userId: parsed.data.member?.user?.id ?? parsed.data.user?.id ?? null,
         guildId: parsed.data.guild_id ?? null,
         channelId: parsed.data.channel_id ?? null,
-        text,
+        text: modalResult.text,
       };
       return request;
     }
@@ -259,8 +234,8 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
     case 'show-modal':
       return toModalResponse(outcome);
 
-    case 'enqueue-pastify':
-      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token, idea: outcome.idea });
+    case 'enqueue-follow-up':
+      await env.FOLLOW_UP_QUEUE.send({ token: outcome.token, task: outcome.task });
       return jsonResponse({ type: InteractionResponseType.DeferredChannelMessageWithSource });
 
     case 'save-submission':
@@ -276,214 +251,6 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
     case 'unknown-command':
       return new Response('Unknown Command', { status: 400 });
   }
-}
-
-function extractAiText(result: unknown): string | null {
-  const fromString = (value: unknown): string | null => {
-    if (typeof value !== 'string') {
-      return null;
-    }
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  };
-
-  const fromContentArray = (value: unknown): string | null => {
-    if (!Array.isArray(value)) {
-      return null;
-    }
-
-    const chunks: string[] = [];
-    for (const part of value) {
-      if (!part || typeof part !== 'object') {
-        continue;
-      }
-      const partObj = part as Record<string, unknown>;
-      const text = fromString(partObj.text);
-      if (text) {
-        chunks.push(text);
-      }
-    }
-
-    if (chunks.length === 0) {
-      return null;
-    }
-    return chunks.join('\n').trim();
-  };
-
-  const fromMessage = (value: unknown): string | null => {
-    if (!value || typeof value !== 'object') {
-      return null;
-    }
-
-    const msg = value as Record<string, unknown>;
-    return fromString(msg.content) ?? fromContentArray(msg.content);
-  };
-
-  const fromChoices = (value: unknown): string | null => {
-    if (!Array.isArray(value)) {
-      return null;
-    }
-
-    for (const choice of value) {
-      if (!choice || typeof choice !== 'object') {
-        continue;
-      }
-
-      const choiceObj = choice as Record<string, unknown>;
-      const messageText = fromMessage(choiceObj.message);
-      if (messageText) {
-        return messageText;
-      }
-
-      const directText = fromString(choiceObj.text);
-      if (directText) {
-        return directText;
-      }
-    }
-
-    return null;
-  };
-
-  const fromOutput = (value: unknown): string | null => {
-    if (!Array.isArray(value)) {
-      return null;
-    }
-
-    const chunks: string[] = [];
-    for (const item of value) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const itemObj = item as Record<string, unknown>;
-      const text = fromString(itemObj.text) ?? fromContentArray(itemObj.content);
-      if (text) {
-        chunks.push(text);
-      }
-    }
-
-    if (chunks.length === 0) {
-      return null;
-    }
-    return chunks.join('\n').trim();
-  };
-
-  if (typeof result === 'string') {
-    return fromString(result);
-  }
-
-  if (!result || typeof result !== 'object') {
-    return null;
-  }
-
-  const obj = result as Record<string, unknown>;
-  const direct = fromString(obj.response) ?? fromString(obj.text) ?? fromString(obj.output_text);
-  if (direct) {
-    return direct;
-  }
-
-  const topLevelChoices = fromChoices(obj.choices);
-  if (topLevelChoices) {
-    return topLevelChoices;
-  }
-
-  const topLevelOutput = fromOutput(obj.output);
-  if (topLevelOutput) {
-    return topLevelOutput;
-  }
-
-  const nested = obj.result;
-  if (nested && typeof nested === 'object') {
-    const nestedObj = nested as Record<string, unknown>;
-    const nestedDirect = fromString(nestedObj.response) ?? fromString(nestedObj.text) ?? fromString(nestedObj.output_text);
-    if (nestedDirect) {
-      return nestedDirect;
-    }
-
-    const nestedChoices = fromChoices(nestedObj.choices);
-    if (nestedChoices) {
-      return nestedChoices;
-    }
-
-    const nestedOutput = fromOutput(nestedObj.output);
-    if (nestedOutput) {
-      return nestedOutput;
-    }
-  }
-
-  return null;
-}
-
-function summarizeAiResultShape(result: unknown): Record<string, unknown> {
-  if (!result || typeof result !== 'object') {
-    return { type: typeof result };
-  }
-
-  const obj = result as Record<string, unknown>;
-  const nested = obj.result;
-  const nestedObj = nested && typeof nested === 'object'
-    ? nested as Record<string, unknown>
-    : null;
-
-  return {
-    topLevelKeys: Object.keys(obj).slice(0, 20),
-    resultKeys: nestedObj ? Object.keys(nestedObj).slice(0, 20) : null,
-    hasChoices: Array.isArray(obj.choices),
-    hasResultChoices: nestedObj ? Array.isArray(nestedObj.choices) : false,
-    hasOutput: Array.isArray(obj.output),
-    hasResultOutput: nestedObj ? Array.isArray(nestedObj.output) : false,
-  };
-}
-
-async function generatePastifiedText(idea: string, env: Env): Promise<string> {
-  const promptMessages = [
-    {
-      role: 'system',
-      content:
-        'You are a Twitch chat copypasta writer. Turn the idea into one energetic, funny, copy/paste-ready message. Keep it to 2-5 lines, avoid slurs/harassment, and output only the final copypasta text.',
-    },
-    {
-      role: 'user',
-      content: `Idea: ${idea}`,
-    },
-  ];
-
-  const rawResult = await env.AI.run(PASTIFY_MODEL, {
-    messages: promptMessages,
-    temperature: 0.9,
-  });
-
-  console.log('Pastify raw model output', {
-    model: PASTIFY_MODEL,
-    rawResult,
-  });
-
-  const output = extractAiText(rawResult);
-  if (!output) {
-    console.error('Pastify model output had no extractable text', {
-      model: PASTIFY_MODEL,
-      shape: summarizeAiResultShape(rawResult),
-    });
-    throw new Error('Workers AI returned no text output');
-  }
-
-  return output;
-}
-
-function describeError(error: unknown): Record<string, unknown> {
-  if (error instanceof Error) {
-    const typedError = error as Error & { cause?: unknown; code?: string };
-    return {
-      name: typedError.name,
-      message: typedError.message,
-      code: typedError.code,
-      stack: typedError.stack,
-      cause: typedError.cause,
-    };
-  }
-
-  return {
-    message: String(error),
-  };
 }
 
 async function handleTestSink(request: Request, env: Env, pathname: string): Promise<Response> {
@@ -591,28 +358,12 @@ export default {
 
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
-      let content: string;
-      const idea = message.body.idea?.trim();
-      if (!idea) {
-        console.warn('Pastify follow-up payload missing idea', {
+      const content = message.body.task
+        ? await executeFollowUpTask(message.body.task, { AI: env.AI }, {
           messageId: message.id,
           token: message.body.token,
-        });
-        content = 'Could not process follow-up payload. Please try again.';
-      } else {
-        try {
-          content = await generatePastifiedText(idea, env);
-        } catch (error) {
-          console.error('Pastify generation failed', {
-            messageId: message.id,
-            token: message.body.token,
-            model: PASTIFY_MODEL,
-            ideaLength: idea.length,
-            error: describeError(error),
-          });
-          content = 'Could not pastify that idea right now. Try again in a moment.';
-        }
-      }
+        })
+        : 'Could not process follow-up payload. Please try again.';
 
       const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
       const response = await editOriginalInteractionResponse(

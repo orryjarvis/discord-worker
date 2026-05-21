@@ -61,17 +61,22 @@ export type SaveSubmissionResult = {
   ephemeral: boolean;
 };
 
-export type EnqueuePastifyResult = {
-  kind: 'enqueue-pastify';
+export type FollowUpTask = {
+  commandName: string;
+  payload: Record<string, unknown>;
+};
+
+export type EnqueueFollowUpResult = {
+  kind: 'enqueue-follow-up';
   token: string;
-  idea: string;
+  task: FollowUpTask;
 };
 
 export type CommandResult =
   | DeferFollowUpResult
   | ShowModalResult
   | SaveSubmissionResult
-  | EnqueuePastifyResult;
+  | EnqueueFollowUpResult;
 
 export type CommandHandler = (request: CommandRequest) => Promise<CommandResult> | CommandResult;
 

@@ -65,6 +65,38 @@ Entry point rule:
 
 ---
 
+## Ownership boundaries
+
+Dependency direction is necessary but not sufficient. Ownership boundaries define
+where behavior should live even when import edges are technically valid.
+
+- `app` owns transport concerns only:
+  - Discord HTTP auth/signature verification.
+  - Wire-format validation and conversion to flat app requests.
+  - Mapping dispatch outcomes to Discord response payloads.
+  - Generic queue transport wiring (enqueue/dequeue, ack, Discord PATCH).
+
+- Command modules own command-specific behavior:
+  - Command-specific modal interpretation (custom IDs and input extraction).
+  - Command-specific follow-up task payload shape.
+  - Command-specific provider integration details (prompting, AI result parsing,
+    fallback messages, logging fields).
+
+- `dispatch` and `core` own routing/contracts, not command implementation
+  details.
+
+- `core` contracts must remain command-agnostic:
+  - No command names (for example, `'pastify'`) in `core` type literals.
+  - No command-specific type names in `core` (for example, `Pastify*`).
+  - Use generic envelopes in `core`; command modules validate command-specific
+    payload shape locally.
+
+Practical rule: if code references a specific command's IDs, prompt text,
+model behavior, or task payload fields, it belongs in command-owned code,
+not `app`.
+
+---
+
 ## Scope notes
 
 - This layering is intentionally lightweight: no plugin system, no service

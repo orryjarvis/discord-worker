@@ -78,11 +78,16 @@ The codebase is intentionally small but now uses a documented layering split:
 - `src/app.ts` is the Discord-facing app adapter. It validates/signature-checks
   requests, transforms Discord payloads to flat app requests, calls dispatch,
   and maps dispatch results back to Discord responses.
+- `src/app.ts` owns transport/orchestration only. Do not place
+  command-specific modal parsing, AI prompt/output parsing, or command-specific
+  follow-up payload semantics in this layer.
 - `src/dispatch.ts` is the routing core. It chooses a command handler by name
   and does not import Discord-specific code.
 - `src/command.ts` defines command behavior and command constants. It works in
   terms of core request/result interfaces and does not import dispatch.
 - `src/core.ts` defines shared interfaces used by app, dispatch, and command.
+  Keep `core` command-agnostic: no command-specific type names or string
+  literals in core contracts.
 
 Dependency direction (allowed edges):
 

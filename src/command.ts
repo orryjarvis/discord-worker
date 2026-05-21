@@ -1,8 +1,23 @@
-import type { CommandMap, CommandRequest, CommandResult } from './core.js';
+import type { CommandMap, CommandRequest, CommandResult, FollowUpTask } from './core.js';
+import {
+  PASTIFY_COMMAND_NAME,
+  PASTIFY_MODAL_ID,
+  PASTIFY_MODAL_TEXT_INPUT_ID,
+  executePastifyFollowUp,
+  parsePastifyModalSubmit,
+  type FollowUpExecutionContext,
+  type PastifyRuntimeEnv,
+  type PastifyModalParseResult,
+} from './pastify.js';
 
-export const PASTIFY_COMMAND_NAME = 'pastify';
-export const PASTIFY_MODAL_ID = 'pastify_modal';
-export const PASTIFY_MODAL_TEXT_INPUT_ID = 'pastify_modal_text';
+export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify.js';
+
+type ModalComponentRows = Array<{
+  components?: Array<{
+    custom_id?: string;
+    value?: string;
+  }>;
+}>;
 
 async function handlePastifyCommand(request: CommandRequest): Promise<CommandResult> {
   switch (request.kind) {
@@ -21,9 +36,14 @@ async function handlePastifyCommand(request: CommandRequest): Promise<CommandRes
 
     case 'modal-submit':
       return {
-        kind: 'enqueue-pastify',
+        kind: 'enqueue-follow-up',
         token: request.token,
-        idea: request.text,
+        task: {
+          commandName: PASTIFY_COMMAND_NAME,
+          payload: {
+            idea: request.text,
+          },
+        },
       };
 
     case 'component':
@@ -37,3 +57,22 @@ async function handlePastifyCommand(request: CommandRequest): Promise<CommandRes
 export const commands: CommandMap = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
 };
+
+export function parseCommandModalSubmit(data: {
+  customId: string;
+  components?: ModalComponentRows;
+}): PastifyModalParseResult {
+  return parsePastifyModalSubmit(data);
+}
+
+export async function executeFollowUpTask(
+  task: FollowUpTask,
+  env: PastifyRuntimeEnv,
+  context: FollowUpExecutionContext,
+): Promise<string> {
+  if (task.commandName !== PASTIFY_COMMAND_NAME) {
+    throw new Error(`Unknown follow-up task command: ${task.commandName}`);
+  }
+
+  return executePastifyFollowUp(task, env, context);
+}
