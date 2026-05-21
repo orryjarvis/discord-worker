@@ -90,7 +90,7 @@ describe('Discord Worker', () => {
     expect((patched.content as string).length).toBeGreaterThan('<@user-context-e2e> '.length);
   });
 
-  it('defers message-context 8ball publicly and sends a reply-style response or quoted fallback', async () => {
+  it('defers message-context 8ball publicly and sends a quoted follow-up via original response edit', async () => {
     const correlationId = `8ball-context-${Date.now()}`;
     const token = `test-token-${correlationId}`;
 
@@ -122,15 +122,9 @@ describe('Discord Worker', () => {
 
     const followUp = await waitForFollowUp(correlationId);
     const payload = JSON.parse(followUp.body) as Record<string, unknown>;
+    expect(followUp.method).toBe('PATCH');
     expect(typeof payload.content).toBe('string');
     expect((payload.content as string).length).toBeGreaterThan(0);
-
-    if (followUp.method === 'POST') {
-      expect(payload.message_reference).toMatchObject({
-        message_id: 'message-context-e2e',
-      });
-      return;
-    }
 
     expect((payload.content as string)).toContain('> Should we run one more game before bed?');
     expect((payload.content as string)).toContain('🎱 ');

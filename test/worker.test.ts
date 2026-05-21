@@ -522,7 +522,7 @@ describe('Discord Worker', () => {
     expect(ack).toHaveBeenCalled();
   });
 
-  it('queue consumer posts an 8ball follow-up reply to the target message', async () => {
+  it('queue consumer posts an 8ball quoted follow-up via original response edit', async () => {
     mockAI.run.mockResolvedValue({ response: 'Outlook says no, but your chaos energy says yes.' });
     const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -560,36 +560,24 @@ describe('Discord Worker', () => {
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token',
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
       expect.objectContaining({
-        method: 'POST',
+        method: 'PATCH',
         body: JSON.stringify({
-          content: 'Outlook says no, but your chaos energy says yes.',
+          content: '> Should we full send this? - <@user-8ball-1>\n\n🎱 Outlook says no, but your chaos energy says yes.',
           allowed_mentions: {
             parse: [],
-          },
-          message_reference: {
-            message_id: 'message-1',
-            fail_if_not_exists: false,
           },
         }),
       }),
     );
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
-      expect.objectContaining({
-        method: 'DELETE',
-      }),
-    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(ack).toHaveBeenCalled();
   });
 
-  it('queue consumer falls back to quoted edit when 8ball reply send fails', async () => {
+  it('queue consumer uses quoted 8ball edit even when target message is present', async () => {
     mockAI.run.mockResolvedValue({ response: 'Reply hazy, ask after your coffee.' });
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response('nope', { status: 500, statusText: 'Internal Server Error' }))
-      .mockResolvedValueOnce(new Response('OK', { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     const ack = vi.fn();
@@ -618,15 +606,7 @@ describe('Discord Worker', () => {
 
     await worker.queue(batch as any, TEST_ENV as any);
 
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token',
-      expect.objectContaining({
-        method: 'POST',
-      }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
+    expect(fetchMock).toHaveBeenCalledWith(
       'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
       expect.objectContaining({
         method: 'PATCH',
@@ -638,6 +618,7 @@ describe('Discord Worker', () => {
         }),
       }),
     );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(ack).toHaveBeenCalled();
   });
 

@@ -2,8 +2,6 @@ import { z } from 'zod';
 import {
   verifyDiscordRequest,
   jsonResponse,
-  createFollowUpMessage,
-  deleteOriginalInteractionResponse,
   editOriginalInteractionResponse,
 } from './discord.js';
 import {
@@ -530,61 +528,6 @@ export default {
           };
 
         const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-        const replyToMessageId = followUpResult.renderHints?.replyToMessageId;
-
-        if (replyToMessageId) {
-          try {
-            const replyResponse = await createFollowUpMessage(
-              env.DISCORD_APPLICATION_ID,
-              message.body.token,
-              env.DISCORD_TOKEN,
-              {
-                content: followUpResult.content,
-                allowed_mentions: {
-                  parse: [],
-                },
-                message_reference: {
-                  message_id: replyToMessageId,
-                  fail_if_not_exists: false,
-                },
-              },
-              apiBaseUrl,
-            );
-
-            if (replyResponse.ok) {
-              const deleteResponse = await deleteOriginalInteractionResponse(
-                env.DISCORD_APPLICATION_ID,
-                message.body.token,
-                env.DISCORD_TOKEN,
-                apiBaseUrl,
-              );
-
-              if (!deleteResponse.ok && deleteResponse.status !== 404) {
-                console.warn('Could not finalize deferred original response after reply send', {
-                  messageId: message.id,
-                  status: deleteResponse.status,
-                  statusText: deleteResponse.statusText,
-                });
-              }
-
-              message.ack();
-              continue;
-            }
-
-            console.warn('Reply-style follow-up failed; falling back to quoted edit', {
-              messageId: message.id,
-              status: replyResponse.status,
-              statusText: replyResponse.statusText,
-              targetMessageId: replyToMessageId,
-            });
-          } catch (error) {
-            console.warn('Reply-style follow-up threw; falling back to quoted edit', {
-              messageId: message.id,
-              targetMessageId: replyToMessageId,
-              error: describeError(error),
-            });
-          }
-        }
 
         const content = buildFallbackEditedContent(followUpResult);
         const response = await editOriginalInteractionResponse(
