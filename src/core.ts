@@ -20,7 +20,6 @@ export interface SlashCommandRequest {
   targetId: string | number | boolean | null;
   targetMessageContent: string | null;
   targetMessageAuthorId: string | null;
-  responseVisibility: 'public' | 'ephemeral';
 }
 
 export interface ComponentRequest {
@@ -69,7 +68,6 @@ export type SaveSubmissionResult = {
 export type FollowUpTask = {
   commandName: string;
   payload: Record<string, unknown>;
-  responseMode?: 'edit-original' | 'create-follow-up';
 };
 
 export interface AiRuntimeEnv {

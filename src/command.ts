@@ -81,7 +81,6 @@ async function handleInsultCommand(request: CommandRequest): Promise<CommandResu
           payload: {
             targetUserId: request.targetId,
           },
-          responseMode: 'edit-original',
         },
         ephemeral: false,
       };
@@ -108,7 +107,6 @@ async function handleEightBallCommand(request: CommandRequest): Promise<CommandR
             targetMessageContent: request.targetMessageContent,
             targetMessageAuthorId: request.targetMessageAuthorId,
           },
-          responseMode: 'edit-original',
         },
         ephemeral: false,
       };

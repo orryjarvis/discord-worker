@@ -146,7 +146,6 @@ describe('Discord Worker', () => {
         payload: {
           targetUserId: 'user-2',
         },
-        responseMode: 'edit-original',
       },
     });
   });
@@ -176,7 +175,6 @@ describe('Discord Worker', () => {
         payload: {
           targetUserId: 'user-context-2',
         },
-        responseMode: 'edit-original',
       },
     });
   });
@@ -218,7 +216,6 @@ describe('Discord Worker', () => {
           targetMessageContent: 'Should I queue one more ranked game?',
           targetMessageAuthorId: 'message-author-1',
         },
-        responseMode: 'edit-original',
       },
     });
   });
@@ -253,7 +250,6 @@ describe('Discord Worker', () => {
         payload: {
           targetUserId: 42,
         },
-        responseMode: 'edit-original',
       },
     });
   });
@@ -456,7 +452,6 @@ describe('Discord Worker', () => {
             payload: {
               targetUserId: 'user-42',
             },
-            responseMode: 'edit-original',
           },
         },
         ack,
@@ -504,7 +499,6 @@ describe('Discord Worker', () => {
             payload: {
               targetUserId: 'user-42',
             },
-            responseMode: 'edit-original',
           },
         },
         ack,
@@ -548,7 +542,6 @@ describe('Discord Worker', () => {
               targetMessageContent: 'Should we full send this?',
               targetMessageAuthorId: 'user-8ball-1',
             },
-            responseMode: 'edit-original',
           },
         },
         ack,
@@ -596,7 +589,6 @@ describe('Discord Worker', () => {
               targetMessageId: 'message-1',
               targetMessageAuthorId: 'user-8ball-1',
             },
-            responseMode: 'edit-original',
           },
         },
         ack,

@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   verifyDiscordRequest,
   jsonResponse,
-  createFollowUpInteractionResponse,
   editOriginalInteractionResponse,
 } from './discord.js';
 import {
@@ -86,7 +85,6 @@ type RawInteraction = {
 };
 
 const PATCH_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)\/messages\/@original$/;
-const POST_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)$/;
 const GET_FOLLOWUP_RE = /^\/__test\/followups\/([^/]+)$/;
 const GET_SUBMISSION_RE = /^\/__test\/submissions\/([^/]+)$/;
 
@@ -254,7 +252,6 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
           : options.target ?? null,
         targetMessageContent: messageContext.targetMessageContent,
         targetMessageAuthorId: messageContext.targetMessageAuthorId,
-        responseVisibility: isTargetContextCommand ? 'ephemeral' : 'public',
       };
       return request;
     }
@@ -368,15 +365,9 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
 
 async function handleTestSink(request: Request, env: Env, pathname: string): Promise<Response> {
   const patchMatch = PATCH_SINK_RE.exec(pathname);
-  const postMatch = POST_SINK_RE.exec(pathname);
-  if ((request.method === 'PATCH' && patchMatch && env.TEST_FOLLOWUPS)
-    || (request.method === 'POST' && postMatch && env.TEST_FOLLOWUPS)) {
-    const sinkMatch = patchMatch ?? postMatch;
-    if (!sinkMatch) {
-      return new Response('Bad Request', { status: 400 });
-    }
-    const applicationId = sinkMatch[1];
-    const interactionToken = sinkMatch[2];
+  if (request.method === 'PATCH' && patchMatch && env.TEST_FOLLOWUPS) {
+    const applicationId = patchMatch[1];
+    const interactionToken = patchMatch[2];
     const correlationMatch = /^test-token-(.+)$/.exec(interactionToken);
     if (!correlationMatch) {
       return new Response('Bad Request', { status: 400 });
@@ -498,26 +489,15 @@ export default {
           : 'Could not process follow-up payload. Please try again.';
 
         const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-        const responseMode = message.body.task?.responseMode ?? 'edit-original';
-        const response = responseMode === 'create-follow-up'
-          ? await createFollowUpInteractionResponse(
-            env.DISCORD_APPLICATION_ID,
-            message.body.token,
-            env.DISCORD_TOKEN,
-            {
-              content,
-            },
-            apiBaseUrl,
-          )
-          : await editOriginalInteractionResponse(
-            env.DISCORD_APPLICATION_ID,
-            message.body.token,
-            env.DISCORD_TOKEN,
-            {
-              content,
-            },
-            apiBaseUrl,
-          );
+        const response = await editOriginalInteractionResponse(
+          env.DISCORD_APPLICATION_ID,
+          message.body.token,
+          env.DISCORD_TOKEN,
+          {
+            content,
+          },
+          apiBaseUrl,
+        );
 
         if (!response.ok) {
           throw new Error(`Failed to edit original interaction response: ${response.status} ${response.statusText}`);
