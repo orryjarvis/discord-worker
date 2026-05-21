@@ -143,7 +143,15 @@ describe('Discord Worker', () => {
     expect(json).toEqual({
       type: InteractionResponseType.DeferredChannelMessageWithSource,
     });
-    expect(mockQueue.send).toHaveBeenCalledWith({ token: 'modal-token', idea: 'hello modal' });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: 'modal-token',
+      task: {
+        commandName: 'pastify',
+        payload: {
+          idea: 'hello modal',
+        },
+      },
+    });
     expect(mockKv.put).not.toHaveBeenCalled();
   });
 
@@ -207,7 +215,15 @@ describe('Discord Worker', () => {
       messages: [{
         id: '1',
         timestamp: new Date(),
-        body: { token: 'interaction-token', idea: 'streamer misses one minion' },
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'pastify',
+            payload: {
+              idea: 'streamer misses one minion',
+            },
+          },
+        },
         ack,
         retry: vi.fn(),
       }],
@@ -247,7 +263,15 @@ describe('Discord Worker', () => {
       messages: [{
         id: '1',
         timestamp: new Date(),
-        body: { token: 'interaction-token', idea: 'some idea' },
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'pastify',
+            payload: {
+              idea: 'some idea',
+            },
+          },
+        },
         ack,
         retry: vi.fn(),
       }],
@@ -288,7 +312,15 @@ describe('Discord Worker', () => {
       messages: [{
         id: '1',
         timestamp: new Date(),
-        body: { token: 'interaction-token', idea: 'clutch baron steal' },
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'pastify',
+            payload: {
+              idea: 'clutch baron steal',
+            },
+          },
+        },
         ack,
         retry: vi.fn(),
       }],
@@ -328,7 +360,15 @@ describe('Discord Worker', () => {
       messages: [{
         id: '1',
         timestamp: new Date(),
-        body: { token: 'interaction-token', idea: 'mid diff speech' },
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'pastify',
+            payload: {
+              idea: 'mid diff speech',
+            },
+          },
+        },
         ack,
         retry: vi.fn(),
       }],
@@ -348,7 +388,7 @@ describe('Discord Worker', () => {
     expect(ack).toHaveBeenCalled();
   });
 
-  it('queue consumer does not call AI when follow-up idea is missing', async () => {
+  it('queue consumer does not call AI when follow-up task is missing', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -379,6 +419,61 @@ describe('Discord Worker', () => {
       }),
     );
     expect(ack).toHaveBeenCalled();
+  });
+
+  it('retries failed message and continues processing remaining queue messages', async () => {
+    mockAI.run.mockResolvedValue({ response: 'SAFE OUTPUT' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const firstAck = vi.fn();
+    const firstRetry = vi.fn();
+    const secondAck = vi.fn();
+    const secondRetry = vi.fn();
+
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [
+        {
+          id: 'm1',
+          timestamp: new Date(),
+          body: {
+            token: 'interaction-token-1',
+            task: {
+              commandName: 'unknown-command',
+              payload: {},
+            },
+          },
+          ack: firstAck,
+          retry: firstRetry,
+        },
+        {
+          id: 'm2',
+          timestamp: new Date(),
+          body: {
+            token: 'interaction-token-2',
+            task: {
+              commandName: 'pastify',
+              payload: {
+                idea: 'still runs after first failure',
+              },
+            },
+          },
+          ack: secondAck,
+          retry: secondRetry,
+        },
+      ],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(firstRetry).toHaveBeenCalled();
+    expect(firstAck).not.toHaveBeenCalled();
+    expect(secondAck).toHaveBeenCalled();
+    expect(secondRetry).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -22,6 +22,12 @@ Deployment: Wrangler (`wrangler.jsonc`).
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 `DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
 
+## Agent bootstrap
+
+- `.vscode/mcp.json` is the repo's source of truth for MCP servers.
+- `skills-lock.json` pins the Cloudflare skills bundle installed under the gitignored `.agents/skills/` directory.
+- If `.agents/skills/` is missing, reinstall it from the repo root with `npx skills experimental_install`; if skills are suspected to be stale then run `npx skills update -p` then keep the lock file in sync.
+
 ---
 
 ## Where to look
@@ -72,11 +78,16 @@ The codebase is intentionally small but now uses a documented layering split:
 - `src/app.ts` is the Discord-facing app adapter. It validates/signature-checks
   requests, transforms Discord payloads to flat app requests, calls dispatch,
   and maps dispatch results back to Discord responses.
+- `src/app.ts` owns transport/orchestration only. Do not place
+  command-specific modal parsing, AI prompt/output parsing, or command-specific
+  follow-up payload semantics in this layer.
 - `src/dispatch.ts` is the routing core. It chooses a command handler by name
   and does not import Discord-specific code.
 - `src/command.ts` defines command behavior and command constants. It works in
   terms of core request/result interfaces and does not import dispatch.
 - `src/core.ts` defines shared interfaces used by app, dispatch, and command.
+  Keep `core` command-agnostic: no command-specific type names or string
+  literals in core contracts.
 
 Dependency direction (allowed edges):
 

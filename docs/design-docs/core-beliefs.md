@@ -21,6 +21,13 @@ Decisions made in chat, email, or someone's head are invisible. If a decision
 matters, encode it here: as a doc, a test, a script, or a comment. Stale docs
 that no longer reflect reality are worse than no docs; delete or correct them.
 
+Agent tooling is part of that source of truth too: `.vscode/mcp.json` declares
+the MCP servers, while `skills-lock.json` pins the Cloudflare skills bundle
+installed into the gitignored `.agents/skills/` directory. If the bundle is
+missing reinstall it from the repo root with
+`npx skills experimental_install`; if it is suspected to be stale run `npx skills update -p` and keep the lock file
+aligned.
+
 ---
 
 ## `AGENTS.md` is a map, not an encyclopedia

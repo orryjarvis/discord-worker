@@ -7,6 +7,12 @@ Read these two files before doing anything else:
 - [`docs/design-docs/index.md`](/docs/design-docs/index.md) — design doc
   system of record and operating principles
 
+Also treat the repo's agent tooling files as part of the bootstrap state:
+
+- [`.vscode/mcp.json`](/.vscode/mcp.json) — MCP server configuration
+- [`skills-lock.json`](/skills-lock.json) — pinned Cloudflare skills bundle for
+  the gitignored [`.agents/`](.agents/) install
+
 ---
 
 ## Core principles
