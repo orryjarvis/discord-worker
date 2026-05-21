@@ -29,6 +29,11 @@ const INSULT_USER_COMMAND = {
   type: ApplicationCommandType.User,
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
+const EIGHT_BALL_MESSAGE_COMMAND = {
+  name: '8ball',
+  type: ApplicationCommandType.Message,
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
   const botToken = process.env.DISCORD_BOT_TOKEN ?? process.env.DISCORD_TOKEN;
@@ -47,11 +52,11 @@ async function deployCommands() {
       'Content-Type': 'application/json',
       Authorization: `Bot ${botToken}`,
     },
-    body: JSON.stringify([PASTIFY_COMMAND, INSULT_COMMAND, INSULT_USER_COMMAND]),
+    body: JSON.stringify([PASTIFY_COMMAND, INSULT_COMMAND, INSULT_USER_COMMAND, EIGHT_BALL_MESSAGE_COMMAND]),
   });
 
   if (response.ok) {
-    console.log('Registered commands: pastify, insult (slash), insult (user)');
+    console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message)');
   } else {
     console.error('Error registering commands');
     console.error(await response.text());

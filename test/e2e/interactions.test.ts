@@ -93,6 +93,45 @@ describe('Discord Worker', () => {
     expect((patched.content as string).length).toBeGreaterThan('<@user-context-e2e> '.length);
   });
 
+  it('defers message-context 8ball ephemerally and sends a snarky magic 8-ball response', async () => {
+    const correlationId = `8ball-context-${Date.now()}`;
+    const token = `test-token-${correlationId}`;
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token,
+      data: {
+        name: '8ball',
+        type: ApplicationCommandType.Message,
+        target_id: 'message-context-e2e',
+        resolved: {
+          messages: {
+            'message-context-e2e': {
+              content: 'Should we run one more game before bed?',
+              author: {
+                id: 'message-author-e2e',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json() as any).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+      },
+    });
+
+    const followUp = await waitForFollowUp(correlationId);
+    const patched = JSON.parse(followUp.body) as Record<string, unknown>;
+    expect(typeof patched.content).toBe('string');
+    expect((patched.content as string).length).toBeGreaterThan(0);
+  });
+
   it('defers on modal submit and then sends channel-visible pastified content', async () => {
     const correlationId = `followup-${Date.now()}`;
     const token = `test-token-${correlationId}`;
