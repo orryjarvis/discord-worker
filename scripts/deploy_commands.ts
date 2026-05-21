@@ -1,9 +1,27 @@
-import { ApplicationCommandType, type RESTPostAPIApplicationCommandsJSONBody } from 'discord-api-types/v10';
+import {
+  ApplicationCommandOptionType,
+  ApplicationCommandType,
+  type RESTPostAPIApplicationCommandsJSONBody,
+} from 'discord-api-types/v10';
 
 const PASTIFY_COMMAND = {
   name: 'pastify',
   description: 'Turn an idea into a Twitch-style copypasta',
   type: ApplicationCommandType.ChatInput,
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
+const INSULT_COMMAND = {
+  name: 'insult',
+  description: 'Light-heartedly roast the selected user',
+  type: ApplicationCommandType.ChatInput,
+  options: [
+    {
+      name: 'target',
+      description: 'Who should get roasted?',
+      type: ApplicationCommandOptionType.User,
+      required: true,
+    },
+  ],
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
 async function deployCommands() {
@@ -24,11 +42,11 @@ async function deployCommands() {
       'Content-Type': 'application/json',
       Authorization: `Bot ${botToken}`,
     },
-    body: JSON.stringify([PASTIFY_COMMAND]),
+    body: JSON.stringify([PASTIFY_COMMAND, INSULT_COMMAND]),
   });
 
   if (response.ok) {
-    console.log('Registered command: pastify');
+    console.log('Registered commands: pastify, insult');
   } else {
     console.error('Error registering commands');
     console.error(await response.text());

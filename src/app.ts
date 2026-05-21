@@ -54,6 +54,11 @@ type RawInteraction = {
   };
   data?: {
     name?: string;
+    options?: Array<{
+      name?: string;
+      type?: number;
+      value?: string | number | boolean;
+    }>;
     custom_id?: string;
     components?: Array<{
       components?: Array<{
@@ -82,6 +87,11 @@ const ApplicationCommandInteractionSchema = BaseInteractionSchema.extend({
   token: z.string(),
   data: z.object({
     name: z.string(),
+    options: z.array(z.object({
+      name: z.string(),
+      type: z.number(),
+      value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+    })).optional(),
   }),
 });
 
@@ -118,6 +128,30 @@ const ModalSubmitInteractionSchema = BaseInteractionSchema.extend({
   }),
 });
 
+function extractSlashCommandOptions(
+  options: Array<{
+    name: string;
+    type: number;
+    value?: string | number | boolean;
+  }> | undefined,
+): Record<string, string | number | boolean> {
+  if (!options) {
+    return {};
+  }
+
+  const extracted: Record<string, string | number | boolean> = {};
+
+  for (const option of options) {
+    if (typeof option.value === 'undefined') {
+      continue;
+    }
+
+    extracted[option.name] = option.value;
+  }
+
+  return extracted;
+}
+
 function parseAppRequest(raw: RawInteraction): AppRequest | Response {
   const typeResult = z.object({ type: z.number() }).safeParse(raw);
   if (!typeResult.success) {
@@ -145,6 +179,7 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         kind: 'command',
         commandName: parsed.data.data.name.toLowerCase(),
         token: parsed.data.token,
+        options: extractSlashCommandOptions(parsed.data.data.options),
       };
       return request;
     }
