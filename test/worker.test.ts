@@ -522,7 +522,7 @@ describe('Discord Worker', () => {
     expect(ack).toHaveBeenCalled();
   });
 
-  it('queue consumer posts a snarky 8ball response for message command', async () => {
+  it('queue consumer posts an 8ball follow-up reply to the target message', async () => {
     mockAI.run.mockResolvedValue({ response: 'Outlook says no, but your chaos energy says yes.' });
     const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -560,11 +560,69 @@ describe('Discord Worker', () => {
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          content: 'Outlook says no, but your chaos energy says yes.',
+          message_reference: {
+            message_id: 'message-1',
+            fail_if_not_exists: false,
+          },
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer falls back to quoted edit when 8ball reply send fails', async () => {
+    mockAI.run.mockResolvedValue({ response: 'Reply hazy, ask after your coffee.' });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response('nope', { status: 500, statusText: 'Internal Server Error' }))
+      .mockResolvedValueOnce(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: '8ball-fallback-1',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: '8ball',
+            payload: {
+              targetMessageId: 'message-1',
+              targetMessageContent: 'Will this queue pop before sunrise?',
+              targetMessageAuthorId: 'user-8ball-1',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
       'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
       expect.objectContaining({
         method: 'PATCH',
         body: JSON.stringify({
-          content: 'Outlook says no, but your chaos energy says yes.',
+          content: '> Will this queue pop before sunrise? - <@user-8ball-1>\n\n🎱 Reply hazy, ask after your coffee.',
         }),
       }),
     );
