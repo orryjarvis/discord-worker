@@ -3,6 +3,7 @@ import {
   verifyDiscordRequest,
   jsonResponse,
   createFollowUpMessage,
+  deleteOriginalInteractionResponse,
   editOriginalInteractionResponse,
 } from './discord.js';
 import {
@@ -90,6 +91,8 @@ const PATCH_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)\
 const POST_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)$/;
 const GET_FOLLOWUP_RE = /^\/__test\/followups\/([^/]+)$/;
 const GET_SUBMISSION_RE = /^\/__test\/submissions\/([^/]+)$/;
+const QUOTED_SOURCE_MAX_LENGTH = 240;
+const QUOTED_SOURCE_ELLIPSIS = '...';
 
 const BaseInteractionSchema = z.object({
   type: z.number(),
@@ -452,8 +455,9 @@ function describeError(error: unknown): Record<string, unknown> {
 
 function formatQuotedSourceText(text: string): string {
   const normalized = text.replace(/\s+/g, ' ').trim();
-  const truncated = normalized.length > 240
-    ? `${normalized.slice(0, 239)}...`
+  const truncationStart = QUOTED_SOURCE_MAX_LENGTH - QUOTED_SOURCE_ELLIPSIS.length;
+  const truncated = normalized.length > QUOTED_SOURCE_MAX_LENGTH
+    ? `${normalized.slice(0, truncationStart)}${QUOTED_SOURCE_ELLIPSIS}`
     : normalized;
   return `> ${truncated}`;
 }
@@ -467,7 +471,10 @@ function buildFallbackEditedContent(result: FollowUpExecutionResult): string {
   const quotedAuthor = result.renderHints?.quotedSourceAuthorId
     ? ` - <@${result.renderHints.quotedSourceAuthorId}>`
     : '';
-  return `${formatQuotedSourceText(quotedSourceText)}${quotedAuthor}\n\n🎱 ${result.content}`;
+  const fallbackPrefix = result.renderHints?.quotedFallbackPrefix
+    ? `${result.renderHints.quotedFallbackPrefix} `
+    : '';
+  return `${formatQuotedSourceText(quotedSourceText)}${quotedAuthor}\n\n${fallbackPrefix}${result.content}`;
 }
 
 export default {
@@ -533,6 +540,9 @@ export default {
               env.DISCORD_TOKEN,
               {
                 content: followUpResult.content,
+                allowed_mentions: {
+                  parse: [],
+                },
                 message_reference: {
                   message_id: replyToMessageId,
                   fail_if_not_exists: false,
@@ -542,6 +552,21 @@ export default {
             );
 
             if (replyResponse.ok) {
+              const deleteResponse = await deleteOriginalInteractionResponse(
+                env.DISCORD_APPLICATION_ID,
+                message.body.token,
+                env.DISCORD_TOKEN,
+                apiBaseUrl,
+              );
+
+              if (!deleteResponse.ok && deleteResponse.status !== 404) {
+                console.warn('Could not finalize deferred original response after reply send', {
+                  messageId: message.id,
+                  status: deleteResponse.status,
+                  statusText: deleteResponse.statusText,
+                });
+              }
+
               message.ack();
               continue;
             }
@@ -568,6 +593,13 @@ export default {
           env.DISCORD_TOKEN,
           {
             content,
+            ...(followUpResult.renderHints?.quotedSourceText
+              ? {
+                allowed_mentions: {
+                  parse: [],
+                },
+              }
+              : {}),
           },
           apiBaseUrl,
         );

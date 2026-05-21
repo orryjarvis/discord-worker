@@ -74,6 +74,7 @@ export interface FollowUpRenderHints {
   replyToMessageId?: string;
   quotedSourceText?: string;
   quotedSourceAuthorId?: string;
+  quotedFallbackPrefix?: string;
 }
 
 export interface FollowUpExecutionResult {

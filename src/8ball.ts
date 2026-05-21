@@ -112,6 +112,7 @@ export async function executeEightBallFollowUp(
       renderHints: {
         ...(targetContext.targetMessageId ? { replyToMessageId: targetContext.targetMessageId } : {}),
         quotedSourceText: targetContext.targetMessageContent,
+        quotedFallbackPrefix: '🎱',
         ...(targetContext.targetMessageAuthorId
           ? { quotedSourceAuthorId: targetContext.targetMessageAuthorId }
           : {}),
@@ -129,6 +130,7 @@ export async function executeEightBallFollowUp(
       renderHints: {
         ...(targetContext.targetMessageId ? { replyToMessageId: targetContext.targetMessageId } : {}),
         quotedSourceText: targetContext.targetMessageContent,
+        quotedFallbackPrefix: '🎱',
         ...(targetContext.targetMessageAuthorId
           ? { quotedSourceAuthorId: targetContext.targetMessageAuthorId }
           : {}),

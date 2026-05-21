@@ -70,3 +70,18 @@ export async function createFollowUpMessage(
     body: JSON.stringify(payload),
   });
 }
+
+export async function deleteOriginalInteractionResponse(
+  applicationId: string,
+  token: string,
+  botToken: string,
+  apiBaseUrl: string,
+): Promise<Response> {
+  const url = `${apiBaseUrl}/webhooks/${applicationId}/${token}/messages/@original`;
+  return fetch(url, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bot ${botToken}`,
+    },
+  });
+}

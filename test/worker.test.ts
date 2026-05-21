@@ -565,11 +565,20 @@ describe('Discord Worker', () => {
         method: 'POST',
         body: JSON.stringify({
           content: 'Outlook says no, but your chaos energy says yes.',
+          allowed_mentions: {
+            parse: [],
+          },
           message_reference: {
             message_id: 'message-1',
             fail_if_not_exists: false,
           },
         }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'DELETE',
       }),
     );
     expect(ack).toHaveBeenCalled();
@@ -623,6 +632,9 @@ describe('Discord Worker', () => {
         method: 'PATCH',
         body: JSON.stringify({
           content: '> Will this queue pop before sunrise? - <@user-8ball-1>\n\n🎱 Reply hazy, ask after your coffee.',
+          allowed_mentions: {
+            parse: [],
+          },
         }),
       }),
     );
