@@ -4,6 +4,7 @@ import type {
   CommandRequest,
   CommandResult,
   FollowUpExecutionContext,
+  FollowUpExecutionResult,
   FollowUpTask,
 } from './core.js';
 import {
@@ -137,7 +138,7 @@ export async function executeFollowUpTask(
   task: FollowUpTask,
   env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
-): Promise<string> {
+): Promise<FollowUpExecutionResult> {
   if (task.commandName === PASTIFY_COMMAND_NAME) {
     return executePastifyFollowUp(task, env, context);
   }

@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   verifyDiscordRequest,
   jsonResponse,
+  createFollowUpMessage,
+  deleteOriginalInteractionResponse,
   editOriginalInteractionResponse,
 } from './discord.js';
 import {
@@ -22,6 +24,7 @@ import type {
   AppRequest,
   CommandRequest,
   DispatchOutcome,
+  FollowUpExecutionResult,
   FollowUpTask,
   PingRequest,
   ShowModalResult,
@@ -85,8 +88,11 @@ type RawInteraction = {
 };
 
 const PATCH_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)\/messages\/@original$/;
+const POST_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)$/;
 const GET_FOLLOWUP_RE = /^\/__test\/followups\/([^/]+)$/;
 const GET_SUBMISSION_RE = /^\/__test\/submissions\/([^/]+)$/;
+const QUOTED_SOURCE_MAX_LENGTH = 240;
+const QUOTED_SOURCE_ELLIPSIS = '...';
 
 const BaseInteractionSchema = z.object({
   type: z.number(),
@@ -365,9 +371,18 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
 
 async function handleTestSink(request: Request, env: Env, pathname: string): Promise<Response> {
   const patchMatch = PATCH_SINK_RE.exec(pathname);
-  if (request.method === 'PATCH' && patchMatch && env.TEST_FOLLOWUPS) {
-    const applicationId = patchMatch[1];
-    const interactionToken = patchMatch[2];
+  const postMatch = POST_SINK_RE.exec(pathname);
+  if (
+    ((request.method === 'PATCH' && patchMatch) || (request.method === 'POST' && postMatch))
+    && env.TEST_FOLLOWUPS
+  ) {
+    const match = patchMatch ?? postMatch;
+    if (!match) {
+      return new Response('Not Found', { status: 404 });
+    }
+
+    const applicationId = match[1];
+    const interactionToken = match[2];
     const correlationMatch = /^test-token-(.+)$/.exec(interactionToken);
     if (!correlationMatch) {
       return new Response('Bad Request', { status: 400 });
@@ -438,6 +453,30 @@ function describeError(error: unknown): Record<string, unknown> {
   return { message: String(error) };
 }
 
+function formatQuotedSourceText(text: string): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  const truncationStart = QUOTED_SOURCE_MAX_LENGTH - QUOTED_SOURCE_ELLIPSIS.length;
+  const truncated = normalized.length > QUOTED_SOURCE_MAX_LENGTH
+    ? `${normalized.slice(0, truncationStart)}${QUOTED_SOURCE_ELLIPSIS}`
+    : normalized;
+  return `> ${truncated}`;
+}
+
+function buildFallbackEditedContent(result: FollowUpExecutionResult): string {
+  const quotedSourceText = result.renderHints?.quotedSourceText;
+  if (!quotedSourceText) {
+    return result.content;
+  }
+
+  const quotedAuthor = result.renderHints?.quotedSourceAuthorId
+    ? ` - <@${result.renderHints.quotedSourceAuthorId}>`
+    : '';
+  const fallbackPrefix = result.renderHints?.quotedFallbackPrefix
+    ? `${result.renderHints.quotedFallbackPrefix} `
+    : '';
+  return `${formatQuotedSourceText(quotedSourceText)}${quotedAuthor}\n\n${fallbackPrefix}${result.content}`;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -481,20 +520,86 @@ export default {
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
       try {
-        const content = message.body.task
+        const followUpResult = message.body.task
           ? await executeFollowUpTask(message.body.task, { AI: env.AI }, {
             messageId: message.id,
             token: message.body.token,
           })
-          : 'Could not process follow-up payload. Please try again.';
+          : {
+            content: 'Could not process follow-up payload. Please try again.',
+          };
 
         const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
+        const replyToMessageId = followUpResult.renderHints?.replyToMessageId;
+
+        if (replyToMessageId) {
+          try {
+            const replyResponse = await createFollowUpMessage(
+              env.DISCORD_APPLICATION_ID,
+              message.body.token,
+              env.DISCORD_TOKEN,
+              {
+                content: followUpResult.content,
+                allowed_mentions: {
+                  parse: [],
+                },
+                message_reference: {
+                  message_id: replyToMessageId,
+                  fail_if_not_exists: false,
+                },
+              },
+              apiBaseUrl,
+            );
+
+            if (replyResponse.ok) {
+              const deleteResponse = await deleteOriginalInteractionResponse(
+                env.DISCORD_APPLICATION_ID,
+                message.body.token,
+                env.DISCORD_TOKEN,
+                apiBaseUrl,
+              );
+
+              if (!deleteResponse.ok && deleteResponse.status !== 404) {
+                console.warn('Could not finalize deferred original response after reply send', {
+                  messageId: message.id,
+                  status: deleteResponse.status,
+                  statusText: deleteResponse.statusText,
+                });
+              }
+
+              message.ack();
+              continue;
+            }
+
+            console.warn('Reply-style follow-up failed; falling back to quoted edit', {
+              messageId: message.id,
+              status: replyResponse.status,
+              statusText: replyResponse.statusText,
+              targetMessageId: replyToMessageId,
+            });
+          } catch (error) {
+            console.warn('Reply-style follow-up threw; falling back to quoted edit', {
+              messageId: message.id,
+              targetMessageId: replyToMessageId,
+              error: describeError(error),
+            });
+          }
+        }
+
+        const content = buildFallbackEditedContent(followUpResult);
         const response = await editOriginalInteractionResponse(
           env.DISCORD_APPLICATION_ID,
           message.body.token,
           env.DISCORD_TOKEN,
           {
             content,
+            ...(followUpResult.renderHints?.quotedSourceText
+              ? {
+                allowed_mentions: {
+                  parse: [],
+                },
+              }
+              : {}),
           },
           apiBaseUrl,
         );

@@ -70,6 +70,18 @@ export type FollowUpTask = {
   payload: Record<string, unknown>;
 };
 
+export interface FollowUpRenderHints {
+  replyToMessageId?: string;
+  quotedSourceText?: string;
+  quotedSourceAuthorId?: string;
+  quotedFallbackPrefix?: string;
+}
+
+export interface FollowUpExecutionResult {
+  content: string;
+  renderHints?: FollowUpRenderHints;
+}
+
 export interface AiRuntimeEnv {
   AI: Ai;
 }

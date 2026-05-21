@@ -1,4 +1,9 @@
-import type { AiRuntimeEnv, FollowUpExecutionContext, FollowUpTask } from './core.js';
+import type {
+  AiRuntimeEnv,
+  FollowUpExecutionContext,
+  FollowUpExecutionResult,
+  FollowUpTask,
+} from './core.js';
 import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
 
 export const EIGHT_BALL_COMMAND_NAME = '8ball';
@@ -40,7 +45,16 @@ async function generateEightBallText(context: EightBallTargetContext, env: AiRun
     {
       role: 'system',
       content:
-        'You are a snarky Discord magic 8-ball. Reply with exactly one short, witty prediction sentence. Keep it playful and non-hateful. Avoid slurs, threats, or sexual content. Output only the final answer text.',
+        [
+          'You are an unhinged-but-safe Discord Magic 8-Ball.',
+          'Write exactly one short prediction line, inspired by classic Magic 8-Ball language.',
+          'Your line should clearly feel like one of these categories: affirmative, doubtful, or negative.',
+          'Use high-energy phrasing and chaotic flair, but keep it concise and readable.',
+          'Keep the output to one sentence only.',
+          'Do not include prefaces, explanations, roleplay markers, or quotation marks around the final line.',
+          'Never include slurs, hateful content, threats, sexual content, or encouragement of self-harm.',
+          'Output only the final answer sentence.',
+        ].join(' '),
     },
     {
       role: 'user',
@@ -48,7 +62,7 @@ async function generateEightBallText(context: EightBallTargetContext, env: AiRun
         `Message author: ${authorReference}`,
         `Message id: ${context.targetMessageId ?? 'unknown'}`,
         `Message content: ${context.targetMessageContent}`,
-        'Give a snarky magic 8-ball answer to that message.',
+        'Give a chaotic Magic 8-Ball verdict that still sounds like a classic 8-ball phrase.',
       ].join('\n'),
     },
   ];
@@ -79,18 +93,31 @@ export async function executeEightBallFollowUp(
   task: FollowUpTask,
   env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
-): Promise<string> {
+): Promise<FollowUpExecutionResult> {
   const targetContext = parseEightBallTargetContext(task);
   if (!targetContext.targetMessageContent) {
     console.warn('8ball follow-up payload missing target message content', {
       messageId: context.messageId,
       targetMessageId: targetContext.targetMessageId,
     });
-    return EIGHT_BALL_MISSING_PAYLOAD_MESSAGE;
+    return {
+      content: EIGHT_BALL_MISSING_PAYLOAD_MESSAGE,
+    };
   }
 
   try {
-    return await generateEightBallText(targetContext, env);
+    const content = await generateEightBallText(targetContext, env);
+    return {
+      content,
+      renderHints: {
+        ...(targetContext.targetMessageId ? { replyToMessageId: targetContext.targetMessageId } : {}),
+        quotedSourceText: targetContext.targetMessageContent,
+        quotedFallbackPrefix: '🎱',
+        ...(targetContext.targetMessageAuthorId
+          ? { quotedSourceAuthorId: targetContext.targetMessageAuthorId }
+          : {}),
+      },
+    };
   } catch (error) {
     console.error('8ball generation failed', {
       messageId: context.messageId,
@@ -98,6 +125,16 @@ export async function executeEightBallFollowUp(
       targetMessageId: targetContext.targetMessageId,
       error: describeError(error),
     });
-    return EIGHT_BALL_FAILURE_MESSAGE;
+    return {
+      content: EIGHT_BALL_FAILURE_MESSAGE,
+      renderHints: {
+        ...(targetContext.targetMessageId ? { replyToMessageId: targetContext.targetMessageId } : {}),
+        quotedSourceText: targetContext.targetMessageContent,
+        quotedFallbackPrefix: '🎱',
+        ...(targetContext.targetMessageAuthorId
+          ? { quotedSourceAuthorId: targetContext.targetMessageAuthorId }
+          : {}),
+      },
+    };
   }
 }

@@ -1,4 +1,9 @@
-import type { AiRuntimeEnv, FollowUpExecutionContext, FollowUpTask } from './core.js';
+import type {
+  AiRuntimeEnv,
+  FollowUpExecutionContext,
+  FollowUpExecutionResult,
+  FollowUpTask,
+} from './core.js';
 import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
 
 export const INSULT_COMMAND_NAME = 'insult';
@@ -22,11 +27,18 @@ async function generateInsultText(targetMention: string, env: AiRuntimeEnv): Pro
     {
       role: 'system',
       content:
-        'You write playful, light-hearted gaming roasts for Discord. Keep it affectionate and silly, avoid slurs, hate, threats, sexual content, or cruelty, and output only the roast text without extra explanation.',
+        [
+          'You write absurd, over-the-top Discord lobby roasts that are clearly jokes between friends.',
+          'Style should be sharp, outrageous, and chaotic, but never hateful or cruel.',
+          'Write one compact roast line that sounds punchy and memorable.',
+          'No slurs, no hate, no threats, no sexual content, no encouragement of self-harm, and no real-world protected-class attacks.',
+          'No disclaimers, no setup text, and no extra explanation.',
+          'Output only the roast line.',
+        ].join(' '),
     },
     {
       role: 'user',
-      content: `Write one short, funny roast for ${targetMention}. Make it feel like friendly banter in a game lobby.`,
+      content: `Write one outrageous but safe roast for ${targetMention}. Make it sound like chaotic game-lobby banter.`,
     },
   ];
 
@@ -56,19 +68,23 @@ export async function executeInsultFollowUp(
   task: FollowUpTask,
   env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
-): Promise<string> {
+): Promise<FollowUpExecutionResult> {
   const targetUserId = parseInsultTarget(task);
   if (!targetUserId) {
     console.warn('Insult follow-up payload missing target user id', {
       messageId: context.messageId,
     });
-    return INSULT_MISSING_PAYLOAD_MESSAGE;
+    return {
+      content: INSULT_MISSING_PAYLOAD_MESSAGE,
+    };
   }
 
   const targetMention = `<@${targetUserId}>`;
 
   try {
-    return await generateInsultText(targetMention, env);
+    return {
+      content: await generateInsultText(targetMention, env),
+    };
   } catch (error) {
     console.error('Insult generation failed', {
       messageId: context.messageId,
@@ -76,6 +92,8 @@ export async function executeInsultFollowUp(
       targetUserId,
       error: describeError(error),
     });
-    return `${targetMention} ${INSULT_FAILURE_MESSAGE}`;
+    return {
+      content: `${targetMention} ${INSULT_FAILURE_MESSAGE}`,
+    };
   }
 }

@@ -1,4 +1,9 @@
-import type { AiRuntimeEnv, FollowUpExecutionContext, FollowUpTask } from './core.js';
+import type {
+  AiRuntimeEnv,
+  FollowUpExecutionContext,
+  FollowUpExecutionResult,
+  FollowUpTask,
+} from './core.js';
 import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
 
 export const PASTIFY_COMMAND_NAME = 'pastify';
@@ -81,11 +86,18 @@ async function generatePastifiedText(idea: string, env: AiRuntimeEnv): Promise<s
     {
       role: 'system',
       content:
-        'You are a Twitch chat copypasta writer. Turn the idea into one energetic, funny, copy/paste-ready message. Keep it to 2-5 lines, avoid slurs/harassment, and output only the final copypasta text.',
+        [
+          'You are a deranged Twitch chat copypasta gremlin writing viral spam for Discord.',
+          'Turn the user idea into one chaotic, hilarious copypasta block with escalating absurdity.',
+          'Use 2-5 short lines and make it feel instantly copy/paste-ready.',
+          'No intro text, no explanation, and no wrapping quotes around the final output.',
+          'Do not include slurs, hate, sexual content, threats, or encouragement of self-harm.',
+          'Output only the final copypasta block.',
+        ].join(' '),
     },
     {
       role: 'user',
-      content: `Idea: ${idea}`,
+      content: `Idea to mutate into cursed copypasta: ${idea}`,
     },
   ];
 
@@ -115,18 +127,22 @@ export async function executePastifyFollowUp(
   task: FollowUpTask,
   env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
-): Promise<string> {
+): Promise<FollowUpExecutionResult> {
   const rawIdea = parsePastifyIdea(task);
   const idea = rawIdea?.trim() ?? '';
   if (!idea) {
     console.warn('Pastify follow-up payload missing idea', {
       messageId: context.messageId,
     });
-    return PASTIFY_MISSING_PAYLOAD_MESSAGE;
+    return {
+      content: PASTIFY_MISSING_PAYLOAD_MESSAGE,
+    };
   }
 
   try {
-    return await generatePastifiedText(idea, env);
+    return {
+      content: await generatePastifiedText(idea, env),
+    };
   } catch (error) {
     console.error('Pastify generation failed', {
       messageId: context.messageId,
@@ -134,6 +150,8 @@ export async function executePastifyFollowUp(
       ideaLength: idea.length,
       error: describeError(error),
     });
-    return PASTIFY_FAILURE_MESSAGE;
+    return {
+      content: PASTIFY_FAILURE_MESSAGE,
+    };
   }
 }
