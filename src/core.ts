@@ -16,6 +16,7 @@ export interface SlashCommandRequest {
   kind: 'command';
   commandName: string;
   token: string;
+  options: Record<string, string>;
 }
 
 export interface ComponentRequest {
@@ -65,6 +66,15 @@ export type FollowUpTask = {
   commandName: string;
   payload: Record<string, unknown>;
 };
+
+export interface AiRuntimeEnv {
+  AI: Ai;
+}
+
+export interface FollowUpExecutionContext {
+  messageId: string;
+  token: string;
+}
 
 export type EnqueueFollowUpResult = {
   kind: 'enqueue-follow-up';

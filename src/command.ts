@@ -1,16 +1,26 @@
-import type { CommandMap, CommandRequest, CommandResult, FollowUpTask } from './core.js';
+import type {
+  AiRuntimeEnv,
+  CommandMap,
+  CommandRequest,
+  CommandResult,
+  FollowUpExecutionContext,
+  FollowUpTask,
+} from './core.js';
+import {
+  INSULT_COMMAND_NAME,
+  executeInsultFollowUp,
+} from './insult.js';
 import {
   PASTIFY_COMMAND_NAME,
   PASTIFY_MODAL_ID,
   PASTIFY_MODAL_TEXT_INPUT_ID,
   executePastifyFollowUp,
   parsePastifyModalSubmit,
-  type FollowUpExecutionContext,
-  type PastifyRuntimeEnv,
   type PastifyModalParseResult,
 } from './pastify.js';
 
 export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify.js';
+export { INSULT_COMMAND_NAME } from './insult.js';
 
 type ModalComponentRows = Array<{
   components?: Array<{
@@ -54,8 +64,32 @@ async function handlePastifyCommand(request: CommandRequest): Promise<CommandRes
   }
 }
 
+async function handleInsultCommand(request: CommandRequest): Promise<CommandResult> {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'enqueue-follow-up',
+        token: request.token,
+        task: {
+          commandName: INSULT_COMMAND_NAME,
+          payload: {
+            targetUserId: request.options.target,
+          },
+        },
+      };
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 export const commands: CommandMap = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
+  [INSULT_COMMAND_NAME]: handleInsultCommand,
 };
 
 export function parseCommandModalSubmit(data: {
@@ -67,12 +101,16 @@ export function parseCommandModalSubmit(data: {
 
 export async function executeFollowUpTask(
   task: FollowUpTask,
-  env: PastifyRuntimeEnv,
+  env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
 ): Promise<string> {
-  if (task.commandName !== PASTIFY_COMMAND_NAME) {
-    throw new Error(`Unknown follow-up task command: ${task.commandName}`);
+  if (task.commandName === PASTIFY_COMMAND_NAME) {
+    return executePastifyFollowUp(task, env, context);
   }
 
-  return executePastifyFollowUp(task, env, context);
+  if (task.commandName === INSULT_COMMAND_NAME) {
+    return executeInsultFollowUp(task, env, context);
+  }
+
+  throw new Error(`Unknown follow-up task command: ${task.commandName}`);
 }

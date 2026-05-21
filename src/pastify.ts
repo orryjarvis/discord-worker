@@ -1,4 +1,4 @@
-import type { FollowUpTask } from './core.js';
+import type { AiRuntimeEnv, FollowUpExecutionContext, FollowUpTask } from './core.js';
 
 export const PASTIFY_COMMAND_NAME = 'pastify';
 export const PASTIFY_MODAL_ID = 'pastify_modal';
@@ -23,15 +23,6 @@ export type PastifyModalParseResult =
     commandName: typeof PASTIFY_COMMAND_NAME;
     text: string;
   };
-
-export interface PastifyRuntimeEnv {
-  AI: Ai;
-}
-
-export interface FollowUpExecutionContext {
-  messageId: string;
-  token: string;
-}
 
 function parsePastifyIdea(task: FollowUpTask): string | null {
   const idea = task.payload.idea;
@@ -255,7 +246,7 @@ function describeError(error: unknown): Record<string, unknown> {
   };
 }
 
-async function generatePastifiedText(idea: string, env: PastifyRuntimeEnv): Promise<string> {
+async function generatePastifiedText(idea: string, env: AiRuntimeEnv): Promise<string> {
   const promptMessages = [
     {
       role: 'system',
@@ -292,7 +283,7 @@ async function generatePastifiedText(idea: string, env: PastifyRuntimeEnv): Prom
 
 export async function executePastifyFollowUp(
   task: FollowUpTask,
-  env: PastifyRuntimeEnv,
+  env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
 ): Promise<string> {
   const rawIdea = parsePastifyIdea(task);

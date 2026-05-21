@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  ApplicationCommandOptionType,
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
@@ -28,6 +29,36 @@ describe('Discord Worker', () => {
         custom_id: 'pastify_modal',
       },
     });
+  });
+
+  it('defers /insult and then sends a channel-visible roast mentioning the selected user', async () => {
+    const correlationId = `insult-${Date.now()}`;
+    const token = `test-token-${correlationId}`;
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token,
+      data: {
+        name: 'insult',
+        options: [
+          {
+            name: 'target',
+            type: ApplicationCommandOptionType.User,
+            value: 'user-e2e',
+          },
+        ],
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect((await res.json() as any).type).toBe(InteractionResponseType.DeferredChannelMessageWithSource);
+
+    const followUp = await waitForFollowUp(correlationId);
+    const patched = JSON.parse(followUp.body) as Record<string, unknown>;
+    expect(typeof patched.content).toBe('string');
+    expect(patched.content).toContain('<@user-e2e>');
+    expect((patched.content as string).length).toBeGreaterThan('<@user-e2e> '.length);
   });
 
   it('defers on modal submit and then sends channel-visible pastified content', async () => {

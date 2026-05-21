@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as ed from '@noble/ed25519';
 import {
+  ApplicationCommandOptionType,
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
@@ -111,6 +112,40 @@ describe('Discord Worker', () => {
       },
     });
     expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('defers publicly and enqueues insult generation for the selected user', async () => {
+    const req = await signedRequest({
+      id: 'cmd-insult-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'insult-token',
+      data: {
+        name: 'insult',
+        options: [
+          {
+            name: 'target',
+            type: ApplicationCommandOptionType.User,
+            value: 'user-2',
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: 'insult-token',
+      task: {
+        commandName: 'insult',
+        payload: {
+          targetUserId: 'user-2',
+        },
+      },
+    });
   });
 
   it('defers publicly and enqueues generation on modal submit', async () => {
@@ -287,6 +322,94 @@ describe('Discord Worker', () => {
         method: 'PATCH',
         body: JSON.stringify({
           content: 'Could not pastify that idea right now. Try again in a moment.',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts a light-hearted insult mentioning the selected user', async () => {
+    mockAI.run.mockResolvedValue({ response: 'you fight minions like they owe you rent' });
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: 'insult-1',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'insult',
+            payload: {
+              targetUserId: 'user-42',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(mockAI.run).toHaveBeenCalledWith(
+      '@cf/qwen/qwen3-30b-a3b-fp8',
+      expect.objectContaining({
+        messages: expect.any(Array),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: '<@user-42> you fight minions like they owe you rent',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts insult fallback message when AI generation fails', async () => {
+    mockAI.run.mockRejectedValue(new Error('model unavailable'));
+    const fetchMock = vi.fn().mockResolvedValue(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: 'insult-2',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'insult',
+            payload: {
+              targetUserId: 'user-42',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: '<@user-42> I had a light-hearted roast ready, but the punchline got lost. Try again in a moment.',
         }),
       }),
     );
