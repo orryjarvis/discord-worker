@@ -148,6 +148,40 @@ describe('Discord Worker', () => {
     });
   });
 
+  it('preserves numeric slash command option values instead of dropping them', async () => {
+    const req = await signedRequest({
+      id: 'cmd-insult-2',
+      type: InteractionType.ApplicationCommand,
+      token: 'insult-token-2',
+      data: {
+        name: 'insult',
+        options: [
+          {
+            name: 'target',
+            type: ApplicationCommandOptionType.User,
+            value: 42,
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: 'insult-token-2',
+      task: {
+        commandName: 'insult',
+        payload: {
+          targetUserId: 42,
+        },
+      },
+    });
+  });
+
   it('defers publicly and enqueues generation on modal submit', async () => {
     const req = await signedRequest({
       id: 'modal-123',

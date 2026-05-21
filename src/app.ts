@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { verifyDiscordRequest, jsonResponse, editOriginalInteractionResponse } from './discord.js';
 import {
-  ApplicationCommandOptionType,
   ComponentType,
   InteractionResponseType,
   InteractionType,
@@ -135,20 +134,15 @@ function extractSlashCommandOptions(
     type: number;
     value?: string | number | boolean;
   }> | undefined,
-): Record<string, string> {
+): Record<string, string | number | boolean> {
   if (!options) {
     return {};
   }
 
-  const extracted: Record<string, string> = {};
+  const extracted: Record<string, string | number | boolean> = {};
 
   for (const option of options) {
-    if (typeof option.value !== 'string') {
-      continue;
-    }
-
-    if (option.type === ApplicationCommandOptionType.User) {
-      extracted[option.name] = option.value;
+    if (typeof option.value === 'undefined') {
       continue;
     }
 

@@ -1,5 +1,5 @@
 import type { AiRuntimeEnv, FollowUpExecutionContext, FollowUpTask } from './core.js';
-import { extractAiText } from './pastify.js';
+import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
 
 export const INSULT_COMMAND_NAME = 'insult';
 
@@ -15,44 +15,6 @@ function parseInsultTarget(task: FollowUpTask): string | null {
 
   const trimmed = targetUserId.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function summarizeAiResultShape(result: unknown): Record<string, unknown> {
-  if (!result || typeof result !== 'object') {
-    return { type: typeof result };
-  }
-
-  const obj = result as Record<string, unknown>;
-  const nested = obj.result;
-  const nestedObj = nested && typeof nested === 'object'
-    ? nested as Record<string, unknown>
-    : null;
-
-  return {
-    topLevelKeys: Object.keys(obj).slice(0, 20),
-    resultKeys: nestedObj ? Object.keys(nestedObj).slice(0, 20) : null,
-    hasChoices: Array.isArray(obj.choices),
-    hasResultChoices: nestedObj ? Array.isArray(nestedObj.choices) : false,
-    hasOutput: Array.isArray(obj.output),
-    hasResultOutput: nestedObj ? Array.isArray(nestedObj.output) : false,
-  };
-}
-
-function describeError(error: unknown): Record<string, unknown> {
-  if (error instanceof Error) {
-    const typedError = error as Error & { cause?: unknown; code?: string };
-    return {
-      name: typedError.name,
-      message: typedError.message,
-      code: typedError.code,
-      stack: typedError.stack,
-      cause: typedError.cause,
-    };
-  }
-
-  return {
-    message: String(error),
-  };
 }
 
 async function generateInsultText(targetMention: string, env: AiRuntimeEnv): Promise<string> {

@@ -16,7 +16,7 @@ export interface SlashCommandRequest {
   kind: 'command';
   commandName: string;
   token: string;
-  options: Record<string, string>;
+  options: Record<string, string | number | boolean>;
 }
 
 export interface ComponentRequest {
