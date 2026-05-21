@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as ed from '@noble/ed25519';
 import {
   ApplicationCommandOptionType,
+  ApplicationCommandType,
+  MessageFlags,
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
@@ -143,6 +145,38 @@ describe('Discord Worker', () => {
         commandName: 'insult',
         payload: {
           targetUserId: 'user-2',
+        },
+      },
+    });
+  });
+
+  it('defers ephemerally and enqueues insult generation for user context command target', async () => {
+    const req = await signedRequest({
+      id: 'cmd-insult-context-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'insult-context-token',
+      data: {
+        name: 'insult',
+        type: ApplicationCommandType.User,
+        target_id: 'user-context-2',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+      },
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: 'insult-context-token',
+      task: {
+        commandName: 'insult',
+        payload: {
+          targetUserId: 'user-context-2',
         },
       },
     });

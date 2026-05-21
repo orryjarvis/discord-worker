@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   ApplicationCommandOptionType,
+  ApplicationCommandType,
+  MessageFlags,
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
@@ -59,6 +61,36 @@ describe('Discord Worker', () => {
     expect(typeof patched.content).toBe('string');
     expect(patched.content).toContain('<@user-e2e>');
     expect((patched.content as string).length).toBeGreaterThan('<@user-e2e> '.length);
+  });
+
+  it('defers user-context insult ephemerally and sends a roast mentioning the selected user', async () => {
+    const correlationId = `insult-context-${Date.now()}`;
+    const token = `test-token-${correlationId}`;
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token,
+      data: {
+        name: 'insult',
+        type: ApplicationCommandType.User,
+        target_id: 'user-context-e2e',
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json() as any).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+      data: {
+        flags: MessageFlags.Ephemeral,
+      },
+    });
+
+    const followUp = await waitForFollowUp(correlationId);
+    const patched = JSON.parse(followUp.body) as Record<string, unknown>;
+    expect(typeof patched.content).toBe('string');
+    expect(patched.content).toContain('<@user-context-e2e>');
+    expect((patched.content as string).length).toBeGreaterThan('<@user-context-e2e> '.length);
   });
 
   it('defers on modal submit and then sends channel-visible pastified content', async () => {

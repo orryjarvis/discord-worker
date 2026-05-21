@@ -17,6 +17,8 @@ export interface SlashCommandRequest {
   commandName: string;
   token: string;
   options: Record<string, string | number | boolean>;
+  targetId: string | number | boolean | null;
+  responseVisibility: 'public' | 'ephemeral';
 }
 
 export interface ComponentRequest {
@@ -80,6 +82,7 @@ export type EnqueueFollowUpResult = {
   kind: 'enqueue-follow-up';
   token: string;
   task: FollowUpTask;
+  ephemeral: boolean;
 };
 
 export type CommandResult =

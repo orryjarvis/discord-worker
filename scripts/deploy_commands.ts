@@ -24,6 +24,11 @@ const INSULT_COMMAND = {
   ],
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
+const INSULT_USER_COMMAND = {
+  name: 'insult',
+  type: ApplicationCommandType.User,
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
   const botToken = process.env.DISCORD_BOT_TOKEN ?? process.env.DISCORD_TOKEN;
@@ -42,11 +47,11 @@ async function deployCommands() {
       'Content-Type': 'application/json',
       Authorization: `Bot ${botToken}`,
     },
-    body: JSON.stringify([PASTIFY_COMMAND, INSULT_COMMAND]),
+    body: JSON.stringify([PASTIFY_COMMAND, INSULT_COMMAND, INSULT_USER_COMMAND]),
   });
 
   if (response.ok) {
-    console.log('Registered commands: pastify, insult');
+    console.log('Registered commands: pastify, insult (slash), insult (user)');
   } else {
     console.error('Error registering commands');
     console.error(await response.text());
