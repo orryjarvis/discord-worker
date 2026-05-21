@@ -54,6 +54,7 @@ async function handlePastifyCommand(request: CommandRequest): Promise<CommandRes
             idea: request.text,
           },
         },
+        ephemeral: false,
       };
 
     case 'component':
@@ -73,9 +74,10 @@ async function handleInsultCommand(request: CommandRequest): Promise<CommandResu
         task: {
           commandName: INSULT_COMMAND_NAME,
           payload: {
-            targetUserId: request.options.target,
+            targetUserId: request.targetId,
           },
         },
+        ephemeral: request.responseVisibility === 'ephemeral',
       };
 
     case 'modal-submit':

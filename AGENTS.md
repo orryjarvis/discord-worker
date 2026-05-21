@@ -15,6 +15,10 @@ Current commands:
 - `/pastify` — Opens a modal immediately, accepts a free-form idea, defers
   publicly on submit, then generates a channel-visible Twitch-style copypasta
   through Workers AI.
+- `/insult` — Slash command taking a target user option and generating a
+  channel-visible light-hearted roast via Workers AI.
+- `insult` (User context command) — Right-click a user and trigger an
+  ephemeral defer followed by a roast targeting that selected user.
 
 Runtime: Cloudflare Workers (no Node.js APIs at runtime).  
 Language: TypeScript.  

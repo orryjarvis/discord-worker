@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { verifyDiscordRequest, jsonResponse, editOriginalInteractionResponse } from './discord.js';
 import {
+  ApplicationCommandType,
   ComponentType,
   InteractionResponseType,
   InteractionType,
@@ -54,6 +55,8 @@ type RawInteraction = {
   };
   data?: {
     name?: string;
+    type?: number;
+    target_id?: string;
     options?: Array<{
       name?: string;
       type?: number;
@@ -87,6 +90,8 @@ const ApplicationCommandInteractionSchema = BaseInteractionSchema.extend({
   token: z.string(),
   data: z.object({
     name: z.string(),
+    type: z.number().optional(),
+    target_id: z.string().optional(),
     options: z.array(z.object({
       name: z.string(),
       type: z.number(),
@@ -175,11 +180,21 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         return new Response('Bad request.', { status: 400 });
       }
 
+      const options = extractSlashCommandOptions(parsed.data.data.options);
+      const isUserContextCommand = parsed.data.data.type === ApplicationCommandType.User;
+      if (isUserContextCommand && !parsed.data.data.target_id) {
+        return new Response('Bad request.', { status: 400 });
+      }
+
       const request: CommandRequest = {
         kind: 'command',
         commandName: parsed.data.data.name.toLowerCase(),
         token: parsed.data.token,
-        options: extractSlashCommandOptions(parsed.data.data.options),
+        options,
+        targetId: isUserContextCommand
+          ? parsed.data.data.target_id ?? null
+          : options.target ?? null,
+        responseVisibility: isUserContextCommand ? 'ephemeral' : 'public',
       };
       return request;
     }
@@ -271,7 +286,10 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
 
     case 'enqueue-follow-up':
       await env.FOLLOW_UP_QUEUE.send({ token: outcome.token, task: outcome.task });
-      return jsonResponse({ type: InteractionResponseType.DeferredChannelMessageWithSource });
+      return jsonResponse({
+        type: InteractionResponseType.DeferredChannelMessageWithSource,
+        ...(outcome.ephemeral ? { data: { flags: MessageFlags.Ephemeral } } : {}),
+      });
 
     case 'save-submission':
       await env.KV.put(outcome.submission.interactionId, JSON.stringify(outcome.submission));
