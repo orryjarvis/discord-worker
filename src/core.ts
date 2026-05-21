@@ -69,6 +69,7 @@ export type SaveSubmissionResult = {
 export type FollowUpTask = {
   commandName: string;
   payload: Record<string, unknown>;
+  responseMode?: 'edit-original' | 'create-follow-up';
 };
 
 export interface AiRuntimeEnv {

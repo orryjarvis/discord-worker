@@ -81,8 +81,9 @@ async function handleInsultCommand(request: CommandRequest): Promise<CommandResu
           payload: {
             targetUserId: request.targetId,
           },
+          responseMode: 'edit-original',
         },
-        ephemeral: request.responseVisibility === 'ephemeral',
+        ephemeral: false,
       };
 
     case 'modal-submit':
@@ -107,8 +108,9 @@ async function handleEightBallCommand(request: CommandRequest): Promise<CommandR
             targetMessageContent: request.targetMessageContent,
             targetMessageAuthorId: request.targetMessageAuthorId,
           },
+          responseMode: 'edit-original',
         },
-        ephemeral: request.responseVisibility === 'ephemeral',
+        ephemeral: false,
       };
 
     case 'modal-submit':

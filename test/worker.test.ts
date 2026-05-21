@@ -146,11 +146,12 @@ describe('Discord Worker', () => {
         payload: {
           targetUserId: 'user-2',
         },
+        responseMode: 'edit-original',
       },
     });
   });
 
-  it('defers ephemerally and enqueues insult generation for user context command target', async () => {
+  it('defers publicly and enqueues insult generation for user context command target', async () => {
     const req = await signedRequest({
       id: 'cmd-insult-context-1',
       type: InteractionType.ApplicationCommand,
@@ -167,9 +168,6 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       type: InteractionResponseType.DeferredChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-      },
     });
     expect(mockQueue.send).toHaveBeenCalledWith({
       token: 'insult-context-token',
@@ -178,11 +176,12 @@ describe('Discord Worker', () => {
         payload: {
           targetUserId: 'user-context-2',
         },
+        responseMode: 'edit-original',
       },
     });
   });
 
-  it('defers ephemerally and enqueues 8ball generation for message context command target', async () => {
+  it('defers publicly and enqueues 8ball generation for message context command target', async () => {
     const req = await signedRequest({
       id: 'cmd-8ball-context-1',
       type: InteractionType.ApplicationCommand,
@@ -209,9 +208,6 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({
       type: InteractionResponseType.DeferredChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-      },
     });
     expect(mockQueue.send).toHaveBeenCalledWith({
       token: '8ball-context-token',
@@ -222,6 +218,7 @@ describe('Discord Worker', () => {
           targetMessageContent: 'Should I queue one more ranked game?',
           targetMessageAuthorId: 'message-author-1',
         },
+        responseMode: 'edit-original',
       },
     });
   });
@@ -256,6 +253,7 @@ describe('Discord Worker', () => {
         payload: {
           targetUserId: 42,
         },
+        responseMode: 'edit-original',
       },
     });
   });
@@ -458,6 +456,7 @@ describe('Discord Worker', () => {
             payload: {
               targetUserId: 'user-42',
             },
+            responseMode: 'edit-original',
           },
         },
         ack,
@@ -505,6 +504,7 @@ describe('Discord Worker', () => {
             payload: {
               targetUserId: 'user-42',
             },
+            responseMode: 'edit-original',
           },
         },
         ack,
@@ -548,6 +548,7 @@ describe('Discord Worker', () => {
               targetMessageContent: 'Should we full send this?',
               targetMessageAuthorId: 'user-8ball-1',
             },
+            responseMode: 'edit-original',
           },
         },
         ack,
@@ -595,6 +596,7 @@ describe('Discord Worker', () => {
               targetMessageId: 'message-1',
               targetMessageAuthorId: 'user-8ball-1',
             },
+            responseMode: 'edit-original',
           },
         },
         ack,

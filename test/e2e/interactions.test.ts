@@ -63,7 +63,7 @@ describe('Discord Worker', () => {
     expect((patched.content as string).length).toBeGreaterThan('<@user-e2e> '.length);
   });
 
-  it('defers user-context insult ephemerally and sends a roast mentioning the selected user', async () => {
+  it('defers user-context insult publicly and sends a roast mentioning the selected user', async () => {
     const correlationId = `insult-context-${Date.now()}`;
     const token = `test-token-${correlationId}`;
 
@@ -81,9 +81,6 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     expect(await res.json() as any).toEqual({
       type: InteractionResponseType.DeferredChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-      },
     });
 
     const followUp = await waitForFollowUp(correlationId);
@@ -93,7 +90,7 @@ describe('Discord Worker', () => {
     expect((patched.content as string).length).toBeGreaterThan('<@user-context-e2e> '.length);
   });
 
-  it('defers message-context 8ball ephemerally and sends a snarky magic 8-ball response', async () => {
+  it('defers message-context 8ball publicly and sends a snarky magic 8-ball response', async () => {
     const correlationId = `8ball-context-${Date.now()}`;
     const token = `test-token-${correlationId}`;
 
@@ -121,9 +118,6 @@ describe('Discord Worker', () => {
     expect(res.status).toBe(200);
     expect(await res.json() as any).toEqual({
       type: InteractionResponseType.DeferredChannelMessageWithSource,
-      data: {
-        flags: MessageFlags.Ephemeral,
-      },
     });
 
     const followUp = await waitForFollowUp(correlationId);
