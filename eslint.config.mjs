@@ -1,40 +1,56 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import globals from "globals";
+import tseslint from "typescript-eslint";
 
-import js from "@eslint/js";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-});
-
-export default [
+export default tseslint.config(
   {
-    ignores: ["node_modules/**"],
+    ignores: ["node_modules/**", "eslint.config.mjs"],
   },
-  ...compat.config({
-    parser: "@typescript-eslint/parser",
-    plugins: ["@typescript-eslint"],
-    env: {
-      serviceworker: true,
+  tseslint.configs.recommendedTypeChecked,
+  {
+    rules: {
+      "@typescript-eslint/no-unsafe-enum-comparison": "off",
+      "@typescript-eslint/require-await": "off",
     },
-    extends: [
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended",
-    ],
-    overrides: [
-      {
-        files: ["test/**/*.ts"],
-        rules: {
-          "@typescript-eslint/no-explicit-any": "off",
-          "@typescript-eslint/no-unused-vars": "off",
-        },
+  },
+  {
+    files: ["src/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./tsconfig.worker.json"],
+        tsconfigRootDir: import.meta.dirname,
       },
+      globals: globals.serviceworker,
+    },
+  },
+  {
+    files: [
+      "scripts/**/*.ts",
+      "test/**/*.ts",
+      "vitest.config.ts",
+      "test/e2e/vitest.e2e.config.ts",
+      "test/e2e/vitest.smoke.config.ts",
     ],
-  }),
-];
+    languageOptions: {
+      parserOptions: {
+        project: ["./tsconfig.node.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: globals.node,
+    },
+    rules: {
+      "@typescript-eslint/no-floating-promises": "off",
+    },
+  },
+  {
+    files: ["test/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-unsafe-assignment": "off",
+      "@typescript-eslint/no-unsafe-member-access": "off",
+      "@typescript-eslint/no-unsafe-call": "off",
+      "@typescript-eslint/no-unsafe-argument": "off",
+      "@typescript-eslint/no-unnecessary-type-assertion": "off",
+    },
+  },
+);

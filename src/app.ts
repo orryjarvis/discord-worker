@@ -18,6 +18,7 @@ import {
   parseCommandModalSubmit,
 } from './command.js';
 import { dispatchRequest } from './dispatch.js';
+import type { Ai, KVNamespace, MessageBatch, Queue } from '@cloudflare/workers-types';
 import type {
   AppRequest,
   CommandRequest,
