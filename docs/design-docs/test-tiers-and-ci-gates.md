@@ -31,6 +31,8 @@ Run the cheapest tier that gives you enough confidence for the current context.
 - **Constraint:** Wrangler's local dev mode is required. Remote mode
   (`local: false`) does not support queue bindings and causes 503s on all
   requests.
+- **Scheduled skills in this tier:** Triggered via test double endpoint
+  `GET /__test/scheduled` (not by waiting on cron).
 
 ### Smoke tests — `npm run smoke`
 
@@ -46,6 +48,8 @@ Run the cheapest tier that gives you enough confidence for the current context.
 - **Source:** `test/e2e/interactions.test.ts` via `test/e2e/setup.smoke.ts`
 - **When to run:** After deploying to the test environment, before releasing to
   production. Not run on PRs (see _Rejected alternative_ below).
+- **Scheduled skills in this tier:** Triggered via the same test double endpoint
+  `GET /__test/scheduled`, so smoke validation does not depend on cron timing.
 
 ---
 
@@ -61,6 +65,9 @@ Both setup modules expose the same interface:
 ```ts
 signAndSendRequest(body: object): Promise<Response>
 waitForFollowUp(correlationId: string, timeoutMs?: number): Promise<any>
+waitForChannelPost(channelId: string, timeoutMs?: number): Promise<any>
+clearChannelPost(channelId: string): Promise<void>
+runScheduled(cron: string, time: number): Promise<Response>
 ```
 
 This means:
@@ -70,6 +77,11 @@ This means:
   problem, not a logic bug.
 - New tests should be added to `interactions.test.ts` and will run at both
   tiers without any additional wiring.
+
+The test sink routes used by this pattern now include:
+
+- `GET /__test/scheduled` — test double trigger for scheduled skills.
+- `GET /__test/channel-posts/:channelId` — polls scheduled skill post output.
 
 ---
 

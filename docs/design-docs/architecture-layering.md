@@ -2,7 +2,7 @@
 
 This document records the current intentional layering used by the Worker.
 
-The goal is to keep command logic independent from Discord payload shape while
+The goal is to keep skill logic independent from Discord payload shape while
 preserving a small, direct codebase.
 
 ---
@@ -21,9 +21,19 @@ preserving a small, direct codebase.
   - Returns command outcomes without Discord-specific formatting.
 
 - `command` (`src/command.ts`)
-  - Command definitions and implementations.
+  - Command skill definitions and implementations.
   - Returns domain results described by `core` interfaces.
   - Contains no Discord request/response schema knowledge.
+
+- `scheduled` (`src/scheduled.ts`)
+  - Scheduled skill dispatcher.
+  - Runs all scheduled skills and aggregates failure handling.
+  - Contains no Discord request/response schema knowledge.
+
+- scheduled skill modules (for example `src/wordOfDaySchedule.ts`)
+  - Skill-specific scheduled behavior.
+  - Validate and execute scheduled skill logic.
+  - Keep transport details out of `app`.
 
 - `core` (`src/core.ts`)
   - Shared request/result interfaces for app, dispatch, and command.
@@ -37,9 +47,11 @@ Allowed dependencies:
 
 - `app -> dispatch`
 - `app -> command`
+- `app -> scheduled`
 - `app -> core`
 - `dispatch -> core`
 - `command -> core`
+- `scheduled -> (scheduled skill modules)`
 
 Disallowed dependencies:
 
@@ -60,8 +72,15 @@ Entry point rule:
 3. `app` transforms Discord payload to flat `core` request type.
 4. `app` calls `dispatch` with request + command map.
 5. `dispatch` routes to a command handler from `command`.
-6. Command handler returns a `core` result.
+6. Command skill handler returns a `core` result.
 7. `app` maps the result back to Discord response payloads and side effects.
+
+Scheduled skill flow:
+
+1. `app` receives a scheduled event.
+2. `app` delegates to `scheduled`.
+3. `scheduled` executes all scheduled skills.
+4. Each scheduled skill decides whether it should activate for that event.
 
 ---
 
@@ -75,24 +94,30 @@ where behavior should live even when import edges are technically valid.
   - Wire-format validation and conversion to flat app requests.
   - Mapping dispatch outcomes to Discord response payloads.
   - Generic queue transport wiring (enqueue/dequeue, ack, Discord PATCH).
+  - Generic scheduled transport wiring (invoke scheduled dispatcher, log errors).
 
-- Command modules own command-specific behavior:
-  - Command-specific modal interpretation (custom IDs and input extraction).
-  - Command-specific follow-up task payload shape.
-  - Command-specific provider integration details (prompting, AI result parsing,
+- Command skill modules own command-specific behavior:
+  - Command-skill-specific modal interpretation (custom IDs and input extraction).
+  - Command-skill-specific follow-up task payload shape.
+  - Command-skill-specific provider integration details (prompting, AI result parsing,
     fallback messages, logging fields).
+
+- Scheduled skill modules own scheduled-skill-specific behavior:
+  - Activation checks (for example schedule-time gating).
+  - Scheduled-skill payload and provider integration details.
+  - Scheduled-skill-specific fallback messages and logging fields.
 
 - `dispatch` and `core` own routing/contracts, not command implementation
   details.
 
-- `core` contracts must remain command-agnostic:
+- `core` contracts must remain command-skill-agnostic:
   - No command names (for example, `'pastify'`) in `core` type literals.
   - No command-specific type names in `core` (for example, `Pastify*`).
-  - Use generic envelopes in `core`; command modules validate command-specific
+  - Use generic envelopes in `core`; command skill modules validate command-specific
     payload shape locally.
 
-Practical rule: if code references a specific command's IDs, prompt text,
-model behavior, or task payload fields, it belongs in command-owned code,
+Practical rule: if code references a specific skill's IDs, prompt text,
+model behavior, or task payload fields, it belongs in skill-owned code,
 not `app`.
 
 ---

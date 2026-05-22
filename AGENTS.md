@@ -9,22 +9,25 @@ For deeper operating principles, see [docs/design-docs/index.md](docs/design-doc
 ## Project snapshot
 
 A Cloudflare Worker that receives Discord slash command interactions, verifies
-the request signature, and handles commands.
+the request signature, and runs bot skills.
 
-Current commands:
-- `/pastify` — Opens a modal immediately, accepts a free-form idea, defers
+Current skills:
+- Command skill: `/pastify` — Opens a modal immediately, accepts a free-form idea, defers
   publicly on submit, then generates a channel-visible Twitch-style copypasta
   through Workers AI.
-- `/insult` — Slash command taking a target user option and generating a
+- Command skill: `/insult` — Slash command taking a target user option and generating a
   channel-visible light-hearted roast via Workers AI.
-- `insult` (User context command) — Right-click a user and trigger an
+- Command skill: `insult` (User context command) — Right-click a user and trigger an
   ephemeral defer followed by a roast targeting that selected user.
+- Scheduled skill: `word-of-day` — Daily Word of the Day post flow (Merriam-Webster RSS) via the scheduled entrypoint.
 
 Runtime: Cloudflare Workers (no Node.js APIs at runtime).  
 Language: TypeScript.  
 Deployment: Wrangler (`wrangler.jsonc`).  
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 `DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
+Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posting),
+`WORD_OF_DAY_FEED_URL` (optional override).
 
 ## Agent bootstrap
 
@@ -40,7 +43,10 @@ Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 |---|---|
 | Worker entry point | `src/index.ts` |
 | App adapter (Discord <-> app transforms) | `src/app.ts` |
-| Command definitions | `src/command.ts` |
+| Command skills definitions | `src/command.ts` |
+| Scheduled skill dispatcher | `src/scheduled.ts` |
+| Word-of-day scheduled skill | `src/wordOfDaySchedule.ts` |
+| Scheduled skill test double | `src/wordOfDayScheduleTestDouble.ts` |
 | Dispatch router | `src/dispatch.ts` |
 | Core request/result interfaces | `src/core.ts` |
 | Discord helpers (verify, respond) | `src/discord.ts` |
@@ -83,23 +89,28 @@ The codebase is intentionally small but now uses a documented layering split:
   requests, transforms Discord payloads to flat app requests, calls dispatch,
   and maps dispatch results back to Discord responses.
 - `src/app.ts` owns transport/orchestration only. Do not place
-  command-specific modal parsing, AI prompt/output parsing, or command-specific
+  skill-specific modal parsing, AI prompt/output parsing, or skill-specific
   follow-up payload semantics in this layer.
-- `src/dispatch.ts` is the routing core. It chooses a command handler by name
+- `src/dispatch.ts` is the routing core for command skills. It chooses a command handler by name
   and does not import Discord-specific code.
-- `src/command.ts` defines command behavior and command constants. It works in
+- `src/command.ts` defines command-skill behavior and command constants. It works in
   terms of core request/result interfaces and does not import dispatch.
+- `src/scheduled.ts` is the routing core for scheduled skills. It runs scheduled
+  activities and should remain generic.
+- `src/wordOfDaySchedule.ts` defines the word-of-day scheduled skill behavior.
 - `src/core.ts` defines shared interfaces used by app, dispatch, and command.
-  Keep `core` command-agnostic: no command-specific type names or string
+  Keep `core` command-skill-agnostic: no command-specific type names or string
   literals in core contracts.
 
 Dependency direction (allowed edges):
 
 - `app -> dispatch`
 - `app -> command`
+- `app -> scheduled`
 - `app -> core`
 - `dispatch -> core`
 - `command -> core`
+- `scheduled -> wordOfDaySchedule`
 
 Disallowed edges:
 

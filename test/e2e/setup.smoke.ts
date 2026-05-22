@@ -56,3 +56,23 @@ export async function waitForSubmission(interactionId: string, timeoutMs = defau
   }
   throw new Error(`No submission for interactionId "${interactionId}" received within ${timeoutMs}ms`);
 }
+
+export async function waitForChannelPost(channelId: string, timeoutMs = defaultFollowUpTimeoutMs): Promise<any> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await fetch(`${baseUrl}/__test/channel-posts/${channelId}`);
+    if (res.status === 200) {
+      return res.json();
+    }
+    await new Promise<void>(r => setTimeout(r, 1000));
+  }
+  throw new Error(`No channel post for channelId "${channelId}" received within ${timeoutMs}ms`);
+}
+
+export async function clearChannelPost(channelId: string): Promise<void> {
+  await fetch(`${baseUrl}/__test/channel-posts/${channelId}`, { method: 'DELETE' });
+}
+
+export async function runScheduled(cron: string, time: number): Promise<Response> {
+  return fetch(`${baseUrl}/__test/scheduled?cron=${encodeURIComponent(cron)}&time=${encodeURIComponent(String(time))}`);
+}

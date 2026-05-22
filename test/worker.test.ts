@@ -26,10 +26,25 @@ const TEST_ENV = {
   DISCORD_APPLICATION_ID: 'test-app-id',
   SIGNATURE_PUBLIC_KEY: TEST_PUBLIC_KEY,
   DISCORD_TOKEN: 'test-token',
+  WORD_OF_DAY_CHANNEL_ID: 'word-channel-1',
+  WORD_OF_DAY_FEED_URL: 'https://example.com/wotd.xml',
   DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
   FOLLOW_UP_QUEUE: mockQueue,
   KV: mockKv,
 };
+
+const SAMPLE_WOTD_FEED = `<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:merriam="https://www.merriam-webster.com/word-of-the-day" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
+  <channel>
+    <item>
+      <title><![CDATA[ fraught ]]></title>
+      <link><![CDATA[ https://www.merriam-webster.com/word-of-the-day/fraught-2026-05-22 ]]></link>
+      <description><![CDATA[<p><strong>fraught</strong> &#149; \\FRAWT\\ &#149; <em>adjective</em></p>]]></description>
+      <itunes:summary><![CDATA[ Merriam-Webster's Word of the Day for May 22, 2026 is: fraught \\FRAWT\\ adjective ]]></itunes:summary>
+      <merriam:shortdef><![CDATA[ causing or involving a lot of emotional stress or worry ]]></merriam:shortdef>
+    </item>
+  </channel>
+</rss>`;
 
 async function signedRequest(body: object): Promise<Request> {
   const timestamp = Date.now().toString();
@@ -343,6 +358,96 @@ describe('Discord Worker', () => {
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(400);
     expect(await res.text()).toMatch(/Unknown Interaction Type/);
+  });
+
+  it('scheduled handler posts word-of-day to configured channel at 7:30 ET', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(SAMPLE_WOTD_FEED, { status: 200 }))
+      .mockResolvedValueOnce(new Response('{"id":"message-1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    let scheduledPromise: Promise<unknown> | null = null;
+    const ctx = {
+      waitUntil: (promise: Promise<unknown>) => {
+        scheduledPromise = promise;
+      },
+    };
+
+    worker.scheduled({
+      cron: '30 11 * * *',
+      scheduledTime: Date.parse('2026-05-22T11:30:00.000Z'),
+    } as any, TEST_ENV as any, ctx as any);
+
+    if (!scheduledPromise) {
+      throw new Error('scheduled promise was not registered via waitUntil');
+    }
+    await Promise.resolve(scheduledPromise);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://example.com/wotd.xml');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://discord.com/api/v10/channels/word-channel-1/messages',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+    expect(mockKv.put).toHaveBeenCalledWith(
+      'word-of-day:posted:2026-05-22',
+      expect.any(String),
+      expect.objectContaining({ expirationTtl: expect.any(Number) }),
+    );
+  });
+
+  it('scheduled handler skips when local ET time is not 7:30', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    let scheduledPromise: Promise<unknown> | null = null;
+    const ctx = {
+      waitUntil: (promise: Promise<unknown>) => {
+        scheduledPromise = promise;
+      },
+    };
+
+    worker.scheduled({
+      cron: '30 12 * * *',
+      scheduledTime: Date.parse('2026-05-22T12:31:00.000Z'),
+    } as any, TEST_ENV as any, ctx as any);
+
+    if (!scheduledPromise) {
+      throw new Error('scheduled promise was not registered via waitUntil');
+    }
+    await Promise.resolve(scheduledPromise);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockKv.put).not.toHaveBeenCalled();
+  });
+
+  it('scheduled handler skips duplicate local-date posts', async () => {
+    mockKv.get.mockResolvedValueOnce('{"postedAt":"2026-05-22T11:30:01.000Z"}');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    let scheduledPromise: Promise<unknown> | null = null;
+    const ctx = {
+      waitUntil: (promise: Promise<unknown>) => {
+        scheduledPromise = promise;
+      },
+    };
+
+    worker.scheduled({
+      cron: '30 11 * * *',
+      scheduledTime: Date.parse('2026-05-22T11:30:00.000Z'),
+    } as any, TEST_ENV as any, ctx as any);
+
+    if (!scheduledPromise) {
+      throw new Error('scheduled promise was not registered via waitUntil');
+    }
+    await Promise.resolve(scheduledPromise);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockKv.put).not.toHaveBeenCalled();
   });
 
   it('queue consumer calls edit-original-response endpoint', async () => {
