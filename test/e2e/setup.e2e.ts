@@ -67,4 +67,20 @@ export async function waitForSubmission(interactionId: string, timeoutMs = 5000)
   throw new Error(`No submission for interactionId "${interactionId}" received within ${timeoutMs}ms`);
 }
 
+export async function waitForChannelPost(channelId: string, timeoutMs = 15000): Promise<any> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await worker.fetch(`/__test/channel-posts/${channelId}`);
+    if (res.status === 200) {
+      return res.json();
+    }
+    await new Promise<void>(r => setTimeout(r, 1000));
+  }
+  throw new Error(`No channel post for channelId "${channelId}" received within ${timeoutMs}ms`);
+}
+
+export async function runScheduled(cron: string, time: number): Promise<Response> {
+  return worker.fetch(`/__test/scheduled?cron=${encodeURIComponent(cron)}&time=${encodeURIComponent(String(time))}`);
+}
+
 

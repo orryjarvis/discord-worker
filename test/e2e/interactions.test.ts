@@ -6,7 +6,12 @@ import {
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
-import { signAndSendRequest, waitForFollowUp } from './signAndSendRequest';
+import {
+  runScheduled,
+  signAndSendRequest,
+  waitForChannelPost,
+  waitForFollowUp,
+} from './signAndSendRequest';
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {
@@ -31,6 +36,22 @@ describe('Discord Worker', () => {
         custom_id: 'pastify_modal',
       },
     });
+  });
+
+  it('runs the scheduled word-of-day activity through the test double', async () => {
+    const scheduledTime = Date.parse('2026-05-22T11:30:00.000Z');
+    const channelId = 'test-word-of-day-channel';
+
+    const res = await runScheduled('30 11 * * *', scheduledTime);
+    expect(res.status).toBe(200);
+
+    const posted = await waitForChannelPost(channelId);
+    const payload = JSON.parse(posted.body) as Record<string, unknown>;
+
+    expect(typeof payload.content).toBe('string');
+    expect((payload.content as string)).toContain('Word of the Day');
+    expect((payload.content as string)).toContain('https://www.merriam-webster.com/word-of-the-day/');
+    expect((payload.content as string)).not.toContain('<');
   });
 
   it('defers /insult and then sends a channel-visible roast mentioning the selected user', async () => {

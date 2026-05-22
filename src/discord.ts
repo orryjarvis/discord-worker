@@ -1,5 +1,6 @@
 import * as ed from '@noble/ed25519';
 import type {
+  RESTPostAPIChannelMessageJSONBody,
   RESTAPIMessageReference,
   RESTPatchAPIWebhookWithTokenMessageJSONBody,
   RESTPostAPIWebhookWithTokenJSONBody,
@@ -9,6 +10,8 @@ export type EditOriginalInteractionPayload = RESTPatchAPIWebhookWithTokenMessage
 export type CreateFollowUpMessagePayload = RESTPostAPIWebhookWithTokenJSONBody & {
   message_reference?: Pick<RESTAPIMessageReference, 'message_id' | 'fail_if_not_exists'>;
 };
+
+export type CreateChannelMessagePayload = RESTPostAPIChannelMessageJSONBody;
 
 export async function verifyDiscordRequest(
   signature: string,
@@ -61,6 +64,23 @@ export async function createFollowUpMessage(
   apiBaseUrl: string,
 ): Promise<Response> {
   const url = `${apiBaseUrl}/webhooks/${applicationId}/${token}`;
+  return fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bot ${botToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createChannelMessage(
+  channelId: string,
+  botToken: string,
+  payload: CreateChannelMessagePayload,
+  apiBaseUrl: string,
+): Promise<Response> {
+  const url = `${apiBaseUrl}/channels/${channelId}/messages`;
   return fetch(url, {
     method: 'POST',
     headers: {

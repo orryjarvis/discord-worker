@@ -35,7 +35,9 @@
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
         "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e",
-        "DISCORD_API_BASE_URL": "https://discord-worker-dev.orry.workers.dev/__test/discord/api/v10"
+        "DISCORD_API_BASE_URL": "https://discord-worker-dev.orry.workers.dev/__test/discord/api/v10",
+        "WORD_OF_DAY_CHANNEL_ID": "test-word-of-day-channel",
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
       }
     },
     "test": {
@@ -67,7 +69,9 @@
         "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
         "DISCORD_TOKEN": "not-a-real-token",
         "SIGNATURE_PUBLIC_KEY": "044baa07fda3632abce6e8f4c1a099e2871b9c0f82c2bc6e10c9094de3883fd0",
-        "DISCORD_API_BASE_URL": "https://discord-worker-test.orry.workers.dev/__test/discord/api/v10"
+        "DISCORD_API_BASE_URL": "https://discord-worker-test.orry.workers.dev/__test/discord/api/v10",
+        "WORD_OF_DAY_CHANNEL_ID": "test-word-of-day-channel",
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
       }
     },
     "prod": {
@@ -91,13 +95,18 @@
         "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue" }],
         "consumers": [{ "queue": "discord-follow-up-queue" }]
       },
+      "triggers": {
+        "crons": ["30 11 * * *", "30 12 * * *"]
+      },
       "vars": {
-        "DISCORD_API_BASE_URL": "https://discord.com/api/v10"
+        "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
 
         // Vars managed externally:
         // "DISCORD_APPLICATION_ID": <REDACTED>,
         // "DISCORD_TOKEN": <REDACTED>,
-        // "SIGNATURE_PUBLIC_KEY": <REDACTED>
+        // "SIGNATURE_PUBLIC_KEY": <REDACTED>,
+        // "WORD_OF_DAY_CHANNEL_ID": <REDACTED>
       }
     }
   }
