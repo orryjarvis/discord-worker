@@ -63,4 +63,7 @@ async function deployCommands() {
   }
 }
 
-deployCommands();
+void deployCommands().catch((error: unknown) => {
+  console.error('Failed to deploy commands', error);
+  process.exitCode = 1;
+});

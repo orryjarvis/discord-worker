@@ -1,3 +1,5 @@
+import type { Ai } from '@cloudflare/workers-types';
+
 export interface SubmissionRecord {
   interactionId: string;
   userId: string | null;

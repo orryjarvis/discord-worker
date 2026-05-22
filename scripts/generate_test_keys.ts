@@ -7,4 +7,7 @@ async function generateEd25519KeyPair() {
   console.log('Public Key:', Buffer.from(publicKey).toString('hex'));
 }
 
-generateEd25519KeyPair();
+void generateEd25519KeyPair().catch((error: unknown) => {
+  console.error('Failed to generate test keys', error);
+  process.exitCode = 1;
+});

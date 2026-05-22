@@ -1,33 +1,3 @@
 {
-  "compilerOptions": {
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "target": "esnext",
-    "lib": [
-      "esnext"
-    ],
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "types": [
-      "@cloudflare/workers-types",
-      "node"
-    ],
-    "resolveJsonModule": true,
-    "allowJs": true,
-    "checkJs": true,
-    "noEmit": true,
-    "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "skipLibCheck": true,
-  },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "bin"
-  ]
+  "extends": "./tsconfig.worker.json"
 }
