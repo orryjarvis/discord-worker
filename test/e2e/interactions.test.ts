@@ -7,6 +7,7 @@ import {
   InteractionType,
 } from 'discord-api-types/v10';
 import {
+  clearChannelPost,
   runScheduled,
   signAndSendRequest,
   waitForChannelPost,
@@ -41,11 +42,15 @@ describe('Discord Worker', () => {
   it('runs the scheduled word-of-day activity through the test double', async () => {
     const scheduledTime = Date.parse('2026-05-22T11:30:00.000Z');
     const channelId = 'test-word-of-day-channel';
+    const triggerStartedAt = Date.now();
+
+    await clearChannelPost(channelId);
 
     const res = await runScheduled('30 11 * * *', scheduledTime);
     expect(res.status).toBe(200);
 
     const posted = await waitForChannelPost(channelId);
+    expect(Date.parse(posted.receivedAt as string)).toBeGreaterThanOrEqual(triggerStartedAt);
     const payload = JSON.parse(posted.body) as Record<string, unknown>;
 
     expect(typeof payload.content).toBe('string');

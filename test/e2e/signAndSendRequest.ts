@@ -7,6 +7,7 @@ type SetupModule = {
   waitForFollowUp: (token: string, timeoutMs?: number) => Promise<any>;
   waitForSubmission: (interactionId: string, timeoutMs?: number) => Promise<any>;
   waitForChannelPost: (channelId: string, timeoutMs?: number) => Promise<any>;
+  clearChannelPost: (channelId: string) => Promise<void>;
   runScheduled: (cron: string, time: number) => Promise<Response>;
 };
 
@@ -34,6 +35,11 @@ export async function waitForSubmission(interactionId: string, timeoutMs?: numbe
 export async function waitForChannelPost(channelId: string, timeoutMs?: number): Promise<any> {
   const mod = await setupModulePromise;
   return mod.waitForChannelPost(channelId, timeoutMs);
+}
+
+export async function clearChannelPost(channelId: string): Promise<void> {
+  const mod = await setupModulePromise;
+  return mod.clearChannelPost(channelId);
 }
 
 export async function runScheduled(cron: string, time: number): Promise<Response> {

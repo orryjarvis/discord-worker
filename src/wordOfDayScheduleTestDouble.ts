@@ -1,8 +1,7 @@
 import type { KVNamespace, ScheduledController } from '@cloudflare/workers-types';
 import {
-  fetchWordOfDayEntry,
   formatWordOfDayMessage,
-  WORD_OF_DAY_DEFAULT_FEED_URL,
+  type WordOfDayEntry,
 } from './wordOfDay.js';
 
 const WORD_OF_DAY_POST_HOUR = 7;
@@ -10,9 +9,15 @@ const WORD_OF_DAY_POST_MINUTE = 30;
 
 export interface WordOfDayScheduledTestDoubleEnv {
   WORD_OF_DAY_CHANNEL_ID?: string;
-  WORD_OF_DAY_FEED_URL?: string;
   TEST_FOLLOWUPS?: KVNamespace;
 }
+
+const TEST_DOUBLE_WORD_OF_DAY_ENTRY: WordOfDayEntry = {
+  word: 'serendipity',
+  pronunciation: '\\ser-uhn-DIP-uh-tee\\',
+  shortDefinition: 'The faculty of finding valuable or agreeable things not sought for.',
+  link: 'https://www.merriam-webster.com/word-of-the-day/',
+};
 
 function getEasternScheduleParts(scheduledTime: number): {
   hour: number;
@@ -76,9 +81,7 @@ export async function runWordOfDayScheduledTestDouble(
     return;
   }
 
-  const feedUrl = env.WORD_OF_DAY_FEED_URL ?? WORD_OF_DAY_DEFAULT_FEED_URL;
-  const wordOfDay = await fetchWordOfDayEntry(feedUrl);
-  const content = formatWordOfDayMessage(wordOfDay, new Date(controller.scheduledTime));
+  const content = formatWordOfDayMessage(TEST_DOUBLE_WORD_OF_DAY_ENTRY, new Date(controller.scheduledTime));
 
   await storeChannelPost(env, env.WORD_OF_DAY_CHANNEL_ID, JSON.stringify({
     content,
@@ -91,6 +94,6 @@ export async function runWordOfDayScheduledTestDouble(
     cron: controller.cron,
     scheduledTime: controller.scheduledTime,
     channelId: env.WORD_OF_DAY_CHANNEL_ID,
-    word: wordOfDay.word,
+    word: TEST_DOUBLE_WORD_OF_DAY_ENTRY.word,
   });
 }

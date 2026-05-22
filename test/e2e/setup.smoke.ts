@@ -69,6 +69,10 @@ export async function waitForChannelPost(channelId: string, timeoutMs = defaultF
   throw new Error(`No channel post for channelId "${channelId}" received within ${timeoutMs}ms`);
 }
 
+export async function clearChannelPost(channelId: string): Promise<void> {
+  await fetch(`${baseUrl}/__test/channel-posts/${channelId}`, { method: 'DELETE' });
+}
+
 export async function runScheduled(cron: string, time: number): Promise<Response> {
   return fetch(`${baseUrl}/__test/scheduled?cron=${encodeURIComponent(cron)}&time=${encodeURIComponent(String(time))}`);
 }

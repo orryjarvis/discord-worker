@@ -66,6 +66,7 @@ Both setup modules expose the same interface:
 signAndSendRequest(body: object): Promise<Response>
 waitForFollowUp(correlationId: string, timeoutMs?: number): Promise<any>
 waitForChannelPost(channelId: string, timeoutMs?: number): Promise<any>
+clearChannelPost(channelId: string): Promise<void>
 runScheduled(cron: string, time: number): Promise<Response>
 ```
 
