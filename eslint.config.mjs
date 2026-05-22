@@ -7,12 +7,6 @@ export default tseslint.config(
   },
   tseslint.configs.recommendedTypeChecked,
   {
-    rules: {
-      "@typescript-eslint/no-unsafe-enum-comparison": "off",
-      "@typescript-eslint/require-await": "off",
-    },
-  },
-  {
     files: ["src/**/*.ts"],
     languageOptions: {
       parserOptions: {
@@ -36,9 +30,6 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
       globals: globals.node,
-    },
-    rules: {
-      "@typescript-eslint/no-floating-promises": "off",
     },
   },
   {

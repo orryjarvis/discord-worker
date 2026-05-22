@@ -35,7 +35,7 @@ type ModalComponentRows = Array<{
   }>;
 }>;
 
-async function handlePastifyCommand(request: CommandRequest): Promise<CommandResult> {
+function handlePastifyCommand(request: CommandRequest): CommandResult {
   switch (request.kind) {
     case 'command':
       return {
@@ -71,7 +71,7 @@ async function handlePastifyCommand(request: CommandRequest): Promise<CommandRes
   }
 }
 
-async function handleInsultCommand(request: CommandRequest): Promise<CommandResult> {
+function handleInsultCommand(request: CommandRequest): CommandResult {
   switch (request.kind) {
     case 'command':
       return {
@@ -95,7 +95,7 @@ async function handleInsultCommand(request: CommandRequest): Promise<CommandResu
   }
 }
 
-async function handleEightBallCommand(request: CommandRequest): Promise<CommandResult> {
+function handleEightBallCommand(request: CommandRequest): CommandResult {
   switch (request.kind) {
     case 'command':
       return {

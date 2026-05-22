@@ -210,7 +210,7 @@ function extractTargetMessageContext(data: ParsedApplicationCommandData): {
 }
 
 function parseAppRequest(raw: RawInteraction): AppRequest | Response {
-  const typeResult = z.object({ type: z.number() }).safeParse(raw);
+  const typeResult = z.object({ type: z.nativeEnum(InteractionType) }).safeParse(raw);
   if (!typeResult.success) {
     return new Response('Bad request.', { status: 400 });
   }
