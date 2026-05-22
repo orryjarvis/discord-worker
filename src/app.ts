@@ -209,13 +209,40 @@ function extractTargetMessageContext(data: ParsedApplicationCommandData): {
   };
 }
 
+type SupportedInteractionType =
+  | InteractionType.Ping
+  | InteractionType.ApplicationCommand
+  | InteractionType.MessageComponent
+  | InteractionType.ModalSubmit;
+
+const SUPPORTED_INTERACTION_TYPES = new Set<SupportedInteractionType>([
+  InteractionType.Ping,
+  InteractionType.ApplicationCommand,
+  InteractionType.MessageComponent,
+  InteractionType.ModalSubmit,
+]);
+
+function coerceSupportedInteractionType(value: number): SupportedInteractionType | null {
+  const interactionType = value;
+  if (SUPPORTED_INTERACTION_TYPES.has(interactionType)) {
+    return interactionType;
+  }
+
+  return null;
+}
+
 function parseAppRequest(raw: RawInteraction): AppRequest | Response {
-  const typeResult = z.object({ type: z.nativeEnum(InteractionType) }).safeParse(raw);
+  const typeResult = z.object({ type: z.number() }).safeParse(raw);
   if (!typeResult.success) {
     return new Response('Bad request.', { status: 400 });
   }
 
-  switch (typeResult.data.type) {
+  const interactionType = coerceSupportedInteractionType(typeResult.data.type);
+  if (!interactionType) {
+    return new Response('Unknown Interaction Type', { status: 400 });
+  }
+
+  switch (interactionType) {
     case InteractionType.Ping: {
       const parsed = PingInteractionSchema.safeParse(raw);
       if (!parsed.success) {
