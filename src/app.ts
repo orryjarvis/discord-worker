@@ -16,6 +16,7 @@ import {
   commands,
   executeFollowUpTask,
   parseCommandModalSubmit,
+  WOTD_COMMAND_NAME,
 } from './command.js';
 import { dispatchRequest } from './dispatch.js';
 import type { Ai, KVNamespace, MessageBatch, Queue } from '@cloudflare/workers-types';
@@ -30,10 +31,11 @@ import type {
   ShowModalResult,
 } from './core.js';
 import { runScheduledActivities } from './scheduled.js';
+import { postWordOfDayMessage } from './wordOfDaySchedule.js';
 import { runWordOfDayScheduledTestDouble } from './wordOfDayScheduleTestDouble.js';
 
 interface FollowUpMessage {
-  token: string;
+  token?: string;
   task?: FollowUpTask;
 }
 
@@ -387,6 +389,16 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
         ...(outcome.ephemeral ? { data: { flags: MessageFlags.Ephemeral } } : {}),
       });
 
+    case 'ack-and-enqueue-task':
+      await env.FOLLOW_UP_QUEUE.send({ task: outcome.task });
+      return jsonResponse({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          content: outcome.content,
+          flags: outcome.ephemeral ? MessageFlags.Ephemeral : 0,
+        },
+      });
+
     case 'save-submission':
       await env.KV.put(outcome.submission.interactionId, JSON.stringify(outcome.submission));
       return jsonResponse({
@@ -605,10 +617,22 @@ export default {
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {
     for (const message of batch.messages) {
       try {
-        const followUpResult = message.body.task
-          ? await executeFollowUpTask(message.body.task, { AI: env.AI }, {
+        const task = message.body.task;
+        if (task?.commandName === WOTD_COMMAND_NAME) {
+          await postWordOfDayMessage(env, new Date());
+          message.ack();
+          continue;
+        }
+
+        const token = message.body.token;
+        if (!token) {
+          throw new Error('Follow-up queue message missing interaction token');
+        }
+
+        const followUpResult = task
+          ? await executeFollowUpTask(task, { AI: env.AI }, {
             messageId: message.id,
-            token: message.body.token,
+            token,
           })
           : {
             content: 'Could not process follow-up payload. Please try again.',
@@ -619,7 +643,7 @@ export default {
         const content = buildFallbackEditedContent(followUpResult);
         const response = await editOriginalInteractionResponse(
           env.DISCORD_APPLICATION_ID,
-          message.body.token,
+          token,
           env.DISCORD_TOKEN,
           {
             content,

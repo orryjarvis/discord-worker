@@ -17,6 +17,68 @@ export interface WordOfDayScheduledEnv {
   KV: KVNamespace;
 }
 
+export type WordOfDayPostEnv = Pick<WordOfDayScheduledEnv,
+  'DISCORD_TOKEN' | 'DISCORD_API_BASE_URL' | 'WORD_OF_DAY_CHANNEL_ID' | 'WORD_OF_DAY_FEED_URL'>;
+
+async function describePostFailure(response: Response): Promise<string> {
+  const body = (await response.text()).trim();
+  if (!body) {
+    return '';
+  }
+
+  try {
+    const parsed = JSON.parse(body) as { message?: string; code?: number };
+    if (typeof parsed.message === 'string' || typeof parsed.code === 'number') {
+      const code = typeof parsed.code === 'number' ? ` code=${parsed.code}` : '';
+      const message = typeof parsed.message === 'string' ? ` message=${parsed.message}` : '';
+      return `${code}${message}`.trim();
+    }
+  } catch {
+    // Fall through to non-JSON fallback.
+  }
+
+  const truncatedBody = body.length > 300 ? `${body.slice(0, 300)}...` : body;
+  return `body=${truncatedBody}`;
+}
+
+export async function postWordOfDayMessage(
+  env: WordOfDayPostEnv,
+  scheduledTime: Date,
+): Promise<{ word: string; channelId: string }> {
+  const channelId = env.WORD_OF_DAY_CHANNEL_ID;
+  if (!channelId) {
+    throw new Error('Word-of-day posting failed because channel id is missing');
+  }
+
+  const feedUrl = env.WORD_OF_DAY_FEED_URL ?? WORD_OF_DAY_DEFAULT_FEED_URL;
+  const wordOfDay = await fetchWordOfDayEntry(feedUrl);
+  const content = formatWordOfDayMessage(wordOfDay, scheduledTime);
+
+  const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
+  const response = await createChannelMessage(
+    channelId,
+    env.DISCORD_TOKEN,
+    {
+      content,
+      allowed_mentions: {
+        parse: [],
+      },
+    },
+    apiBaseUrl,
+  );
+
+  if (!response.ok) {
+    const details = await describePostFailure(response);
+    const detailSuffix = details ? ` (${details})` : '';
+    throw new Error(`Failed to post word-of-day message: ${response.status} ${response.statusText}${detailSuffix}`);
+  }
+
+  return {
+    word: wordOfDay.word,
+    channelId,
+  };
+}
+
 function getEasternScheduleParts(scheduledTime: number): {
   hour: number;
   minute: number;
@@ -72,33 +134,14 @@ export async function runWordOfDayScheduledActivity(
     return;
   }
 
-  const feedUrl = env.WORD_OF_DAY_FEED_URL ?? WORD_OF_DAY_DEFAULT_FEED_URL;
-  const wordOfDay = await fetchWordOfDayEntry(feedUrl);
-  const content = formatWordOfDayMessage(wordOfDay, new Date(controller.scheduledTime));
-
-  const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-  const response = await createChannelMessage(
-    env.WORD_OF_DAY_CHANNEL_ID,
-    env.DISCORD_TOKEN,
-    {
-      content,
-      allowed_mentions: {
-        parse: [],
-      },
-    },
-    apiBaseUrl,
-  );
-
-  if (!response.ok) {
-    throw new Error(`Failed to post word-of-day message: ${response.status} ${response.statusText}`);
-  }
+  const result = await postWordOfDayMessage(env, new Date(controller.scheduledTime));
 
   await env.KV.put(
     dedupeKey,
     JSON.stringify({
       postedAt: new Date().toISOString(),
-      word: wordOfDay.word,
-      channelId: env.WORD_OF_DAY_CHANNEL_ID,
+      word: result.word,
+      channelId: result.channelId,
     }),
     { expirationTtl: 60 * 60 * 24 * 14 },
   );
@@ -106,6 +149,6 @@ export async function runWordOfDayScheduledActivity(
   console.log('Word-of-day message posted', {
     cron: controller.cron,
     dedupeKey,
-    word: wordOfDay.word,
+    word: result.word,
   });
 }

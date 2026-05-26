@@ -100,11 +100,19 @@ export type EnqueueFollowUpResult = {
   ephemeral: boolean;
 };
 
+export type AckAndEnqueueTaskResult = {
+  kind: 'ack-and-enqueue-task';
+  content: string;
+  task: FollowUpTask;
+  ephemeral: boolean;
+};
+
 export type CommandResult =
   | DeferFollowUpResult
   | ShowModalResult
   | SaveSubmissionResult
-  | EnqueueFollowUpResult;
+  | EnqueueFollowUpResult
+  | AckAndEnqueueTaskResult;
 
 export type CommandHandler = (request: CommandRequest) => Promise<CommandResult> | CommandResult;
 
