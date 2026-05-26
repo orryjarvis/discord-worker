@@ -79,6 +79,15 @@ function getFirstItem(xml: string): string | null {
   return match ? match[1] : null;
 }
 
+function normalizeLink(link: string): string {
+  const trimmed = link.trim();
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    return encodeURI(trimmed);
+  }
+}
+
 function normalizePronunciation(pronunciation: string): string {
   const trimmed = pronunciation.trim();
   if (!trimmed) {
@@ -123,7 +132,7 @@ export function parseWordOfDayFeed(xml: string): WordOfDayEntry {
   const rawShortDef = getTagContent(item, 'merriam:shortdef');
 
   const word = rawWord ? toPlainText(rawWord) : '';
-  const link = rawLink ? toPlainText(rawLink) : '';
+  const link = rawLink ? normalizeLink(toPlainText(rawLink)) : '';
   const shortDefinition = rawShortDef ? toPlainText(rawShortDef) : '';
 
   if (!word) {

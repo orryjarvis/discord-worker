@@ -14,6 +14,19 @@ const SAMPLE_FEED = `<?xml version="1.0" encoding="UTF-8"?>
   </channel>
 </rss>`;
 
+const SAMPLE_FEED_WITH_SPACE_IN_LINK = `<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:merriam="https://www.merriam-webster.com/word-of-the-day" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">
+  <channel>
+    <item>
+      <title><![CDATA[ Gordian knot ]]></title>
+      <link><![CDATA[ https://www.merriam-webster.com/word-of-the-day/gordian knot-2026-05-26 ]]></link>
+      <description><![CDATA[<p><strong>Gordian knot</strong></p>]]></description>
+      <itunes:summary><![CDATA[ Merriam-Webster's Word of the Day for May 26, 2026 is: Gordian knot ]]></itunes:summary>
+      <merriam:shortdef><![CDATA[ an extremely difficult problem ]]></merriam:shortdef>
+    </item>
+  </channel>
+</rss>`;
+
 describe('word-of-day feed parser', () => {
   it('extracts normalized word, pronunciation, short definition, and link', () => {
     const parsed = parseWordOfDayFeed(SAMPLE_FEED);
@@ -37,5 +50,11 @@ describe('word-of-day feed parser', () => {
     expect(message).toContain('https://www.merriam-webster.com/word-of-the-day/fraught-2026-05-22');
     expect(message).not.toContain('<p>');
     expect(message.length).toBeLessThanOrEqual(2000);
+  });
+
+  it('normalizes links with spaces into URL-encoded form', () => {
+    const parsed = parseWordOfDayFeed(SAMPLE_FEED_WITH_SPACE_IN_LINK);
+    expect(parsed.word).toBe('Gordian knot');
+    expect(parsed.link).toBe('https://www.merriam-webster.com/word-of-the-day/gordian%20knot-2026-05-26');
   });
 });
