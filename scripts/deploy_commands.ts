@@ -36,15 +36,15 @@ const EIGHT_BALL_MESSAGE_COMMAND = {
 
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
-  const botToken = process.env.DISCORD_BOT_TOKEN ?? process.env.DISCORD_TOKEN;
+  const botToken = process.env.DISCORD_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
 
   if (!applicationId || !botToken) {
-    console.error('DISCORD_APPLICATION_ID and DISCORD_BOT_TOKEN (or DISCORD_TOKEN) are required');
+    console.error('DISCORD_APPLICATION_ID, DISCORD_GUILD_ID, and DISCORD_TOKEN are required');
     process.exit(1);
   }
 
-  const url = `https://discord.com/api/v10/applications/${applicationId}/${guildId ? `guilds/${guildId}/` : ''}commands`;
+  const url = `https://discord.com/api/v10/applications/${applicationId}/guilds/${guildId}/commands`;
 
   const response = await fetch(url, {
     method: 'PUT',
