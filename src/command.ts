@@ -28,6 +28,8 @@ export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } f
 export { INSULT_COMMAND_NAME } from './insult.js';
 export { EIGHT_BALL_COMMAND_NAME } from './8ball.js';
 
+export const WOTD_COMMAND_NAME = 'wotd';
+
 type ModalComponentRows = Array<{
   components?: Array<{
     custom_id?: string;
@@ -121,10 +123,33 @@ function handleEightBallCommand(request: CommandRequest): CommandResult {
   }
 }
 
+function handleWotdCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'ack-and-enqueue-task',
+        content: 'wotd queued',
+        task: {
+          commandName: WOTD_COMMAND_NAME,
+          payload: {},
+        },
+        ephemeral: false,
+      };
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 export const commands: CommandMap = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
   [INSULT_COMMAND_NAME]: handleInsultCommand,
   [EIGHT_BALL_COMMAND_NAME]: handleEightBallCommand,
+  [WOTD_COMMAND_NAME]: handleWotdCommand,
 };
 
 export function parseCommandModalSubmit(data: {

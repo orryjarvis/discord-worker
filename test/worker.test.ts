@@ -165,6 +165,34 @@ describe('Discord Worker', () => {
     });
   });
 
+  it('acknowledges /wotd immediately and enqueues background posting task', async () => {
+    const req = await signedRequest({
+      id: 'cmd-wotd-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'wotd-token',
+      data: {
+        name: 'wotd',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'wotd queued',
+        flags: 0,
+      },
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      task: {
+        commandName: 'wotd',
+        payload: {},
+      },
+    });
+  });
+
   it('defers publicly and enqueues insult generation for user context command target', async () => {
     const req = await signedRequest({
       id: 'cmd-insult-context-1',
@@ -493,6 +521,46 @@ describe('Discord Worker', () => {
         body: JSON.stringify({
           content: 'PASTIFIED CHAT ENERGY',
         }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts word-of-day using channel message endpoint for wotd tasks', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(SAMPLE_WOTD_FEED, { status: 200 }))
+      .mockResolvedValueOnce(new Response('{"id":"message-1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: 'wotd-1',
+        timestamp: new Date(),
+        body: {
+          task: {
+            commandName: 'wotd',
+            payload: {},
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(mockAI.run).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://example.com/wotd.xml');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://discord.com/api/v10/channels/word-channel-1/messages',
+      expect.objectContaining({
+        method: 'POST',
       }),
     );
     expect(ack).toHaveBeenCalled();

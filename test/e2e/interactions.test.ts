@@ -59,6 +59,41 @@ describe('Discord Worker', () => {
     expect((payload.content as string)).not.toContain('<');
   });
 
+  it('acknowledges /wotd immediately and posts word-of-day to the configured channel', async () => {
+    const channelId = 'test-word-of-day-channel';
+    const token = `test-token-wotd-${Date.now()}`;
+    const triggerStartedAt = Date.now();
+
+    await clearChannelPost(channelId);
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token,
+      data: {
+        name: 'wotd',
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json() as any).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'wotd queued',
+        flags: 0,
+      },
+    });
+
+    const posted = await waitForChannelPost(channelId);
+    expect(Date.parse(posted.receivedAt as string)).toBeGreaterThanOrEqual(triggerStartedAt);
+    const payload = JSON.parse(posted.body) as Record<string, unknown>;
+
+    expect(typeof payload.content).toBe('string');
+    expect((payload.content as string)).toContain('Word of the Day');
+    expect((payload.content as string)).toContain('https://www.merriam-webster.com/word-of-the-day/');
+    expect((payload.content as string)).not.toContain('<');
+  });
+
   it('defers /insult and then sends a channel-visible roast mentioning the selected user', async () => {
     const correlationId = `insult-${Date.now()}`;
     const token = `test-token-${correlationId}`;
