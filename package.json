@@ -27,14 +27,14 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20260111.0",
-    "@types/node": "^25.9.0",
+    "@cloudflare/workers-types": "^4.20260525.1",
+    "@types/node": "^25.9.1",
     "eslint": "^10.4.0",
     "globals": "^17.6.0",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.7",
     "wrangler": "^4.58.0"
   }
 }
