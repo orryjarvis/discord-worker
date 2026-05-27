@@ -11,8 +11,5 @@ export default defineConfig({
     sequence: {
       concurrent: false,
     },
-    env: {
-      TEST_SETUP: 'e2e',
-    },
   },
 });

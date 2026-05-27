@@ -46,14 +46,12 @@ Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posti
 | Command skills definitions | `src/command.ts` |
 | Scheduled skill dispatcher | `src/scheduled.ts` |
 | Word-of-day scheduled skill | `src/wordOfDaySchedule.ts` |
-| Scheduled skill test double | `src/wordOfDayScheduleTestDouble.ts` |
 | Dispatch router | `src/dispatch.ts` |
 | Core request/result interfaces | `src/core.ts` |
 | Discord helpers (verify, respond) | `src/discord.ts` |
 | Unit tests | `test/worker.test.ts` |
-| E2E / smoke tests | `test/e2e/` |
+| E2E tests | `test/e2e/` |
 | E2E test config | `test/e2e/vitest.e2e.config.ts` |
-| Smoke test config | `test/e2e/vitest.smoke.config.ts` |
 | Shared e2e setup | `test/e2e/setup.shared.ts` |
 | Deploy scripts | `scripts/` |
 | Build / lint / test commands | `package.json` |
@@ -73,7 +71,7 @@ Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posti
 - **No abstractions without evidence.** A new helper, service, or layer needs
   at least two real call sites or a clear near-term second use case. One
   call site does not justify abstraction.
-- **Do not break the test harness.** The e2e and smoke test setup under
+- **Do not break the test harness.** The e2e setup under
   `test/e2e/` is part of the product. Do not delete or restructure it
   without understanding what it does.
 - **Run validation before considering work done.** See _Testing and
@@ -134,14 +132,6 @@ npm run check   # TypeScript type check
 npm run lint    # ESLint
 npm run test    # Unit tests (Vitest)
 npm run e2e     # E2E tests (requires wrangler dev environment)
-
-# Optional (live shared test env): smoke tests. Run only after
-# `npm run publish:test` has completed and team coordination confirms the
-# shared environment is ready. `npm run smoke` auto-loads `.env.smoke.local`
-# when present.
-# Agent policy: do not run `npm run smoke` directly; instead suggest it to the
-# user when live-environment validation is appropriate.
-npm run smoke
 ```
 
 Unit tests should cover the current follow-up flow by asserting that the worker

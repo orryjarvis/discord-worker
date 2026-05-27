@@ -12,7 +12,7 @@ import {
   signAndSendRequest,
   waitForChannelPost,
   waitForFollowUp,
-} from './signAndSendRequest';
+} from './setup.e2e';
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {
@@ -39,7 +39,7 @@ describe('Discord Worker', () => {
     });
   });
 
-  it('runs the scheduled word-of-day activity through the test double', async () => {
+  it('runs the scheduled word-of-day activity via scheduled handler trigger', async () => {
     const scheduledTime = Date.parse('2026-05-22T11:30:00.000Z');
     const channelId = 'test-word-of-day-channel';
     const triggerStartedAt = Date.now();
