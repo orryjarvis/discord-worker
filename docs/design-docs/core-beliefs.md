@@ -93,18 +93,19 @@ But:
 
 ## Test harness setup is part of the product
 
-The e2e and smoke test infrastructure under `test/e2e/` is not boilerplate
-to be casually reorganized. It encodes how the Worker is tested against a
-real Wrangler dev environment and a live URL. Understand it before touching it.
+The e2e infrastructure under `test/e2e/` is not boilerplate to be casually
+reorganized. It encodes how the Worker is tested against a real Wrangler dev
+environment with a local Discord API capture harness. Understand it before
+touching it.
 
 ---
 
 ## Secrets and live config deserve care
 
 `DISCORD_TOKEN`, `SIGNATURE_PUBLIC_KEY`, and `DISCORD_APPLICATION_ID` are
-live credentials. The smoke test's `LIVE_BASE_URL` points at a running
-deployment. Treat these carefully. Do not log them, do not commit them, and do
-not make changes to live-credential handling without understanding the full path.
+live credentials. Treat these carefully. Do not log them, do not commit them,
+and do not make changes to live-credential handling without understanding the
+full path.
 
 ---
 

@@ -22,7 +22,6 @@ export default tseslint.config(
       "test/**/*.ts",
       "vitest.config.ts",
       "test/e2e/vitest.e2e.config.ts",
-      "test/e2e/vitest.smoke.config.ts",
     ],
     languageOptions: {
       parserOptions: {

@@ -32,7 +32,6 @@ import type {
 } from './core.js';
 import { runScheduledActivities } from './scheduled.js';
 import { postWordOfDayMessage } from './wordOfDaySchedule.js';
-import { runWordOfDayScheduledTestDouble } from './wordOfDayScheduleTestDouble.js';
 
 interface FollowUpMessage {
   token?: string;
@@ -49,7 +48,6 @@ interface Env {
   FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
   KV: KVNamespace;
   DISCORD_API_BASE_URL?: string;
-  TEST_FOLLOWUPS?: KVNamespace;
 }
 
 type RawInteraction = {
@@ -93,12 +91,6 @@ type RawInteraction = {
   };
 };
 
-const PATCH_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)\/messages\/@original$/;
-const POST_SINK_RE = /^\/__test\/discord\/api\/v10\/webhooks\/([^/]+)\/([^/]+)$/;
-const POST_CHANNEL_MESSAGE_SINK_RE = /^\/__test\/discord\/api\/v10\/channels\/([^/]+)\/messages$/;
-const GET_FOLLOWUP_RE = /^\/__test\/followups\/([^/]+)$/;
-const GET_CHANNEL_POST_RE = /^\/__test\/channel-posts\/([^/]+)$/;
-const GET_SUBMISSION_RE = /^\/__test\/submissions\/([^/]+)$/;
 const QUOTED_SOURCE_MAX_LENGTH = 240;
 const QUOTED_SOURCE_ELLIPSIS = '...';
 
@@ -414,130 +406,6 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
   }
 }
 
-async function handleTestSink(request: Request, env: Env, pathname: string): Promise<Response> {
-  const url = new URL(request.url);
-  const patchMatch = PATCH_SINK_RE.exec(pathname);
-  const postMatch = POST_SINK_RE.exec(pathname);
-  const postChannelMatch = POST_CHANNEL_MESSAGE_SINK_RE.exec(pathname);
-  const scheduledMatch = pathname === '/__test/scheduled';
-  if (
-    ((request.method === 'PATCH' && patchMatch)
-      || (request.method === 'POST' && postMatch)
-      || (request.method === 'POST' && postChannelMatch)
-      || (request.method === 'GET' && scheduledMatch))
-    && env.TEST_FOLLOWUPS
-  ) {
-    if (scheduledMatch) {
-      const cron = url.searchParams.get('cron') ?? '* * * * *';
-      const scheduledTimeRaw = url.searchParams.get('time');
-      const scheduledTime = scheduledTimeRaw ? Number(scheduledTimeRaw) : Date.now();
-      if (!Number.isFinite(scheduledTime)) {
-        return new Response('Bad Request', { status: 400 });
-      }
-
-      await runWordOfDayScheduledTestDouble({
-        cron,
-        scheduledTime,
-      } as ScheduledController, env);
-      return jsonResponse({});
-    }
-
-    const body = await request.text();
-
-    if (postChannelMatch) {
-      const channelId = postChannelMatch[1];
-      const entry = JSON.stringify({
-        method: request.method,
-        path: pathname,
-        body,
-        receivedAt: new Date().toISOString(),
-        channelId,
-      });
-      await env.TEST_FOLLOWUPS.put(`channel-post:${channelId}`, entry, { expirationTtl: 300 });
-      return jsonResponse({});
-    }
-
-    const match = patchMatch ?? postMatch;
-    if (!match) {
-      return new Response('Not Found', { status: 404 });
-    }
-
-    const applicationId = match[1];
-    const interactionToken = match[2];
-    const correlationMatch = /^test-token-(.+)$/.exec(interactionToken);
-    if (!correlationMatch) {
-      return new Response('Bad Request', { status: 400 });
-    }
-    const correlationId = correlationMatch[1];
-    const entry = JSON.stringify({
-      method: request.method,
-      path: pathname,
-      body,
-      receivedAt: new Date().toISOString(),
-      applicationId,
-      interactionToken,
-    });
-    await env.TEST_FOLLOWUPS.put(`followup:${correlationId}`, entry, { expirationTtl: 300 });
-    return jsonResponse({});
-  }
-
-  const getMatch = GET_FOLLOWUP_RE.exec(pathname);
-  if (request.method === 'GET' && getMatch && env.TEST_FOLLOWUPS) {
-    const correlationId = getMatch[1];
-    const entry = await env.TEST_FOLLOWUPS.get(`followup:${correlationId}`);
-    if (!entry) {
-      return new Response('Not Found', { status: 404 });
-    }
-    await env.TEST_FOLLOWUPS.delete(`followup:${correlationId}`);
-    return jsonResponse(JSON.parse(entry) as unknown);
-  }
-
-  const channelPostMatch = GET_CHANNEL_POST_RE.exec(pathname);
-  if (request.method === 'GET' && channelPostMatch && env.TEST_FOLLOWUPS) {
-    const channelId = channelPostMatch[1];
-    const entry = await env.TEST_FOLLOWUPS.get(`channel-post:${channelId}`);
-    if (!entry) {
-      return new Response('Not Found', { status: 404 });
-    }
-    await env.TEST_FOLLOWUPS.delete(`channel-post:${channelId}`);
-    return jsonResponse(JSON.parse(entry) as unknown);
-  }
-
-  if (request.method === 'DELETE' && getMatch && env.TEST_FOLLOWUPS) {
-    const correlationId = getMatch[1];
-    await env.TEST_FOLLOWUPS.delete(`followup:${correlationId}`);
-    return new Response(null, { status: 204 });
-  }
-
-  if (request.method === 'DELETE' && channelPostMatch && env.TEST_FOLLOWUPS) {
-    const channelId = channelPostMatch[1];
-    await env.TEST_FOLLOWUPS.delete(`channel-post:${channelId}`);
-    return new Response(null, { status: 204 });
-  }
-
-  const submissionMatch = GET_SUBMISSION_RE.exec(pathname);
-  if (request.method === 'GET' && submissionMatch && env.TEST_FOLLOWUPS) {
-    const interactionId = submissionMatch[1];
-    const entry = await env.KV.get(interactionId);
-    if (!entry) {
-      return new Response('Not Found', { status: 404 });
-    }
-    try {
-      return jsonResponse(JSON.parse(entry) as unknown);
-    } catch {
-      return new Response('Not Found', { status: 404 });
-    }
-  }
-
-  if (request.method === 'DELETE' && submissionMatch && env.TEST_FOLLOWUPS) {
-    const interactionId = submissionMatch[1];
-    await env.KV.delete(interactionId);
-    return new Response(null, { status: 204 });
-  }
-
-  return new Response('Not Found', { status: 404 });
-}
-
 function describeError(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
     return {
@@ -576,12 +444,6 @@ function buildFallbackEditedContent(result: FollowUpExecutionResult): string {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-
-    if (url.pathname.startsWith('/__test/')) {
-      return handleTestSink(request, env, url.pathname);
-    }
-
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }

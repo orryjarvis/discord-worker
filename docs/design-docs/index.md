@@ -14,7 +14,7 @@ content.
 |---|---|
 | [architecture-layering.md](architecture-layering.md) | Intentional layering model and allowed dependency directions |
 | [core-beliefs.md](core-beliefs.md) | Agent-first operating principles for this repo |
-| [test-tiers-and-ci-gates.md](test-tiers-and-ci-gates.md) | Three-tier test model, shared-test-file pattern, and PR vs. main gate structure |
+| [test-tiers-and-ci-gates.md](test-tiers-and-ci-gates.md) | Unit + e2e test model, local harness contract, and PR vs. main gate structure |
 
 ---
 
