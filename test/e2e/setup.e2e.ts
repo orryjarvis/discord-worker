@@ -171,6 +171,8 @@ function getFreePort(): Promise<number> {
 }
 
 beforeAll(async () => {
+  scheduledFallbackKv.clear();
+
   const workerPort = await getFreePort();
   discordProxyPort = await getFreePort();
 
@@ -190,6 +192,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  scheduledFallbackKv.clear();
+
   await worker.stop();
   await new Promise<void>((resolve, reject) => {
     discordProxyServer.close((error) => {
@@ -286,6 +290,9 @@ export async function runScheduled(cron: string, time: number): Promise<any> {
 
     return new globalThis.Response(null, { status: 200 });
   }
+
+  // Keep fallback runs independent when tests rerun in the same process.
+  scheduledFallbackKv.clear();
 
   const { ctx, drain } = createFallbackExecutionContext();
   appWorker.scheduled({
