@@ -1,0 +1,21 @@
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA, tag, or branch to deploy. Leave empty to deploy current HEAD of the selected workflow branch.
+        required: false
+        type: string
+name: prod
+permissions:
+  contents: read
+concurrency:
+  group: prod-release
+  cancel-in-progress: false
+jobs:
+  release-prod:
+    uses: ./.github/workflows/deploy-env.yaml
+    with:
+      environment_name: prod
+      publish_script: publish:prod
+      git_ref: ${{ inputs.ref }}
+    secrets: inherit
