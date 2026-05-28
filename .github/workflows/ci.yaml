@@ -5,62 +5,13 @@ on:
 name: ci
 permissions:
   contents: read
+concurrency:
+  group: test-release
+  cancel-in-progress: false
 jobs:
   release-test:
-    runs-on: ubuntu-latest
-    environment: test
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-node@v6.4.0
-        with:
-          node-version-file: package.json
-      - run: npm ci
-      - name: Deploy to Cloudflare test environment
-        run: npm run publish:test
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-  post-release-test:
-    runs-on: ubuntu-latest
-    environment: test
-    needs: [release-test]
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-node@v6.4.0
-        with:
-          node-version-file: package.json
-      - run: npm ci
-      - run: npm run deploy_commands
-        env:
-          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
-  release:
-    runs-on: ubuntu-latest
-    environment: prod
-    needs: [post-release-test]
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-node@v6.4.0
-        with:
-          node-version-file: package.json
-      - run: npm ci
-      - run: npm run publish:prod
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-  post-release:
-    runs-on: ubuntu-latest
-    environment: prod
-    needs: [release]
-    steps:
-      - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-node@v6.4.0
-        with:
-          node-version-file: package.json
-      - run: npm ci
-      - run: npm run deploy_commands
-        env:
-          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+    uses: ./.github/workflows/deploy-env.yaml
+    with:
+      environment_name: test
+      publish_script: publish:test
+    secrets: inherit

@@ -73,15 +73,33 @@ All jobs run in parallel on every pull request. All must pass before merge.
 
 ### Main workflow (`.github/workflows/ci.yaml`)
 
-Runs on every push to `main`. Jobs are sequential.
+Runs on every push to `main`.
+
+| Job | What it does |
+|---|---|
+| `release-test` | Calls reusable deployment workflow for the `test` environment (deploy + test guild command registration) |
+
+### Production workflow (`.github/workflows/prod.yaml`)
+
+Runs only when manually triggered (`workflow_dispatch`).
+
+| Input | Meaning |
+|---|---|
+| `ref` (optional) | Commit SHA, tag, or branch to deploy. If omitted, deploys current HEAD of the selected workflow branch. |
+
+| Job | What it does |
+|---|---|
+| `release-prod` | Calls reusable deployment workflow for the `prod` environment (deploy + production guild command registration) |
+
+### Reusable workflow (`.github/workflows/deploy-env.yaml`)
+
+Shared workflow called by both `ci.yaml` and `prod.yaml`.
 
 ```
-release-test → post-release-test → release → post-release
+release -> post-release
 ```
 
 | Job | What it does |
 |---|---|
-| `release-test` | Deploys to the `test` Cloudflare environment |
-| `post-release-test` | Registers slash commands in the test Discord guild |
-| `release` | Deploys to the `prod` Cloudflare environment |
-| `post-release` | Registers slash commands in the production Discord guild |
+| `release` | Checks out code, installs dependencies, deploys to Cloudflare with the selected publish script |
+| `post-release` | Checks out the same ref, installs dependencies, registers Discord commands |
