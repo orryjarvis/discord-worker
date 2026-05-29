@@ -193,6 +193,103 @@ describe('Discord Worker', () => {
     });
   });
 
+  it('acknowledges /reminder immediately and enqueues delayed reminder task', async () => {
+    const req = await signedRequest({
+      id: 'cmd-reminder-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'reminder-token',
+      channel_id: 'channel-7',
+      member: {
+        user: {
+          id: 'user-7',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 3,
+          },
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'hours',
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'Reminder set for 3 hours.',
+        flags: MessageFlags.Ephemeral,
+      },
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith(
+      {
+        task: {
+          commandName: 'reminder',
+          payload: {
+            channelId: 'channel-7',
+            userId: 'user-7',
+            length: 3,
+            interval: 'hours',
+          },
+        },
+      },
+      {
+        delaySeconds: 10800,
+      },
+    );
+  });
+
+  it('validates /reminder length according to interval constraints', async () => {
+    const req = await signedRequest({
+      id: 'cmd-reminder-2',
+      type: InteractionType.ApplicationCommand,
+      token: 'reminder-token-2',
+      channel_id: 'channel-7',
+      member: {
+        user: {
+          id: 'user-7',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'days',
+          },
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 31,
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'For interval "days", length must be between 1 and 30.',
+        flags: MessageFlags.Ephemeral,
+      },
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
   it('defers publicly and enqueues insult generation for user context command target', async () => {
     const req = await signedRequest({
       id: 'cmd-insult-context-1',
@@ -561,6 +658,48 @@ describe('Discord Worker', () => {
       'https://discord.com/api/v10/channels/word-channel-1/messages',
       expect.objectContaining({
         method: 'POST',
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer posts reminder message using channel endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"message-reminder-1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: 'reminder-1',
+        timestamp: new Date(),
+        body: {
+          task: {
+            commandName: 'reminder',
+            payload: {
+              channelId: 'channel-7',
+              userId: 'user-7',
+              length: 3,
+              interval: 'hours',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/channel-7/messages',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          content: '<@user-7> ⏰ Reminder: 3 hours elapsed.',
+        }),
       }),
     );
     expect(ack).toHaveBeenCalled();
@@ -1020,4 +1159,3 @@ describe('Discord Worker', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
-

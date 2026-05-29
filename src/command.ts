@@ -29,6 +29,21 @@ export { INSULT_COMMAND_NAME } from './insult.js';
 export { EIGHT_BALL_COMMAND_NAME } from './8ball.js';
 
 export const WOTD_COMMAND_NAME = 'wotd';
+export const REMINDER_COMMAND_NAME = 'reminder';
+
+type ReminderInterval = 'minutes' | 'hours' | 'days';
+
+const REMINDER_INTERVAL_SECONDS: Record<ReminderInterval, number> = {
+  minutes: 60,
+  hours: 60 * 60,
+  days: 60 * 60 * 24,
+};
+
+const REMINDER_LENGTH_LIMITS: Record<ReminderInterval, { min: number; max: number }> = {
+  minutes: { min: 1, max: 1_440 },
+  hours: { min: 1, max: 168 },
+  days: { min: 1, max: 30 },
+};
 
 type ModalComponentRows = Array<{
   components?: Array<{
@@ -145,11 +160,89 @@ function handleWotdCommand(request: CommandRequest): CommandResult {
   }
 }
 
+function parseReminderLength(value: string | number | boolean | undefined): number | null {
+  if (typeof value !== 'number' || !Number.isInteger(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+function parseReminderInterval(value: string | number | boolean | undefined): ReminderInterval | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const interval = value.toLowerCase();
+  if (interval === 'minutes' || interval === 'hours' || interval === 'days') {
+    return interval;
+  }
+
+  return null;
+}
+
+function handleReminderCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command': {
+      const length = parseReminderLength(request.options.length);
+      const interval = parseReminderInterval(request.options.interval);
+      if (!length || !interval) {
+        return {
+          kind: 'channel-message',
+          content: 'Usage: /reminder length:<number> interval:<minutes|hours|days>',
+          ephemeral: true,
+        };
+      }
+
+      const limits = REMINDER_LENGTH_LIMITS[interval];
+      if (length < limits.min || length > limits.max) {
+        return {
+          kind: 'channel-message',
+          content: `For interval "${interval}", length must be between ${limits.min} and ${limits.max}.`,
+          ephemeral: true,
+        };
+      }
+
+      if (!request.channelId || !request.userId) {
+        return {
+          kind: 'channel-message',
+          content: 'Could not schedule reminder from this context.',
+          ephemeral: true,
+        };
+      }
+
+      return {
+        kind: 'ack-and-enqueue-task',
+        content: `Reminder set for ${length} ${interval}.`,
+        task: {
+          commandName: REMINDER_COMMAND_NAME,
+          payload: {
+            channelId: request.channelId,
+            userId: request.userId,
+            length,
+            interval,
+          },
+        },
+        ephemeral: true,
+        delaySeconds: length * REMINDER_INTERVAL_SECONDS[interval],
+      };
+    }
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 export const commands: CommandMap = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
   [INSULT_COMMAND_NAME]: handleInsultCommand,
   [EIGHT_BALL_COMMAND_NAME]: handleEightBallCommand,
   [WOTD_COMMAND_NAME]: handleWotdCommand,
+  [REMINDER_COMMAND_NAME]: handleReminderCommand,
 };
 
 export function parseCommandModalSubmit(data: {
