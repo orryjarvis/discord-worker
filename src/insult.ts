@@ -47,11 +47,6 @@ async function generateInsultText(targetMention: string, env: AiRuntimeEnv): Pro
     temperature: 0.9,
   });
 
-  console.log('Insult model output received', {
-    model: INSULT_MODEL,
-    shape: summarizeAiResultShape(rawResult),
-  });
-
   const output = extractAiText(rawResult);
   if (!output) {
     console.error('Insult model output had no extractable text', {

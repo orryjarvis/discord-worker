@@ -38,5 +38,5 @@ Also treat the repo's agent tooling files as part of the bootstrap state:
 Before marking work done:
 
 ```sh
-npm run check && npm run lint && npm run test && npm run e2e
+npm run check && npm run build && npm run lint && npm run test && npm run e2e
 ```

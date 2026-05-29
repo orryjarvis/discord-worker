@@ -72,11 +72,6 @@ async function generateEightBallText(context: EightBallTargetContext, env: AiRun
     temperature: 0.9,
   });
 
-  console.log('8ball model output received', {
-    model: EIGHT_BALL_MODEL,
-    shape: summarizeAiResultShape(rawResult),
-  });
-
   const output = extractAiText(rawResult);
   if (!output) {
     console.error('8ball model output had no extractable text', {

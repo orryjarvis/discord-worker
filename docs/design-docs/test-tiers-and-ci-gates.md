@@ -68,8 +68,9 @@ All jobs run in parallel on every pull request. All must pass before merge.
 | `test` | `npm test` |
 | `lint` | `npm run lint` |
 | `audit` | `npm audit --omit=dev` |
-| `build` | `npm run check` |
+| `check` | `npm run check` |
 | `e2e` | `npm run e2e` |
+| `build` | `npm run build` |
 
 ### Main workflow (`.github/workflows/ci.yaml`)
 

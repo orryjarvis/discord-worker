@@ -106,11 +106,6 @@ async function generatePastifiedText(idea: string, env: AiRuntimeEnv): Promise<s
     temperature: 0.9,
   });
 
-  console.log('Pastify model output received', {
-    model: PASTIFY_MODEL,
-    shape: summarizeAiResultShape(rawResult),
-  });
-
   const output = extractAiText(rawResult);
   if (!output) {
     console.error('Pastify model output had no extractable text', {

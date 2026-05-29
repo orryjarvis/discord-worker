@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
-  MessageFlags,
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
@@ -12,7 +11,7 @@ import {
   signAndSendRequest,
   waitForChannelPost,
   waitForFollowUp,
-} from './setup.e2e';
+} from './setup';
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {
@@ -122,6 +121,7 @@ describe('Discord Worker', () => {
     expect(typeof patched.content).toBe('string');
     expect(patched.content).toContain('<@user-e2e>');
     expect((patched.content as string).length).toBeGreaterThan('<@user-e2e> '.length);
+    expect(patched.content).not.toContain('punchline got lost');
   });
 
   it('defers user-context insult publicly and sends a roast mentioning the selected user', async () => {
@@ -149,6 +149,7 @@ describe('Discord Worker', () => {
     expect(typeof patched.content).toBe('string');
     expect(patched.content).toContain('<@user-context-e2e>');
     expect((patched.content as string).length).toBeGreaterThan('<@user-context-e2e> '.length);
+    expect(patched.content).not.toContain('punchline got lost');
   });
 
   it('defers message-context 8ball publicly and sends a quoted follow-up via original response edit', async () => {
@@ -189,6 +190,7 @@ describe('Discord Worker', () => {
 
     expect((payload.content as string)).toContain('> Should we run one more game before bed?');
     expect((payload.content as string)).toContain('🎱 ');
+    expect((payload.content as string)).not.toContain('cloudy right now');
   });
 
   it('defers on modal submit and then sends channel-visible pastified content', async () => {
@@ -226,6 +228,7 @@ describe('Discord Worker', () => {
     const patched = JSON.parse(followUp.body) as Record<string, unknown>;
     expect(typeof patched.content).toBe('string');
     expect((patched.content as string).length).toBeGreaterThan(0);
+    expect(patched.content).not.toContain('Could not pastify');
   });
 
   it('responds to unknown command with 400', async () => {

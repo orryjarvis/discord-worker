@@ -3,29 +3,24 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules/**", "eslint.config.mjs"],
+    ignores: ["node_modules/**", "dist/**", "eslint.config.mjs"],
   },
   tseslint.configs.recommendedTypeChecked,
   {
     files: ["src/**/*.ts"],
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.worker.json"],
+        project: ["./src/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       globals: globals.serviceworker,
     },
   },
   {
-    files: [
-      "scripts/**/*.ts",
-      "test/**/*.ts",
-      "vitest.config.ts",
-      "test/e2e/vitest.e2e.config.ts",
-    ],
+    files: ["vite.config.ts", "scripts/**/*.ts"],
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.node.json"],
+        project: ["./tsconfig.json", "./scripts/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       globals: globals.node,
@@ -33,6 +28,26 @@ export default tseslint.config(
   },
   {
     files: ["test/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./test/tsconfig.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: globals.node,
+    },
+  },
+  {
+    files: ["e2e/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./e2e/tsconfig.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: globals.node,
+    },
+  },
+  {
+    files: ["test/**/*.ts", "e2e/**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",

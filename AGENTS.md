@@ -23,7 +23,7 @@ Current skills:
 
 Runtime: Cloudflare Workers (no Node.js APIs at runtime).  
 Language: TypeScript.  
-Deployment: Wrangler (`wrangler.jsonc`).  
+Dev/build: Vite + Cloudflare Vite plugin (`vite.config.ts`) with Wrangler config input (`wrangler.jsonc`).  
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 `DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
 Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posting),
@@ -50,9 +50,9 @@ Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posti
 | Core request/result interfaces | `src/core.ts` |
 | Discord helpers (verify, respond) | `src/discord.ts` |
 | Unit tests | `test/worker.test.ts` |
-| E2E tests | `test/e2e/` |
-| E2E test config | `test/e2e/vitest.e2e.config.ts` |
-| Shared e2e setup | `test/e2e/setup.shared.ts` |
+| E2E tests | `e2e/interactions.test.ts` |
+| E2E test config | `e2e/vitest.config.ts` |
+| E2E setup files | `e2e/setup.ts`, `e2e/globalSetup.ts` |
 | Deploy scripts | `scripts/` |
 | Build / lint / test commands | `package.json` |
 | Cloudflare config | `wrangler.jsonc` |
@@ -72,7 +72,7 @@ Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posti
   at least two real call sites or a clear near-term second use case. One
   call site does not justify abstraction.
 - **Do not break the test harness.** The e2e setup under
-  `test/e2e/` is part of the product. Do not delete or restructure it
+  `e2e/` is part of the product. Do not delete or restructure it
   without understanding what it does.
 - **Run validation before considering work done.** See _Testing and
   validation_ below.
@@ -130,6 +130,7 @@ Before marking work done, run:
 ```sh
 npm run check   # TypeScript type check
 npm run lint    # ESLint
+npm run build   # Vite
 npm run test    # Unit tests (Vitest)
 npm run e2e     # E2E tests (requires wrangler dev environment)
 ```
@@ -138,7 +139,7 @@ Unit tests should cover the current follow-up flow by asserting that the worker
 enqueues work with `FOLLOW_UP_QUEUE.send`. Do not rely on the removed
 `waitUntil`/fake-timer path when updating or adding tests.
 
-E2E tests use Wrangler's `unstable_dev` with `env: 'dev'` and `local: true`. Queue bindings require local mode — remote mode (`local: false`) does not support queues and causes 503s on all requests.
+E2E tests run under the `@cloudflare/vitest-pool-workers` Vitest plugin (`e2e/vitest.config.ts`). The worker is invoked directly via `SELF.fetch()` inside the Workers runtime — no `unstable_dev` or separate server process. A Node mock server started in `e2e/globalSetup.ts` intercepts outbound Discord API and RSS calls.
 
 Do not delete or rewrite test helpers without understanding what they test.
 

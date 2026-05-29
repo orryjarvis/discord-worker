@@ -31,7 +31,7 @@ jobs:
           node-version-file: package.json
       - run: npm ci
       - run: npm audit --omit=dev
-  build:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -49,3 +49,12 @@ jobs:
           node-version-file: package.json
       - run: npm ci
       - run: npm run e2e
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version-file: package.json
+      - run: npm ci
+      - run: npm run build
