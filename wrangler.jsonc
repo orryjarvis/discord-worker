@@ -5,8 +5,7 @@
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
   "name": "discord-worker",
   "ai": {
-    "binding": "AI",
-    "remote": true
+    "binding": "AI"
   },
   "env": {
     "test": {
