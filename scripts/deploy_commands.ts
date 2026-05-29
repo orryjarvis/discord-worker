@@ -81,7 +81,7 @@ async function deployCommands() {
   const botToken = process.env.DISCORD_TOKEN;
   const guildId = process.env.DISCORD_GUILD_ID;
 
-  if (!applicationId || !botToken) {
+  if (!applicationId || !botToken || !guildId) {
     console.error('DISCORD_APPLICATION_ID, DISCORD_GUILD_ID, and DISCORD_TOKEN are required');
     process.exit(1);
   }
@@ -104,12 +104,11 @@ async function deployCommands() {
     ]),
   });
 
-  if (response.ok) {
-    console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, reminder');
-  } else {
-    console.error('Error registering commands');
-    console.error(await response.text());
+  if (!response.ok) {
+    throw new Error(`Error registering commands: ${response.status} ${await response.text()}`);
   }
+
+  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, reminder');
 }
 
 void deployCommands().catch((error: unknown) => {

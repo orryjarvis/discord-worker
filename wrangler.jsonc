@@ -13,13 +13,13 @@
   "triggers": {
     "crons": ["30 11 * * *", "30 12 * * *"]
   },
-  "vars": {
-    "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
-    "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
-  },
   "env": {
     "test": {
       "name": "discord-worker-test",
+      "vars": {
+        "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
+      },
       "ai": { "binding": "AI" },
       "kv_namespaces": [
         {
@@ -34,6 +34,10 @@
     },
     "prod": {
       "name": "discord-worker",
+      "vars": {
+        "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
+      },
       "ai": { "binding": "AI" },
       "kv_namespaces": [
         {
