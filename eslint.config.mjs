@@ -20,8 +20,7 @@ export default tseslint.config(
     files: [
       "scripts/**/*.ts",
       "test/**/*.ts",
-      "vitest.config.ts",
-      "test/e2e/vitest.e2e.config.ts",
+      "e2e/**/*.ts"
     ],
     languageOptions: {
       parserOptions: {
@@ -32,7 +31,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["test/**/*.ts"],
+    files: ["test/**/*.ts", "e2e/**/*.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off",

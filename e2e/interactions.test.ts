@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
-  MessageFlags,
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
@@ -12,7 +11,7 @@ import {
   signAndSendRequest,
   waitForChannelPost,
   waitForFollowUp,
-} from './setup.e2e';
+} from './setup';
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {

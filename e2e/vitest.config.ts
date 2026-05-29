@@ -2,11 +2,14 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    include: ['test/**/*.unit.test.ts', 'test/**/*.test.ts'], // Exclude e2e
-    exclude: ['test/e2e/**/*.test.ts'],
+    include: ['e2e/**/*.test.ts'],
     globals: true,
     environment: 'node',
-    setupFiles: [],
+    setupFiles: ['e2e/setup.ts'],
     watch: false,
+    testTimeout: 15000,
+    sequence: {
+      concurrent: false,
+    },
   },
 });
