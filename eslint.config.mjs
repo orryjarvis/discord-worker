@@ -3,29 +3,44 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["node_modules/**", "eslint.config.mjs"],
+    ignores: ["node_modules/**", "dist/**", "eslint.config.mjs"],
   },
   tseslint.configs.recommendedTypeChecked,
   {
     files: ["src/**/*.ts"],
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.worker.json"],
+        project: ["./src/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       globals: globals.serviceworker,
     },
   },
   {
-    files: [
-      "vite.config.ts",
-      "scripts/**/*.ts",
-      "test/**/*.ts",
-      "e2e/**/*.ts"
-    ],
+    files: ["vite.config.ts", "scripts/**/*.ts"],
     languageOptions: {
       parserOptions: {
-        project: ["./tsconfig.node.json"],
+        project: ["./tsconfig.json", "./scripts/tsconfig.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: globals.node,
+    },
+  },
+  {
+    files: ["test/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./test/tsconfig.json"],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      globals: globals.node,
+    },
+  },
+  {
+    files: ["e2e/**/*.ts"],
+    languageOptions: {
+      parserOptions: {
+        project: ["./e2e/tsconfig.json"],
         tsconfigRootDir: import.meta.dirname,
       },
       globals: globals.node,

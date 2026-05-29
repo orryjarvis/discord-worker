@@ -15,7 +15,7 @@
     "preview": "vite preview --port 8787",
     "lint": "eslint . --ext .ts",
     "fix": "eslint --fix . --ext .ts",
-    "check": "tsc --noEmit -p tsconfig.worker.json && tsc --noEmit -p tsconfig.node.json",
+    "check": "tsc --noEmit -p src/tsconfig.json && tsc --noEmit -p test/tsconfig.json && tsc --noEmit -p e2e/tsconfig.json && tsc --noEmit -p scripts/tsconfig.json",
     "test": "vitest --config ./test/vitest.config.ts",
     "e2e": "vitest --config ./e2e/vitest.config.ts",
     "deploy_commands": "tsx scripts/deploy_commands.ts",
