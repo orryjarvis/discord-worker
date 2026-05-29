@@ -38,7 +38,7 @@ interface FollowUpMessage {
   task?: FollowUpTask;
 }
 
-interface Env {
+export interface Env {
   AI: Ai;
   DISCORD_APPLICATION_ID: string;
   SIGNATURE_PUBLIC_KEY: string;
