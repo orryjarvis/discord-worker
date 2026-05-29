@@ -11,6 +11,11 @@ on:
         required: false
         type: string
         default: ''
+    secrets:
+      CF_API_TOKEN:
+        required: true
+      CF_ACCOUNT_ID:
+        required: true
 jobs:
   release:
     runs-on: ubuntu-latest

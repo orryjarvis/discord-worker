@@ -14,3 +14,6 @@ jobs:
     with:
       environment_name: test
       publish_script: publish:test
+    secrets:
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
