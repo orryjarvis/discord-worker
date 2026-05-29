@@ -3,6 +3,7 @@ import {
   verifyDiscordRequest,
   jsonResponse,
   editOriginalInteractionResponse,
+  createChannelMessage,
 } from './discord.js';
 import {
   ApplicationCommandType,
@@ -16,6 +17,7 @@ import {
   commands,
   executeFollowUpTask,
   parseCommandModalSubmit,
+  REMINDER_COMMAND_NAME,
   WOTD_COMMAND_NAME,
 } from './command.js';
 import { dispatchRequest } from './dispatch.js';
@@ -106,6 +108,15 @@ const ApplicationCommandInteractionSchema = BaseInteractionSchema.extend({
   type: z.literal(InteractionType.ApplicationCommand),
   id: z.string(),
   token: z.string(),
+  channel_id: z.string().optional(),
+  member: z.object({
+    user: z.object({
+      id: z.string().optional(),
+    }).optional(),
+  }).optional(),
+  user: z.object({
+    id: z.string().optional(),
+  }).optional(),
   data: z.object({
     name: z.string(),
     type: z.number().optional(),
@@ -280,6 +291,8 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         commandName: parsed.data.data.name.toLowerCase(),
         token: parsed.data.token,
         options,
+        userId: parsed.data.member?.user?.id ?? parsed.data.user?.id ?? null,
+        channelId: parsed.data.channel_id ?? null,
         targetId: isTargetContextCommand
           ? parsed.data.data.target_id ?? null
           : options.target ?? null,
@@ -382,7 +395,14 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
       });
 
     case 'ack-and-enqueue-task':
-      await env.FOLLOW_UP_QUEUE.send({ task: outcome.task });
+      if (typeof outcome.delaySeconds === 'number') {
+        await env.FOLLOW_UP_QUEUE.send(
+          { task: outcome.task },
+          { delaySeconds: outcome.delaySeconds },
+        );
+      } else {
+        await env.FOLLOW_UP_QUEUE.send({ task: outcome.task });
+      }
       return jsonResponse({
         type: InteractionResponseType.ChannelMessageWithSource,
         data: {
@@ -393,6 +413,15 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
 
     case 'save-submission':
       await env.KV.put(outcome.submission.interactionId, JSON.stringify(outcome.submission));
+      return jsonResponse({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          content: outcome.content,
+          flags: outcome.ephemeral ? MessageFlags.Ephemeral : 0,
+        },
+      });
+
+    case 'channel-message':
       return jsonResponse({
         type: InteractionResponseType.ChannelMessageWithSource,
         data: {
@@ -482,6 +511,33 @@ export default {
         const task = message.body.task;
         if (task?.commandName === WOTD_COMMAND_NAME) {
           await postWordOfDayMessage(env, new Date());
+          message.ack();
+          continue;
+        }
+
+        if (task?.commandName === REMINDER_COMMAND_NAME) {
+          const channelId = typeof task.payload.channelId === 'string' ? task.payload.channelId : null;
+          const userId = typeof task.payload.userId === 'string' ? task.payload.userId : null;
+          const length = typeof task.payload.length === 'number' ? task.payload.length : null;
+          const interval = typeof task.payload.interval === 'string' ? task.payload.interval : null;
+          if (!channelId || !userId || !length || !interval) {
+            throw new Error('Reminder queue payload missing required values');
+          }
+
+          const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
+          const response = await createChannelMessage(
+            channelId,
+            env.DISCORD_TOKEN,
+            {
+              content: `<@${userId}> ⏰ Reminder: ${length} ${interval} elapsed.`,
+            },
+            apiBaseUrl,
+          );
+
+          if (!response.ok) {
+            throw new Error(`Failed to create reminder channel message: ${response.status} ${response.statusText}`);
+          }
+
           message.ack();
           continue;
         }

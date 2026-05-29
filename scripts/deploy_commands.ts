@@ -40,6 +40,42 @@ const WOTD_COMMAND = {
   type: ApplicationCommandType.ChatInput,
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
+const REMINDER_COMMAND = {
+  name: 'reminder',
+  description: 'Schedule a reminder',
+  type: ApplicationCommandType.ChatInput,
+  options: [
+    {
+      name: 'length',
+      description: 'How long to wait before reminding you',
+      type: ApplicationCommandOptionType.Integer,
+      required: true,
+      min_value: 1,
+      max_value: 1_440,
+    },
+    {
+      name: 'interval',
+      description: 'The reminder interval unit',
+      type: ApplicationCommandOptionType.String,
+      required: true,
+      choices: [
+        {
+          name: 'minutes',
+          value: 'minutes',
+        },
+        {
+          name: 'hours',
+          value: 'hours',
+        },
+        {
+          name: 'days',
+          value: 'days',
+        },
+      ],
+    },
+  ],
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
   const botToken = process.env.DISCORD_TOKEN;
@@ -58,11 +94,18 @@ async function deployCommands() {
       'Content-Type': 'application/json',
       Authorization: `Bot ${botToken}`,
     },
-    body: JSON.stringify([PASTIFY_COMMAND, INSULT_COMMAND, INSULT_USER_COMMAND, EIGHT_BALL_MESSAGE_COMMAND, WOTD_COMMAND]),
+    body: JSON.stringify([
+      PASTIFY_COMMAND,
+      INSULT_COMMAND,
+      INSULT_USER_COMMAND,
+      EIGHT_BALL_MESSAGE_COMMAND,
+      WOTD_COMMAND,
+      REMINDER_COMMAND,
+    ]),
   });
 
   if (response.ok) {
-    console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd');
+    console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, reminder');
   } else {
     console.error('Error registering commands');
     console.error(await response.text());

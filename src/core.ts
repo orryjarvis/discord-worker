@@ -19,6 +19,8 @@ export interface SlashCommandRequest {
   commandName: string;
   token: string;
   options: Record<string, string | number | boolean>;
+  userId: string | null;
+  channelId: string | null;
   targetId: string | number | boolean | null;
   targetMessageContent: string | null;
   targetMessageAuthorId: string | null;
@@ -105,6 +107,13 @@ export type AckAndEnqueueTaskResult = {
   content: string;
   task: FollowUpTask;
   ephemeral: boolean;
+  delaySeconds?: number;
+};
+
+export type ChannelMessageResult = {
+  kind: 'channel-message';
+  content: string;
+  ephemeral: boolean;
 };
 
 export type CommandResult =
@@ -112,7 +121,8 @@ export type CommandResult =
   | ShowModalResult
   | SaveSubmissionResult
   | EnqueueFollowUpResult
-  | AckAndEnqueueTaskResult;
+  | AckAndEnqueueTaskResult
+  | ChannelMessageResult;
 
 export type CommandHandler = (request: CommandRequest) => Promise<CommandResult> | CommandResult;
 
