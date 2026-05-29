@@ -18,6 +18,7 @@ export default tseslint.config(
   },
   {
     files: [
+      "vite.config.ts",
       "scripts/**/*.ts",
       "test/**/*.ts",
       "e2e/**/*.ts"

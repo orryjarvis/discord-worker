@@ -23,7 +23,7 @@ Current skills:
 
 Runtime: Cloudflare Workers (no Node.js APIs at runtime).  
 Language: TypeScript.  
-Deployment: Wrangler (`wrangler.jsonc`).  
+Dev/build: Vite + Cloudflare Vite plugin (`vite.config.ts`) with Wrangler config input (`wrangler.jsonc`).  
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
 `DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
 Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posting),
