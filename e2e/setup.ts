@@ -15,6 +15,15 @@ import * as ed from '@noble/ed25519';
 import worker from '../src/index.js';
 import type { Env as AppEnv } from '../src/app.js';
 
+// Replace the AI binding with a lightweight stub so e2e tests run without
+// Cloudflare credentials. env is the same object the fetch handler receives,
+// so this assignment is visible to all SELF.fetch() dispatches.
+(env as unknown as Record<string, unknown>).AI = {
+  run: (_model: string, _inputs: unknown): Promise<{ response: string }> => {
+    return Promise.resolve({ response: 'Mock AI output for testing.' });
+  },
+};
+
 // Keypair generated via scripts/generate_test_keys.ts — matches SIGNATURE_PUBLIC_KEY in wrangler.jsonc dev env.
 const PRIVATE_KEY_HEX = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cdac1bd4023e';
 

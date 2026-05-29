@@ -5,17 +5,25 @@
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
   "name": "discord-worker",
   "ai": {
-    "binding": "AI"
+    "binding": "AI",
+    "remote": true
+  },
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true
+    }
+  },
+  "triggers": {
+    "crons": ["30 11 * * *", "30 12 * * *"]
+  },
+  "vars": {
+    "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
+    "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
   },
   "env": {
     "test": {
       "name": "discord-worker-test",
-      "observability": {
-        "enabled": true,
-        "traces": {
-          "enabled": true
-        }
-      },
       "kv_namespaces": [
         {
           "binding": "KV",
@@ -25,29 +33,10 @@
       "queues": {
         "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue-test" }],
         "consumers": [{ "queue": "discord-follow-up-queue-test" }]
-      },
-      "triggers": {
-        "crons": ["30 11 * * *", "30 12 * * *"]
-      },
-      "vars": {
-        "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
-        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
-
-        // Vars managed externally:
-        // "DISCORD_APPLICATION_ID": <REDACTED>,
-        // "DISCORD_TOKEN": <REDACTED>,
-        // "SIGNATURE_PUBLIC_KEY": <REDACTED>,
-        // "WORD_OF_DAY_CHANNEL_ID": <REDACTED>
       }
     },
     "prod": {
       "name": "discord-worker",
-      "observability": {
-        "enabled": true,
-        "traces": {
-          "enabled": true
-        }
-      },
       "kv_namespaces": [
         {
           "binding": "KV",
@@ -57,19 +46,6 @@
       "queues": {
         "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue" }],
         "consumers": [{ "queue": "discord-follow-up-queue" }]
-      },
-      "triggers": {
-        "crons": ["30 11 * * *", "30 12 * * *"]
-      },
-      "vars": {
-        "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
-        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
-
-        // Vars managed externally:
-        // "DISCORD_APPLICATION_ID": <REDACTED>,
-        // "DISCORD_TOKEN": <REDACTED>,
-        // "SIGNATURE_PUBLIC_KEY": <REDACTED>,
-        // "WORD_OF_DAY_CHANNEL_ID": <REDACTED>
       }
     }
   }
