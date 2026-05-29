@@ -4,36 +4,13 @@
   "workers_dev": true,
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
   "name": "discord-worker",
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
   "env": {
-    "dev": {
-      "name": "discord-worker-dev",
-      "ai": {
-        "binding": "AI"
-      },
-      "kv_namespaces": [
-        {
-          "binding": "KV"
-        }
-      ],
-      "queues": {
-        "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue-dev" }],
-        "consumers": [{ "queue": "discord-follow-up-queue-dev" }]
-      },
-      "upload_source_maps": true,
-      "vars": {
-        "DISCORD_APPLICATION_ID": "TEST_APPLICATION",
-        "DISCORD_TOKEN": "not-a-real-token",
-        "SIGNATURE_PUBLIC_KEY": "04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e",
-        "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
-        "WORD_OF_DAY_CHANNEL_ID": "test-word-of-day-channel",
-        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
-      }
-    },
     "test": {
       "name": "discord-worker-test",
-      "ai": {
-        "binding": "AI"
-      },
       "observability": {
         "enabled": true,
         "traces": {
@@ -66,9 +43,6 @@
     },
     "prod": {
       "name": "discord-worker",
-      "ai": {
-        "binding": "AI"
-      },
       "observability": {
         "enabled": true,
         "traces": {

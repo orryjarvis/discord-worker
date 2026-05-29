@@ -115,22 +115,12 @@ export async function runWordOfDayScheduledActivity(
 
   const scheduleParts = getEasternScheduleParts(controller.scheduledTime);
   if (scheduleParts.hour !== WORD_OF_DAY_POST_HOUR || scheduleParts.minute !== WORD_OF_DAY_POST_MINUTE) {
-    console.log('Word-of-day schedule skipped due to non-target local time', {
-      cron: controller.cron,
-      scheduledTime: controller.scheduledTime,
-      localHour: scheduleParts.hour,
-      localMinute: scheduleParts.minute,
-    });
     return;
   }
 
   const dedupeKey = `word-of-day:posted:${scheduleParts.dateKey}`;
   const alreadyPosted = await env.KV.get(dedupeKey);
   if (alreadyPosted) {
-    console.log('Word-of-day schedule skipped because this local date was already posted', {
-      cron: controller.cron,
-      dedupeKey,
-    });
     return;
   }
 
@@ -145,10 +135,4 @@ export async function runWordOfDayScheduledActivity(
     }),
     { expirationTtl: 60 * 60 * 24 * 14 },
   );
-
-  console.log('Word-of-day message posted', {
-    cron: controller.cron,
-    dedupeKey,
-    word: result.word,
-  });
 }
