@@ -14,4 +14,3 @@ jobs:
     with:
       environment_name: test
       publish_script: publish:test
-    secrets: inherit
