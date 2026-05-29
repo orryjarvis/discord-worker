@@ -16,6 +16,12 @@ on:
         required: true
       CF_ACCOUNT_ID:
         required: true
+      DISCORD_APPLICATION_ID:
+        required: true
+      DISCORD_TOKEN:
+        required: true
+      DISCORD_GUILD_ID:
+        required: true
 jobs:
   release:
     runs-on: ubuntu-latest
