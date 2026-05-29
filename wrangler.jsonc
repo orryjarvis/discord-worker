@@ -4,10 +4,6 @@
   "workers_dev": true,
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
   "name": "discord-worker",
-  "ai": {
-    "binding": "AI",
-    "remote": true
-  },
   "observability": {
     "enabled": true,
     "traces": {
@@ -24,6 +20,7 @@
   "env": {
     "test": {
       "name": "discord-worker-test",
+      "ai": { "binding": "AI" },
       "kv_namespaces": [
         {
           "binding": "KV",
@@ -37,6 +34,7 @@
     },
     "prod": {
       "name": "discord-worker",
+      "ai": { "binding": "AI" },
       "kv_namespaces": [
         {
           "binding": "KV",
