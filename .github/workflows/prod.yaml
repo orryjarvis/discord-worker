@@ -9,18 +9,29 @@ name: prod
 permissions:
   contents: read
 concurrency:
-  group: prod-release
+  group: release
   cancel-in-progress: false
 jobs:
-  release-prod:
-    uses: ./.github/workflows/deploy-env.yaml
-    with:
-      environment_name: prod
-      publish_script: publish:prod
-      git_ref: ${{ inputs.ref }}
-    secrets:
-      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-      DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
-      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-      DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+  release:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - if: ${{ inputs.ref == '' }}
+        uses: actions/checkout@v6.0.2
+      - if: ${{ inputs.ref != '' }}
+        uses: actions/checkout@v6.0.2
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version-file: package.json
+      - run: npm ci
+      - run: npm run publish:prod
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      - run: npm run deploy_commands
+        env:
+          DISCORD_APPLICATION_ID: ${{ secrets.DISCORD_APPLICATION_ID }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
