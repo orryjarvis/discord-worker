@@ -24,11 +24,21 @@ type CapturedDiscordRequest = {
   channelId?: string;
 };
 
+type CapturedGitHubIssueRequest = {
+  method: string;
+  path: string;
+  body: string;
+  receivedAt: string;
+};
+
 const followUpsByCorrelationId = new Map<string, CapturedDiscordRequest[]>();
 const channelPostsByChannelId = new Map<string, CapturedDiscordRequest[]>();
+const githubIssuesByRepoSlug = new Map<string, CapturedGitHubIssueRequest[]>();
 
 const WEBHOOK_PATH_RE = /^\/api\/v10\/webhooks\/([^/]+)\/([^/]+)(?:\/messages\/@original)?$/;
 const CHANNEL_MESSAGE_PATH_RE = /^\/api\/v10\/channels\/([^/]+)\/messages$/;
+const GITHUB_INSTALLATION_TOKEN_PATH_RE = /^\/api\/github\/app\/installations\/([^/]+)\/access_tokens$/;
+const GITHUB_ISSUE_PATH_RE = /^\/api\/github\/repos\/([^/]+)\/([^/]+)\/issues$/;
 
 const MOCK_WORD_OF_DAY_FEED_PATH = '/mock/wotd/feed/rss2';
 const MOCK_WORD_OF_DAY_FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -56,6 +66,12 @@ function enqueueChannelPost(channelId: string, entry: CapturedDiscordRequest): v
   channelPostsByChannelId.set(channelId, entries);
 }
 
+function enqueueGitHubIssue(repoSlug: string, entry: CapturedGitHubIssueRequest): void {
+  const entries = githubIssuesByRepoSlug.get(repoSlug) ?? [];
+  entries.push(entry);
+  githubIssuesByRepoSlug.set(repoSlug, entries);
+}
+
 function dequeueFollowUp(correlationId: string): CapturedDiscordRequest | null {
   const entries = followUpsByCorrelationId.get(correlationId);
   if (!entries || entries.length === 0) return null;
@@ -69,6 +85,14 @@ function dequeueChannelPost(channelId: string): CapturedDiscordRequest | null {
   if (!entries || entries.length === 0) return null;
   const entry = entries.shift() ?? null;
   if (entries.length === 0) channelPostsByChannelId.delete(channelId);
+  return entry;
+}
+
+function dequeueGitHubIssue(repoSlug: string): CapturedGitHubIssueRequest | null {
+  const entries = githubIssuesByRepoSlug.get(repoSlug);
+  if (!entries || entries.length === 0) return null;
+  const entry = entries.shift() ?? null;
+  if (entries.length === 0) githubIssuesByRepoSlug.delete(repoSlug);
   return entry;
 }
 
@@ -133,6 +157,19 @@ function startMockServer(port: number): Promise<http.Server> {
         return;
       }
 
+      if (method === 'GET' && urlPath.startsWith('/test-api/github-issues/')) {
+        const repoSlug = urlPath.slice('/test-api/github-issues/'.length);
+        const entry = dequeueGitHubIssue(repoSlug);
+        if (entry) {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify(entry));
+        } else {
+          res.writeHead(204);
+          res.end();
+        }
+        return;
+      }
+
       // ── RSS feed mock ─────────────────────────────────────────────────────────
       if (method === 'GET' && urlPath === MOCK_WORD_OF_DAY_FEED_PATH) {
         res.writeHead(200, { 'content-type': 'application/rss+xml; charset=utf-8' });
@@ -160,6 +197,43 @@ function startMockServer(port: number): Promise<http.Server> {
         }
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end('{}');
+        return;
+      }
+
+      const githubTokenMatch = GITHUB_INSTALLATION_TOKEN_PATH_RE.exec(urlPath);
+      if (githubTokenMatch) {
+        res.writeHead(201, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({
+          token: 'github-installation-token-e2e',
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        }));
+        return;
+      }
+
+      const githubIssueMatch = GITHUB_ISSUE_PATH_RE.exec(urlPath);
+      if (githubIssueMatch) {
+        const repoSlug = `${githubIssueMatch[1]}/${githubIssueMatch[2]}`;
+        enqueueGitHubIssue(repoSlug, {
+          method,
+          path: urlPath,
+          body,
+          receivedAt: new Date().toISOString(),
+        });
+
+        let parsedBody: { title?: string } = {};
+        try {
+          parsedBody = JSON.parse(body) as { title?: string };
+        } catch {
+          // Ignore parsing errors and fall back to a generic response.
+        }
+
+        res.writeHead(201, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({
+          html_url: `https://github.com/${repoSlug}/issues/42`,
+          number: 42,
+          title: parsedBody.title ?? 'unknown',
+          body,
+        }));
         return;
       }
 

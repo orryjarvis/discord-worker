@@ -81,6 +81,13 @@ type CapturedDiscordRequest = {
   channelId?: string;
 };
 
+type CapturedGitHubIssueRequest = {
+  method: string;
+  path: string;
+  body: string;
+  receivedAt: string;
+};
+
 export async function signAndSendRequest(body: object): Promise<Response> {
   const { method, headers, body: reqBody } = await signRequest(body);
   const request = new Request('http://discord-worker/discord', { method, headers, body: reqBody });
@@ -136,6 +143,16 @@ export async function waitForChannelPost(channelId: string, timeoutMs = 25000): 
     await new Promise<void>(r => setTimeout(r, 500));
   }
   throw new Error(`No channel post for channelId "${channelId}" received within ${timeoutMs}ms`);
+}
+
+export async function waitForGitHubIssue(repoSlug: string, timeoutMs = 25000): Promise<CapturedGitHubIssueRequest> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await fetch(`${env.MOCK_SERVER_BASE_URL}/test-api/github-issues/${repoSlug}`);
+    if (res.status === 200) return res.json() as Promise<CapturedGitHubIssueRequest>;
+    await new Promise<void>(r => setTimeout(r, 500));
+  }
+  throw new Error(`No GitHub issue for repoSlug "${repoSlug}" received within ${timeoutMs}ms`);
 }
 
 export async function clearChannelPost(channelId: string): Promise<void> {

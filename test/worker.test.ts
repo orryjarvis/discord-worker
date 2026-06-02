@@ -13,6 +13,34 @@ import worker from '../src/index.js';
 // Test key pair - matches test/e2e/setup.shared.ts defaults
 const TEST_PRIVATE_KEY = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cdac1bd4023e';
 const TEST_PUBLIC_KEY = '04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e';
+const TEST_GITHUB_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCoSLK15/DYgJp8
+wd+KqyDC8Tb19e+46vRHAohTuJxkHQtnE7BrRjX/DQo4VZ+sRrKqJDM3g58CNkyC
+1ylYhbV2KHEzIFOGkqfc+XKrUTzrp8yrZvH9FJz0k/LYtlB7Ai+YMVNz0OR1b5tb
+gbg3VhIZ3tgNDcgB3U86evJoSIFKEATBLJh20eD+6/pUOn2PxrndeICjD4fx+ZHn
+NI8V8B7zkyBAZcW8AkfXbKTdcekIZXBEBKkSDSfMa7osPW/AlpwQ9aKi1k7Xziip
+TmxNUxHYD5DtqNduvmVebKPcbdbGrN031l5rUgBU5Po5I4gtYweLZcqTKy3nAd8/
+1oahuV8fAgMBAAECggEABBB5bHufwq2HIv3ltxTUqOX9hKmTcse4mEx0hsfIfdcr
+vX9pZ+CIEP27d5/Ycuc5jR1sX+oIZEZzyPHcYvHGb7D2BvJAF4R26cHb5feuJ9I4
+1xJDREWurW4zU85CGa50VXx/flEXFh+uGg2DKab6WfCauY9R0NBhB6cM2r2W4yHU
+yu7tBy0TlGOUy5G8t2uvZktWvjFUzcL9UEceazjlXGrH259BXkgcQ7DwDecd+4mn
+UNw6Xi1TcHYYtiaIl+qNaI3zJATMfprzQ3C71BJIQWRk+hr198wYGd/l7YL5weAy
+WeYyEaZOucHNaYdWpbauAMuimly32IYzOuLZO8feAQKBgQC1Z1seE8wprnfp5hgD
+i3MQU6aJr6x7JM8/Tpby/SqBjQ/dc+JRX2SLX6XG6xWFuIU239UAEZ3p4fOywEYX
+tmglVZbsgxmfgHkVsQ3p0eKMg/cq3ahFhwA6CXHDw2/lKVxyL4VyyorhQfvgCgu5
+DHNTZM7odcIbdJx0Q8lgO+5VHwKBgQDtfDSgyE49bOSMWVixTgpDdbMRM15An1+u
+4HbJ1vLcPOWa/L8HUbq7t99GuRsXphXxqNXw6IwXwPpcE8D9BJP7Jhx56N1achTc
+Bj4YF4XswcgQekW6FOkuKtkay5A3ghicE6FH8zOxYURLKcTkLDtcXAVBzwZTc8Nz
+64PDctm2AQKBgFFKzPlwk8iGB/TIiTBleJ3zbqk7EYdp2nobROgFbdv6lAaAnQYs
+Qol2xnqa9N0k8IXDztcmDec2u5f6NC8CLi+06Fp68auZzilbW8nRpb2kkcoi5Pqr
+Yf2gJ9w7o9RFMcl15E6p14zUngQrXE+D9daEUXi49NCK9GXhzseSc96vAoGBALcX
+EQP8KcXVlAZYQ7a+cc88iMd0EPBFbuFGEI7f9vCwylvJDAW6jvp2cd72itqao0Ri
+ZD6NKqSNlPc0C4+F3gi8gyvByhYW6doPvgOY7xlu9K0vd15VDMkZI7QyyIbi99Is
+mCT+bRYN5TcFhtRa/ZDhKPRphXkFQOS36Cfg/dQBAoGAT0C+Nae89sNX0DPuxyXP
+GWkKn4TPUtbt3gHDFqaipblYHDZhRo+i1nDjnEBKj+godnycDGLtuiWNgVPZNXEH
+QSUKFupIVyaYYOv1zS2wS3rSGPGk0xnAvq/yfW89igbkGKWGyFVe/N4RD8arjQgH
+horbP5Rn2lF5iT9iWIMBKGM=
+-----END PRIVATE KEY-----`;
 
 const mockQueue = { send: vi.fn().mockResolvedValue(undefined) };
 const mockAI = { run: vi.fn() };
@@ -35,6 +63,11 @@ const TEST_ENV = {
   WORD_OF_DAY_CHANNEL_ID: 'word-channel-1',
   WORD_OF_DAY_FEED_URL: 'https://example.com/wotd.xml',
   DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
+  GITHUB_APP_ID: '123456',
+  GITHUB_APP_INSTALLATION_ID: '987654',
+  GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_PRIVATE_KEY,
+  GITHUB_ISSUE_REPOSITORY: 'oaj/discord-worker',
+  GITHUB_API_BASE_URL: 'https://api.github.com',
   GITHUB_WEBHOOK_SECRET: 'github-test-secret',
   GITHUB_DEPLOY_WORKFLOW_PATH: '.github/workflows/prod.yaml',
   FOLLOW_UP_QUEUE: mockQueue,
@@ -300,6 +333,80 @@ describe('Discord Worker', () => {
       },
     });
     expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('responds to /issue command with a multi-field modal response', async () => {
+    const req = await signedRequest({
+      id: 'cmd-issue-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'issue-token',
+      data: { name: 'issue' },
+    });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(200);
+    const json = await res.json() as any;
+    expect(json).toMatchObject({
+      type: InteractionResponseType.Modal,
+      data: {
+        custom_id: 'issue_modal',
+        title: 'Log GitHub Issue',
+      },
+    });
+    expect(Array.isArray(json.data.components)).toBe(true);
+    expect(json.data.components).toHaveLength(2);
+    expect(json.data.components[0].components[0]).toMatchObject({
+      custom_id: 'issue_title',
+    });
+    expect(json.data.components[1].components[0]).toMatchObject({
+      custom_id: 'issue_body',
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('enqueues GitHub issue creation after /issue modal submit', async () => {
+    const req = await signedRequest({
+      id: 'cmd-issue-modal-1',
+      type: InteractionType.ModalSubmit,
+      token: 'issue-modal-token',
+      data: {
+        custom_id: 'issue_modal',
+        components: [
+          {
+            components: [
+              {
+                custom_id: 'issue_title',
+                value: 'Bug report',
+              },
+            ],
+          },
+          {
+            components: [
+              {
+                custom_id: 'issue_body',
+                value: 'The widget freezes when the queue is empty.',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: 'issue-modal-token',
+      task: {
+        commandName: 'issue',
+        payload: {
+          title: 'Bug report',
+          body: 'The widget freezes when the queue is empty.',
+        },
+      },
+    });
   });
 
   it('defers publicly and enqueues insult generation for the selected user', async () => {
@@ -865,6 +972,62 @@ describe('Discord Worker', () => {
         method: 'PATCH',
         body: JSON.stringify({
           content: 'PASTIFIED CHAT ENERGY',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer creates a GitHub issue and edits the original response', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'github-installation-token' }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ html_url: 'https://github.com/oaj/discord-worker/issues/42', number: 42 }), { status: 201 }))
+      .mockResolvedValueOnce(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: 'issue-queue-1',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'issue',
+            payload: {
+              title: 'Bug report',
+              body: 'The widget freezes when the queue is empty.',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.github.com/app/installations/987654/access_tokens',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/repos/oaj/discord-worker/issues',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: 'Created GitHub issue #42: https://github.com/oaj/discord-worker/issues/42',
         }),
       }),
     );

@@ -39,7 +39,7 @@ export interface ModalSubmitRequest {
   userId: string | null;
   guildId: string | null;
   channelId: string | null;
-  text: string;
+  fields: Record<string, string>;
 }
 
 export type CommandRequest = SlashCommandRequest | ComponentRequest | ModalSubmitRequest;
@@ -54,12 +54,15 @@ export type ShowModalResult = {
   kind: 'show-modal';
   modalId: string;
   title: string;
-  inputId: string;
-  inputLabel: string;
-  inputPlaceholder: string;
-  inputMinLength: number;
-  inputMaxLength: number;
-  inputRequired: boolean;
+  inputs: Array<{
+    inputId: string;
+    inputLabel: string;
+    inputPlaceholder: string;
+    inputMinLength: number;
+    inputMaxLength: number;
+    inputRequired: boolean;
+    inputStyle: 'short' | 'paragraph';
+  }>;
 };
 
 export type SaveSubmissionResult = {
