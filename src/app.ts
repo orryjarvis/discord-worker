@@ -494,6 +494,11 @@ function buildFallbackEditedContent(result: FollowUpExecutionResult): string {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const requestUrl = new URL(request.url);
+    if (requestUrl.pathname !== '/discord') {
+      return new Response('Not Found', { status: 404 });
+    }
+
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }

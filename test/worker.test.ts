@@ -58,7 +58,7 @@ async function signedRequest(body: object): Promise<Request> {
   const message = new TextEncoder().encode(timestamp + json);
   const privateKey = Uint8Array.from(Buffer.from(TEST_PRIVATE_KEY, 'hex'));
   const signature = await ed.signAsync(message, privateKey);
-  return new Request('http://localhost/', {
+  return new Request('http://localhost/discord', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -82,14 +82,20 @@ afterEach(() => {
 });
 
 describe('Discord Worker', () => {
-  it('returns 405 for non-POST requests', async () => {
+  it('returns 404 for non-discord paths', async () => {
     const req = new Request('http://localhost/', { method: 'GET' });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 405 for non-POST requests on /discord', async () => {
+    const req = new Request('http://localhost/discord', { method: 'GET' });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(405);
   });
 
   it('returns 401 for missing signature headers', async () => {
-    const req = new Request('http://localhost/', {
+    const req = new Request('http://localhost/discord', {
       method: 'POST',
       body: JSON.stringify({ type: InteractionType.Ping }),
       headers: { 'content-type': 'application/json' },
@@ -99,7 +105,7 @@ describe('Discord Worker', () => {
   });
 
   it('returns 401 for invalid signature', async () => {
-    const req = new Request('http://localhost/', {
+    const req = new Request('http://localhost/discord', {
       method: 'POST',
       body: JSON.stringify({ type: InteractionType.Ping }),
       headers: {
