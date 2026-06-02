@@ -67,7 +67,7 @@ type CapturedDiscordRequest = {
 
 export async function signAndSendRequest(body: object): Promise<Response> {
   const { method, headers, body: reqBody } = await signRequest(body);
-  const request = new Request('http://discord-worker/', { method, headers, body: reqBody });
+  const request = new Request('http://discord-worker/discord', { method, headers, body: reqBody });
   return SELF.fetch(request);
 }
 
