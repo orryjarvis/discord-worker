@@ -5,6 +5,7 @@ import type {
   FollowUpTask,
 } from './core.js';
 import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
+import { extractModalFields, type ModalComponentRows } from './modal.js';
 
 export const PASTIFY_COMMAND_NAME = 'pastify';
 export const PASTIFY_MODAL_ID = 'pastify_modal';
@@ -14,20 +15,13 @@ const PASTIFY_MODEL = '@cf/qwen/qwen3-30b-a3b-fp8';
 const PASTIFY_MISSING_PAYLOAD_MESSAGE = 'Could not process follow-up payload. Please try again.';
 const PASTIFY_FAILURE_MESSAGE = 'Could not pastify that idea right now. Try again in a moment.';
 
-type ModalComponentRows = Array<{
-  components?: Array<{
-    custom_id?: string;
-    value?: string;
-  }>;
-}>;
-
 export type PastifyModalParseResult =
   | { kind: 'unknown-modal' }
-  | { kind: 'missing-text' }
+  | { kind: 'missing-fields' }
   | {
     kind: 'parsed';
     commandName: typeof PASTIFY_COMMAND_NAME;
-    text: string;
+    fields: Record<string, string>;
   };
 
 function parsePastifyIdea(task: FollowUpTask): string | null {
@@ -35,28 +29,8 @@ function parsePastifyIdea(task: FollowUpTask): string | null {
   if (typeof idea !== 'string') {
     return null;
   }
+
   return idea;
-}
-
-function flattenModalText(components: ModalComponentRows | undefined): string | null {
-  if (!components) {
-    return null;
-  }
-
-  for (const row of components) {
-    const inputs = row.components;
-    if (!inputs) {
-      continue;
-    }
-
-    for (const input of inputs) {
-      if (input.custom_id === PASTIFY_MODAL_TEXT_INPUT_ID && typeof input.value === 'string') {
-        return input.value;
-      }
-    }
-  }
-
-  return null;
 }
 
 export function parsePastifyModalSubmit(data: {
@@ -67,15 +41,18 @@ export function parsePastifyModalSubmit(data: {
     return { kind: 'unknown-modal' };
   }
 
-  const text = flattenModalText(data.components);
+  const fields = extractModalFields(data.components);
+  const text = fields[PASTIFY_MODAL_TEXT_INPUT_ID]?.trim();
   if (!text) {
-    return { kind: 'missing-text' };
+    return { kind: 'missing-fields' };
   }
 
   return {
     kind: 'parsed',
     commandName: PASTIFY_COMMAND_NAME,
-    text,
+    fields: {
+      [PASTIFY_MODAL_TEXT_INPUT_ID]: text,
+    },
   };
 }
 

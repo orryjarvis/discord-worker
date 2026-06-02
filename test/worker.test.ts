@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as ed from '@noble/ed25519';
-import { createHmac } from 'node:crypto';
+import { createHmac, generateKeyPairSync } from 'node:crypto';
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
@@ -13,6 +13,11 @@ import worker from '../src/index.js';
 // Test key pair - matches test/e2e/setup.shared.ts defaults
 const TEST_PRIVATE_KEY = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cdac1bd4023e';
 const TEST_PUBLIC_KEY = '04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881eba6560d1e';
+const { privateKey: TEST_GITHUB_PRIVATE_KEY } = generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+});
 
 const mockQueue = { send: vi.fn().mockResolvedValue(undefined) };
 const mockAI = { run: vi.fn() };
@@ -35,6 +40,11 @@ const TEST_ENV = {
   WORD_OF_DAY_CHANNEL_ID: 'word-channel-1',
   WORD_OF_DAY_FEED_URL: 'https://example.com/wotd.xml',
   DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
+  GITHUB_APP_ID: '123456',
+  GITHUB_APP_INSTALLATION_ID: '987654',
+  GITHUB_APP_PRIVATE_KEY: TEST_GITHUB_PRIVATE_KEY,
+  GITHUB_ISSUE_REPOSITORY: 'oaj/discord-worker',
+  GITHUB_API_BASE_URL: 'https://api.github.com',
   GITHUB_WEBHOOK_SECRET: 'github-test-secret',
   GITHUB_DEPLOY_WORKFLOW_PATH: '.github/workflows/prod.yaml',
   FOLLOW_UP_QUEUE: mockQueue,
@@ -300,6 +310,80 @@ describe('Discord Worker', () => {
       },
     });
     expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('responds to /issue command with a multi-field modal response', async () => {
+    const req = await signedRequest({
+      id: 'cmd-issue-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'issue-token',
+      data: { name: 'issue' },
+    });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(200);
+    const json = await res.json() as any;
+    expect(json).toMatchObject({
+      type: InteractionResponseType.Modal,
+      data: {
+        custom_id: 'issue_modal',
+        title: 'Log GitHub Issue',
+      },
+    });
+    expect(Array.isArray(json.data.components)).toBe(true);
+    expect(json.data.components).toHaveLength(2);
+    expect(json.data.components[0].components[0]).toMatchObject({
+      custom_id: 'issue_title',
+    });
+    expect(json.data.components[1].components[0]).toMatchObject({
+      custom_id: 'issue_body',
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('enqueues GitHub issue creation after /issue modal submit', async () => {
+    const req = await signedRequest({
+      id: 'cmd-issue-modal-1',
+      type: InteractionType.ModalSubmit,
+      token: 'issue-modal-token',
+      data: {
+        custom_id: 'issue_modal',
+        components: [
+          {
+            components: [
+              {
+                custom_id: 'issue_title',
+                value: 'Bug report',
+              },
+            ],
+          },
+          {
+            components: [
+              {
+                custom_id: 'issue_body',
+                value: 'The widget freezes when the queue is empty.',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+    expect(mockQueue.send).toHaveBeenCalledWith({
+      token: 'issue-modal-token',
+      task: {
+        commandName: 'issue',
+        payload: {
+          title: 'Bug report',
+          body: 'The widget freezes when the queue is empty.',
+        },
+      },
+    });
   });
 
   it('defers publicly and enqueues insult generation for the selected user', async () => {
@@ -706,7 +790,7 @@ describe('Discord Worker', () => {
 
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(400);
-    expect(await res.text()).toMatch(/Missing Modal Text/);
+    expect(await res.text()).toMatch(/Missing required modal fields\./);
     expect(mockKv.put).not.toHaveBeenCalled();
   });
 
@@ -865,6 +949,62 @@ describe('Discord Worker', () => {
         method: 'PATCH',
         body: JSON.stringify({
           content: 'PASTIFIED CHAT ENERGY',
+        }),
+      }),
+    );
+    expect(ack).toHaveBeenCalled();
+  });
+
+  it('queue consumer creates a GitHub issue and edits the original response', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ token: 'github-installation-token' }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ html_url: 'https://github.com/oaj/discord-worker/issues/42', number: 42 }), { status: 201 }))
+      .mockResolvedValueOnce(new Response('OK', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const ack = vi.fn();
+    const batch = {
+      queue: 'discord-follow-up-queue',
+      messages: [{
+        id: 'issue-queue-1',
+        timestamp: new Date(),
+        body: {
+          token: 'interaction-token',
+          task: {
+            commandName: 'issue',
+            payload: {
+              title: 'Bug report',
+              body: 'The widget freezes when the queue is empty.',
+            },
+          },
+        },
+        ack,
+        retry: vi.fn(),
+      }],
+      ackAll: vi.fn(),
+      retryAll: vi.fn(),
+    };
+
+    await worker.queue(batch as any, TEST_ENV as any);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.github.com/app/installations/987654/access_tokens',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.github.com/repos/oaj/discord-worker/issues',
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      'https://discord.com/api/v10/webhooks/test-app-id/interaction-token/messages/@original',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          content: 'Created GitHub issue #42: https://github.com/oaj/discord-worker/issues/42',
         }),
       }),
     );

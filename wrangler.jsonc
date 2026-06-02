@@ -35,7 +35,9 @@
       "vars": {
         "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
         "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2",
-        "GITHUB_DEPLOY_WORKFLOW_PATH": ".github/workflows/ci.yaml"
+        "GITHUB_DEPLOY_WORKFLOW_PATH": ".github/workflows/ci.yaml",
+        "GITHUB_ISSUE_REPOSITORY": "orryjarvis/discord-worker",
+        "GITHUB_API_BASE_URL": "https://api.github.com"
       },
       "ai": { "binding": "AI" },
       "durable_objects": {
@@ -70,7 +72,9 @@
       "vars": {
         "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
         "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2",
-        "GITHUB_DEPLOY_WORKFLOW_PATH": ".github/workflows/prod.yaml"
+        "GITHUB_DEPLOY_WORKFLOW_PATH": ".github/workflows/prod.yaml",
+        "GITHUB_ISSUE_REPOSITORY": "orryjarvis/discord-worker",
+        "GITHUB_API_BASE_URL": "https://api.github.com"
       },
       "ai": { "binding": "AI" },
       "durable_objects": {

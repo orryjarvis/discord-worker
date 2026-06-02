@@ -24,6 +24,16 @@ import {
   type PastifyModalParseResult,
 } from './pastify.js';
 import {
+  ISSUE_BODY_INPUT_ID,
+  ISSUE_COMMAND_NAME,
+  ISSUE_MODAL_ID,
+  ISSUE_TITLE_INPUT_ID,
+  executeIssueFollowUp,
+  parseIssueModalSubmit,
+  type IssueModalParseResult,
+  type IssueRuntimeEnv,
+} from './issue.js';
+import {
   parseReminderInterval,
   parseReminderLength,
   toReminderDelaySeconds,
@@ -32,6 +42,7 @@ import {
 export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify.js';
 export { INSULT_COMMAND_NAME } from './insult.js';
 export { EIGHT_BALL_COMMAND_NAME } from './8ball.js';
+export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_INPUT_ID } from './issue.js';
 
 export const WOTD_COMMAND_NAME = 'wotd';
 export const REMINDER_COMMAND_NAME = 'reminder';
@@ -63,12 +74,17 @@ function handlePastifyCommand(request: CommandRequest): CommandResult {
         kind: 'show-modal',
         modalId: PASTIFY_MODAL_ID,
         title: 'Pastify Idea',
-        inputId: PASTIFY_MODAL_TEXT_INPUT_ID,
-        inputLabel: 'Idea to Pastify',
-        inputPlaceholder: 'Describe the idea to turn into a copypasta',
-        inputMinLength: 1,
-        inputMaxLength: 1000,
-        inputRequired: true,
+        inputs: [
+          {
+            inputId: PASTIFY_MODAL_TEXT_INPUT_ID,
+            inputLabel: 'Idea to Pastify',
+            inputPlaceholder: 'Describe the idea to turn into a copypasta',
+            inputMinLength: 1,
+            inputMaxLength: 1000,
+            inputRequired: true,
+            inputStyle: 'paragraph',
+          },
+        ],
       };
 
     case 'modal-submit':
@@ -78,7 +94,7 @@ function handlePastifyCommand(request: CommandRequest): CommandResult {
         task: {
           commandName: PASTIFY_COMMAND_NAME,
           payload: {
-            idea: request.text,
+            idea: request.fields[PASTIFY_MODAL_TEXT_INPUT_ID],
           },
         },
         ephemeral: false,
@@ -221,10 +237,62 @@ function handleReminderCommand(request: CommandRequest): CommandResult {
   }
 }
 
+function handleIssueCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'show-modal',
+        modalId: ISSUE_MODAL_ID,
+        title: 'Log GitHub Issue',
+        inputs: [
+          {
+            inputId: ISSUE_TITLE_INPUT_ID,
+            inputLabel: 'Issue title',
+            inputPlaceholder: 'Short summary of the bug or feature request',
+            inputMinLength: 1,
+            inputMaxLength: 200,
+            inputRequired: true,
+            inputStyle: 'short',
+          },
+          {
+            inputId: ISSUE_BODY_INPUT_ID,
+            inputLabel: 'Issue details',
+            inputPlaceholder: 'Add any context, repro steps, or desired behavior',
+            inputMinLength: 1,
+            inputMaxLength: 4000,
+            inputRequired: true,
+            inputStyle: 'paragraph',
+          },
+        ],
+      };
+
+    case 'modal-submit':
+      return {
+        kind: 'enqueue-follow-up',
+        token: request.token,
+        task: {
+          commandName: ISSUE_COMMAND_NAME,
+          payload: {
+            title: request.fields[ISSUE_TITLE_INPUT_ID],
+            body: request.fields[ISSUE_BODY_INPUT_ID],
+          },
+        },
+        ephemeral: false,
+      };
+
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 export const commands: CommandMap = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
   [INSULT_COMMAND_NAME]: handleInsultCommand,
   [EIGHT_BALL_COMMAND_NAME]: handleEightBallCommand,
+  [ISSUE_COMMAND_NAME]: handleIssueCommand,
   [WOTD_COMMAND_NAME]: handleWotdCommand,
   [REMINDER_COMMAND_NAME]: handleReminderCommand,
 };
@@ -232,7 +300,12 @@ export const commands: CommandMap = {
 export function parseCommandModalSubmit(data: {
   customId: string;
   components?: ModalComponentRows;
-}): PastifyModalParseResult {
+}): PastifyModalParseResult | IssueModalParseResult {
+  const issueResult = parseIssueModalSubmit(data);
+  if (issueResult.kind !== 'unknown-modal') {
+    return issueResult;
+  }
+
   return parsePastifyModalSubmit(data);
 }
 
@@ -240,6 +313,7 @@ export async function executeFollowUpTask(
   task: FollowUpTask,
   env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
+  issueEnv?: IssueRuntimeEnv,
 ): Promise<FollowUpExecutionResult> {
   if (task.commandName === PASTIFY_COMMAND_NAME) {
     return executePastifyFollowUp(task, env, context);
@@ -251,6 +325,13 @@ export async function executeFollowUpTask(
 
   if (task.commandName === EIGHT_BALL_COMMAND_NAME) {
     return executeEightBallFollowUp(task, env, context);
+  }
+
+  if (task.commandName === ISSUE_COMMAND_NAME) {
+    if (!issueEnv) {
+      throw new Error('Issue follow-up requires GitHub configuration');
+    }
+    return executeIssueFollowUp(task, issueEnv, context);
   }
 
   throw new Error(`Unknown follow-up task command: ${task.commandName}`);

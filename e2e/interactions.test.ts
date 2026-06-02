@@ -12,6 +12,7 @@ import {
   runScheduled,
   signAndSendGitHubWebhook,
   signAndSendRequest,
+  waitForGitHubIssue,
   waitForChannelPost,
   waitForFollowUp,
 } from './setup';
@@ -40,6 +41,74 @@ describe('Discord Worker', () => {
         custom_id: 'pastify_modal',
       },
     });
+  });
+
+  it('opens the /issue modal and creates a GitHub issue after submit', async () => {
+    const correlationId = `issue-${Date.now()}`;
+    const token = `test-token-${correlationId}`;
+
+    const openModalRes = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token,
+      data: {
+        name: 'issue',
+      },
+    });
+
+    expect(openModalRes.status).toBe(200);
+    expect(await openModalRes.json() as any).toMatchObject({
+      type: InteractionResponseType.Modal,
+      data: {
+        custom_id: 'issue_modal',
+        title: 'Log GitHub Issue',
+      },
+    });
+
+    const submitRes = await signAndSendRequest({
+      id: `modal-${Date.now()}`,
+      type: InteractionType.ModalSubmit,
+      token,
+      data: {
+        custom_id: 'issue_modal',
+        components: [
+          {
+            components: [
+              {
+                custom_id: 'issue_title',
+                value: 'E2E issue title',
+              },
+            ],
+          },
+          {
+            components: [
+              {
+                custom_id: 'issue_body',
+                value: 'The worker should log a GitHub issue from Discord.',
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    expect(submitRes.status).toBe(200);
+    expect(await submitRes.json() as any).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+
+    const issuePost = await waitForGitHubIssue('oaj/discord-worker');
+    const issuePayload = JSON.parse(issuePost.body) as Record<string, unknown>;
+    expect(issuePayload).toMatchObject({
+      title: 'E2E issue title',
+      body: 'The worker should log a GitHub issue from Discord.',
+    });
+
+    const followUp = await waitForFollowUp(correlationId);
+    const patched = JSON.parse(followUp.body) as Record<string, unknown>;
+    expect(typeof patched.content).toBe('string');
+    expect((patched.content as string)).toContain('Created GitHub issue #42');
+    expect((patched.content as string)).toContain('https://github.com/oaj/discord-worker/issues/42');
   });
 
   it('runs the scheduled word-of-day activity via scheduled handler trigger', async () => {

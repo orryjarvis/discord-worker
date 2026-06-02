@@ -54,6 +54,11 @@ export interface Env {
   DISCORD_TOKEN: string;
   WORD_OF_DAY_CHANNEL_ID?: string;
   WORD_OF_DAY_FEED_URL?: string;
+  GITHUB_APP_ID: string;
+  GITHUB_APP_INSTALLATION_ID: string;
+  GITHUB_APP_PRIVATE_KEY: string;
+  GITHUB_ISSUE_REPOSITORY: string;
+  GITHUB_API_BASE_URL?: string;
   FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
   REMINDER_SCHEDULER: DurableObjectNamespace;
   KV: KVNamespace;
@@ -336,19 +341,28 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
         return new Response('Unknown Modal', { status: 400 });
       }
 
-      if (modalResult.kind === 'missing-text') {
-        return new Response('Missing Modal Text', { status: 400 });
+      if (modalResult.kind === 'missing-fields') {
+        return new Response('Missing required modal fields.', { status: 400 });
       }
+
+      if (modalResult.kind !== 'parsed') {
+        return new Response('Bad request.', { status: 400 });
+      }
+
+      const parsedModalResult = modalResult as {
+        commandName: string;
+        fields: Record<string, string>;
+      };
 
       const request: CommandRequest = {
         kind: 'modal-submit',
-        commandName: modalResult.commandName,
+        commandName: parsedModalResult.commandName,
         token: parsed.data.token,
         interactionId: parsed.data.id,
         userId: parsed.data.member?.user?.id ?? parsed.data.user?.id ?? null,
         guildId: parsed.data.guild_id ?? null,
         channelId: parsed.data.channel_id ?? null,
-        text: modalResult.text,
+        fields: parsedModalResult.fields,
       };
       return request;
     }
@@ -364,23 +378,21 @@ function toModalResponse(result: ShowModalResult): Response {
     data: {
       custom_id: result.modalId,
       title: result.title,
-      components: [
-        {
-          type: ComponentType.ActionRow,
-          components: [
-            {
-              type: ComponentType.TextInput,
-              custom_id: result.inputId,
-              label: result.inputLabel,
-              style: TextInputStyle.Paragraph,
-              min_length: result.inputMinLength,
-              max_length: result.inputMaxLength,
-              required: result.inputRequired,
-              placeholder: result.inputPlaceholder,
-            },
-          ],
-        },
-      ],
+      components: result.inputs.map((input) => ({
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.TextInput,
+            custom_id: input.inputId,
+            label: input.inputLabel,
+            style: input.inputStyle === 'short' ? TextInputStyle.Short : TextInputStyle.Paragraph,
+            min_length: input.inputMinLength,
+            max_length: input.inputMaxLength,
+            required: input.inputRequired,
+            placeholder: input.inputPlaceholder,
+          },
+        ],
+      })),
     },
   });
 }
@@ -561,7 +573,7 @@ export default {
           ? await executeFollowUpTask(task, { AI: env.AI }, {
             messageId: message.id,
             token,
-          })
+          }, env)
           : {
             content: 'Could not process follow-up payload. Please try again.',
           };
