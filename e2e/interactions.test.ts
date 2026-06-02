@@ -10,6 +10,7 @@ import {
 import {
   clearChannelPost,
   runScheduled,
+  signAndSendGitHubWebhook,
   signAndSendRequest,
   waitForChannelPost,
   waitForFollowUp,
@@ -94,6 +95,46 @@ describe('Discord Worker', () => {
     expect((payload.content as string)).toContain('Word of the Day');
     expect((payload.content as string)).toContain('https://www.merriam-webster.com/word-of-the-day/');
     expect((payload.content as string)).not.toContain('<');
+  });
+
+  it('accepts github workflow_run completion webhook and posts deploy status to configured channel', async () => {
+    const channelId = 'test-word-of-day-channel';
+    await clearChannelPost(channelId);
+
+    const res = await signAndSendGitHubWebhook({
+      action: 'completed',
+      repository: {
+        full_name: 'oaj/discord-worker',
+      },
+      workflow_run: {
+        id: 424242,
+        name: 'prod',
+        path: '.github/workflows/prod.yaml',
+        status: 'completed',
+        conclusion: 'success',
+        html_url: 'https://github.com/oaj/discord-worker/actions/runs/424242',
+        head_branch: 'main',
+        event: 'workflow_dispatch',
+        actor: {
+          login: 'release-bot',
+        },
+      },
+      sender: {
+        login: 'release-bot',
+      },
+    }, {
+      deliveryId: `delivery-e2e-${Date.now()}`,
+    });
+
+    expect(res.status).toBe(200);
+
+    const posted = await waitForChannelPost(channelId);
+    const payload = JSON.parse(posted.body) as Record<string, unknown>;
+
+    expect(typeof payload.content).toBe('string');
+    expect(payload.content).toContain('GitHub deploy status: SUCCESS');
+    expect(payload.content).toContain('workflow: prod (.github/workflows/prod.yaml)');
+    expect(payload.content).toContain('run: https://github.com/oaj/discord-worker/actions/runs/424242');
   });
 
   it('defers /insult and then sends a channel-visible roast mentioning the selected user', async () => {

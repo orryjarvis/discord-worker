@@ -40,6 +40,7 @@ import type {
 import { runScheduledActivities } from './scheduled.js';
 import { postWordOfDayMessage } from './wordOfDaySchedule.js';
 import { scheduleReminderTaskWithAlarm } from './reminder.js';
+import { handleGitHubWebhook } from './githubWebhook.js';
 
 interface FollowUpMessage {
   token?: string;
@@ -57,6 +58,8 @@ export interface Env {
   REMINDER_SCHEDULER: DurableObjectNamespace;
   KV: KVNamespace;
   DISCORD_API_BASE_URL?: string;
+  GITHUB_WEBHOOK_SECRET?: string;
+  GITHUB_DEPLOY_WORKFLOW_PATH?: string;
 }
 
 type RawInteraction = {
@@ -492,43 +495,51 @@ function buildFallbackEditedContent(result: FollowUpExecutionResult): string {
   return `${formatQuotedSourceText(quotedSourceText)}${quotedAuthor}\n\n${fallbackPrefix}${result.content}`;
 }
 
+async function handleDiscordInteractionRequest(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'POST') {
+    return new Response('Method Not Allowed', { status: 405 });
+  }
+
+  const signature = request.headers.get('x-signature-ed25519');
+  const timestamp = request.headers.get('x-signature-timestamp');
+  if (!signature || !timestamp) {
+    return new Response('Bad request signature.', { status: 401 });
+  }
+
+  const rawBody = await request.text();
+  const isValid = await verifyDiscordRequest(signature, timestamp, rawBody, env.SIGNATURE_PUBLIC_KEY);
+  if (!isValid) {
+    return new Response('Bad request signature.', { status: 401 });
+  }
+
+  let rawInteraction: unknown;
+  try {
+    rawInteraction = JSON.parse(rawBody) as RawInteraction;
+  } catch {
+    return new Response('Bad request.', { status: 400 });
+  }
+
+  const requestOrResponse = parseAppRequest(rawInteraction as RawInteraction);
+  if (requestOrResponse instanceof Response) {
+    return requestOrResponse;
+  }
+
+  const outcome = await dispatchRequest(requestOrResponse, commands);
+  return applyOutcome(outcome, env);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const requestUrl = new URL(request.url);
-    if (requestUrl.pathname !== '/discord') {
-      return new Response('Not Found', { status: 404 });
+    if (requestUrl.pathname === '/discord') {
+      return handleDiscordInteractionRequest(request, env);
     }
 
-    if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
+    if (requestUrl.pathname === '/github') {
+      return handleGitHubWebhook(request, env);
     }
 
-    const signature = request.headers.get('x-signature-ed25519');
-    const timestamp = request.headers.get('x-signature-timestamp');
-    if (!signature || !timestamp) {
-      return new Response('Bad request signature.', { status: 401 });
-    }
-
-    const rawBody = await request.text();
-    const isValid = await verifyDiscordRequest(signature, timestamp, rawBody, env.SIGNATURE_PUBLIC_KEY);
-    if (!isValid) {
-      return new Response('Bad request signature.', { status: 401 });
-    }
-
-    let rawInteraction: unknown;
-    try {
-      rawInteraction = JSON.parse(rawBody) as RawInteraction;
-    } catch {
-      return new Response('Bad request.', { status: 400 });
-    }
-
-    const requestOrResponse = parseAppRequest(rawInteraction as RawInteraction);
-    if (requestOrResponse instanceof Response) {
-      return requestOrResponse;
-    }
-
-    const outcome = await dispatchRequest(requestOrResponse, commands);
-    return applyOutcome(outcome, env);
+    return new Response('Not Found', { status: 404 });
   },
 
   async queue(batch: MessageBatch<FollowUpMessage>, env: Env): Promise<void> {

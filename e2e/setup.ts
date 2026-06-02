@@ -55,6 +55,22 @@ async function signRequest(body: object): Promise<{ method: 'POST'; headers: Rec
   };
 }
 
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function computeHmacSha256Hex(secret: string, payload: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(payload));
+  return toHex(new Uint8Array(signature));
+}
+
 type CapturedDiscordRequest = {
   method: string;
   path: string;
@@ -68,6 +84,37 @@ type CapturedDiscordRequest = {
 export async function signAndSendRequest(body: object): Promise<Response> {
   const { method, headers, body: reqBody } = await signRequest(body);
   const request = new Request('http://discord-worker/discord', { method, headers, body: reqBody });
+  return SELF.fetch(request);
+}
+
+export async function signAndSendGitHubWebhook(
+  body: object,
+  {
+    event = 'workflow_run',
+    deliveryId = `delivery-${Date.now()}`,
+  }: {
+    event?: string;
+    deliveryId?: string;
+  } = {},
+): Promise<Response> {
+  const payload = JSON.stringify(body);
+  const githubWebhookSecret = (env as unknown as { GITHUB_WEBHOOK_SECRET?: string }).GITHUB_WEBHOOK_SECRET;
+  if (!githubWebhookSecret) {
+    throw new Error('GITHUB_WEBHOOK_SECRET is required in e2e bindings');
+  }
+
+  const signature = await computeHmacSha256Hex(githubWebhookSecret, payload);
+  const request = new Request('http://discord-worker/github', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-hub-signature-256': `sha256=${signature}`,
+      'x-github-event': event,
+      'x-github-delivery': deliveryId,
+    },
+    body: payload,
+  });
+
   return SELF.fetch(request);
 }
 
