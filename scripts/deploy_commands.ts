@@ -40,6 +40,12 @@ const WOTD_COMMAND = {
   type: ApplicationCommandType.ChatInput,
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
+const ISSUE_COMMAND = {
+  name: 'issue',
+  description: 'Create a GitHub issue from Discord',
+  type: ApplicationCommandType.ChatInput,
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
 const REMINDER_COMMAND = {
   name: 'reminder',
   description: 'Schedule a reminder',
@@ -107,6 +113,7 @@ async function deployCommands() {
       INSULT_USER_COMMAND,
       EIGHT_BALL_MESSAGE_COMMAND,
       WOTD_COMMAND,
+      ISSUE_COMMAND,
       REMINDER_COMMAND,
     ]),
   });
@@ -115,7 +122,7 @@ async function deployCommands() {
     throw new Error(`Error registering commands: ${response.status} ${await response.text()}`);
   }
 
-  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, reminder');
+  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, issue, reminder');
 }
 
 void deployCommands().catch((error: unknown) => {
