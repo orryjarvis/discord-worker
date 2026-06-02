@@ -37,6 +37,22 @@
         "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
       },
       "ai": { "binding": "AI" },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "REMINDER_SCHEDULER",
+            "class_name": "ReminderDurableObject"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1-reminder-durable-object",
+          "new_sqlite_classes": [
+            "ReminderDurableObject"
+          ]
+        }
+      ],
       "kv_namespaces": [
         {
           "binding": "KV",
@@ -55,6 +71,22 @@
         "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
       },
       "ai": { "binding": "AI" },
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "REMINDER_SCHEDULER",
+            "class_name": "ReminderDurableObject"
+          }
+        ]
+      },
+      "migrations": [
+        {
+          "tag": "v1-reminder-durable-object",
+          "new_sqlite_classes": [
+            "ReminderDurableObject"
+          ]
+        }
+      ],
       "kv_namespaces": [
         {
           "binding": "KV",
