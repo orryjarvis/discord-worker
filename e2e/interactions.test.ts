@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { env } from 'cloudflare:workers';
+import { listDurableObjectIds, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
@@ -12,6 +14,7 @@ import {
   waitForChannelPost,
   waitForFollowUp,
 } from './setup';
+import { ReminderDurableObject } from '../src/reminder.js';
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {
@@ -229,6 +232,144 @@ describe('Discord Worker', () => {
     expect(typeof patched.content).toBe('string');
     expect((patched.content as string).length).toBeGreaterThan(0);
     expect(patched.content).not.toContain('Could not pastify');
+  });
+
+  it('schedules a reminder durable object with correct payload when /reminder is invoked', async () => {
+    const channelId = `reminder-schedule-test-${Date.now()}`;
+    const beforeSchedule = Date.now();
+
+    // Snapshot existing DOs before dispatch so we can find the newly created one after.
+    const reminderNamespace = (env as any).REMINDER_SCHEDULER;
+    const idsBefore = new Set((await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString()));
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: `test-token-reminder-sched-${Date.now()}`,
+      channel_id: channelId,
+      member: {
+        user: {
+          id: 'user-reminder-e2e',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 2,
+          },
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'hours',
+          },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'submit the expense report',
+          },
+        ],
+      },
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json() as any).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'Reminder set for 2 hours.',
+        flags: 64,
+      },
+    });
+
+    // Identify the DO created by this dispatch using a before/after diff.
+    const idsAfter = await listDurableObjectIds(reminderNamespace);
+    const newIds = idsAfter.filter((id: { toString(): string }) => !idsBefore.has(id.toString()));
+    expect(newIds.length).toBe(1);
+
+    const stub = reminderNamespace.get(newIds[0]);
+    await runInDurableObject(stub, async (instance: ReminderDurableObject, state) => {
+      expect(instance).toBeInstanceOf(ReminderDurableObject);
+
+      const stored = await state.storage.get('reminder-task') as Record<string, unknown>;
+      expect(typeof stored.reminderId).toBe('string');
+      expect(stored.scheduledFor as number).toBeGreaterThan(beforeSchedule + (2 * 60 * 60 * 1000) - 10_000);
+      expect(stored.attempts).toBe(0);
+      expect(stored.firedAt).toBeUndefined();
+
+      const task = stored.task as { commandName: string; payload: Record<string, unknown> };
+      expect(task.commandName).toBe('reminder');
+      expect(task.payload).toMatchObject({
+        channelId,
+        userId: 'user-reminder-e2e',
+        length: 2,
+        interval: 'hours',
+        note: 'submit the expense report',
+      });
+    });
+  });
+
+  it('delivers a reminder channel message when the durable object alarm fires', async () => {
+    const channelId = `reminder-fire-test-${Date.now()}`;
+    await clearChannelPost(channelId);
+
+    // Snapshot existing DOs before dispatch so we can find the newly created one after.
+    const reminderNamespace = (env as any).REMINDER_SCHEDULER;
+    const idsBefore = new Set((await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString()));
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: `test-token-reminder-fire-${Date.now()}`,
+      channel_id: channelId,
+      member: {
+        user: {
+          id: 'user-alarm-e2e',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 30,
+          },
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'days',
+          },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'rotate the API keys',
+          },
+        ],
+      },
+    });
+
+    expect(res.status).toBe(200);
+
+    const idsAfter = await listDurableObjectIds(reminderNamespace);
+    const newIds = idsAfter.filter((id: { toString(): string }) => !idsBefore.has(id.toString()));
+    expect(newIds.length).toBe(1);
+    const stub = reminderNamespace.get(newIds[0]);
+
+    // Fire the alarm immediately without waiting for the real timer.
+    const alarmRan = await runDurableObjectAlarm(stub);
+    expect(alarmRan).toBe(true);
+
+    // The alarm handler posts to the channel; the mock server captures it.
+    const channelPost = await waitForChannelPost(channelId);
+    const payload = JSON.parse(channelPost.body) as Record<string, unknown>;
+    expect(payload.content).toContain('<@user-alarm-e2e> ⏰ Reminder: 30 days elapsed.');
+    expect(payload.content).toContain('📝 rotate the API keys');
+
+    // Running the alarm a second time returns false (no alarm re-scheduled after delivery).
+    const alarmRanAgain = await runDurableObjectAlarm(stub);
+    expect(alarmRanAgain).toBe(false);
   });
 
   it('responds to unknown command with 400', async () => {
