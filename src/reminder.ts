@@ -191,6 +191,7 @@ export class ReminderDurableObject {
     if (
       typeof schedule.reminderId !== 'string'
       || typeof schedule.scheduledFor !== 'number'
+      || !Number.isFinite(schedule.scheduledFor)
       || !schedule.task
       || typeof schedule.task !== 'object'
       || typeof schedule.task.commandName !== 'string'
@@ -200,10 +201,15 @@ export class ReminderDurableObject {
       return new Response('Invalid schedule payload', { status: 400 });
     }
 
-    const parsedTask = parseReminderTask({
-      commandName: schedule.task.commandName,
-      payload: schedule.task.payload,
-    });
+    let parsedTask: ReminderTask;
+    try {
+      parsedTask = parseReminderTask({
+        commandName: schedule.task.commandName,
+        payload: schedule.task.payload,
+      });
+    } catch {
+      return new Response('Invalid schedule payload', { status: 400 });
+    }
 
     const existingReminder = await this.state.storage.get<PersistedReminderTask>(REMINDER_STORAGE_KEY);
     if (existingReminder?.firedAt) {
@@ -236,6 +242,7 @@ export class ReminderDurableObject {
       {
         content: buildReminderContent(reminder.task.payload),
         allowed_mentions: {
+          parse: [],
           users: [reminder.task.payload.userId],
         },
       },

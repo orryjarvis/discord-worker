@@ -121,6 +121,7 @@ describe('ReminderDurableObject', () => {
         body: JSON.stringify({
           content: '<@user-2> ⏰ Reminder: 3 hours elapsed.\n📝 ship the hotfix',
           allowed_mentions: {
+            parse: [],
             users: ['user-2'],
           },
         }),
