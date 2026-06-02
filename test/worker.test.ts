@@ -15,6 +15,11 @@ const TEST_PUBLIC_KEY = '04762816e9bab4e08bfcce909351a221ca8f7751affa16ef757881e
 
 const mockQueue = { send: vi.fn().mockResolvedValue(undefined) };
 const mockAI = { run: vi.fn() };
+const mockReminderStub = { fetch: vi.fn().mockResolvedValue(new Response(null, { status: 204 })) };
+const mockReminderNamespace = {
+  idFromName: vi.fn().mockReturnValue({ toString: () => 'reminder-id' }),
+  get: vi.fn().mockReturnValue(mockReminderStub),
+};
 const mockKv = {
   put: vi.fn().mockResolvedValue(undefined),
   get: vi.fn().mockResolvedValue(null),
@@ -30,6 +35,7 @@ const TEST_ENV = {
   WORD_OF_DAY_FEED_URL: 'https://example.com/wotd.xml',
   DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
   FOLLOW_UP_QUEUE: mockQueue,
+  REMINDER_SCHEDULER: mockReminderNamespace,
   KV: mockKv,
 };
 
@@ -67,6 +73,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
   mockQueue.send.mockClear();
   mockAI.run.mockClear();
+  mockReminderStub.fetch.mockClear();
+  mockReminderNamespace.idFromName.mockClear();
+  mockReminderNamespace.get.mockClear();
   mockKv.put.mockClear();
   mockKv.get.mockClear();
   mockKv.delete.mockClear();
@@ -193,7 +202,7 @@ describe('Discord Worker', () => {
     });
   });
 
-  it('acknowledges /reminder immediately and enqueues delayed reminder task', async () => {
+  it('acknowledges /reminder immediately and schedules reminder via durable object alarm', async () => {
     const req = await signedRequest({
       id: 'cmd-reminder-1',
       type: InteractionType.ApplicationCommand,
@@ -217,6 +226,11 @@ describe('Discord Worker', () => {
             type: ApplicationCommandOptionType.String,
             value: 'hours',
           },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'switch the laundry',
+          },
         ],
       },
     });
@@ -231,25 +245,49 @@ describe('Discord Worker', () => {
         flags: MessageFlags.Ephemeral,
       },
     });
-    expect(mockQueue.send).toHaveBeenCalledWith(
-      {
-        task: {
-          commandName: 'reminder',
-          payload: {
-            channelId: 'channel-7',
-            userId: 'user-7',
-            length: 3,
-            interval: 'hours',
-          },
-        },
-      },
-      {
-        delaySeconds: 10800,
-      },
+    expect(mockQueue.send).not.toHaveBeenCalled();
+    expect(mockReminderNamespace.idFromName).toHaveBeenCalledTimes(1);
+    expect(mockReminderNamespace.get).toHaveBeenCalledTimes(1);
+    expect(mockReminderStub.fetch).toHaveBeenCalledWith(
+      'https://reminder.internal/schedule',
+      expect.objectContaining({
+        method: 'POST',
+      }),
     );
+
+    const requestInit = mockReminderStub.fetch.mock.calls[0]?.[1] as RequestInit;
+    expect(requestInit).toBeTruthy();
+    expect(typeof requestInit.body).toBe('string');
+    const scheduleBody = JSON.parse(requestInit.body as string) as {
+      reminderId: string;
+      scheduledFor: number;
+      task: {
+        commandName: string;
+        payload: {
+          channelId: string;
+          userId: string;
+          length: number;
+          interval: string;
+          note: string;
+        };
+      };
+    };
+
+    expect(scheduleBody.reminderId).toBeTypeOf('string');
+    expect(scheduleBody.scheduledFor).toBeGreaterThan(Date.now());
+    expect(scheduleBody.task).toEqual({
+      commandName: 'reminder',
+      payload: {
+        channelId: 'channel-7',
+        userId: 'user-7',
+        length: 3,
+        interval: 'hours',
+        note: 'switch the laundry',
+      },
+    });
   });
 
-  it('validates /reminder length according to interval constraints', async () => {
+  it('accepts long /reminder lengths without interval caps', async () => {
     const req = await signedRequest({
       id: 'cmd-reminder-2',
       type: InteractionType.ApplicationCommand,
@@ -271,7 +309,12 @@ describe('Discord Worker', () => {
           {
             name: 'length',
             type: ApplicationCommandOptionType.Integer,
-            value: 31,
+            value: 365,
+          },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'renew domain certs',
           },
         ],
       },
@@ -283,11 +326,54 @@ describe('Discord Worker', () => {
     expect(await res.json()).toEqual({
       type: InteractionResponseType.ChannelMessageWithSource,
       data: {
-        content: 'For interval "days", length must be between 1 and 30.',
+        content: 'Reminder set for 365 days.',
         flags: MessageFlags.Ephemeral,
       },
     });
     expect(mockQueue.send).not.toHaveBeenCalled();
+    expect(mockReminderStub.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects /reminder when note is missing', async () => {
+    const req = await signedRequest({
+      id: 'cmd-reminder-3',
+      type: InteractionType.ApplicationCommand,
+      token: 'reminder-token-3',
+      channel_id: 'channel-7',
+      member: {
+        user: {
+          id: 'user-7',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'days',
+          },
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 2,
+          },
+        ],
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'Usage: /reminder length:<number> interval:<minutes|hours|days> note:<text>',
+        flags: MessageFlags.Ephemeral,
+      },
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+    expect(mockReminderStub.fetch).not.toHaveBeenCalled();
   });
 
   it('defers publicly and enqueues insult generation for user context command target', async () => {
@@ -658,48 +744,6 @@ describe('Discord Worker', () => {
       'https://discord.com/api/v10/channels/word-channel-1/messages',
       expect.objectContaining({
         method: 'POST',
-      }),
-    );
-    expect(ack).toHaveBeenCalled();
-  });
-
-  it('queue consumer posts reminder message using channel endpoint', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"message-reminder-1"}', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
-
-    const ack = vi.fn();
-    const batch = {
-      queue: 'discord-follow-up-queue',
-      messages: [{
-        id: 'reminder-1',
-        timestamp: new Date(),
-        body: {
-          task: {
-            commandName: 'reminder',
-            payload: {
-              channelId: 'channel-7',
-              userId: 'user-7',
-              length: 3,
-              interval: 'hours',
-            },
-          },
-        },
-        ack,
-        retry: vi.fn(),
-      }],
-      ackAll: vi.fn(),
-      retryAll: vi.fn(),
-    };
-
-    await worker.queue(batch as any, TEST_ENV as any);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/channels/channel-7/messages',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          content: '<@user-7> ⏰ Reminder: 3 hours elapsed.',
-        }),
       }),
     );
     expect(ack).toHaveBeenCalled();

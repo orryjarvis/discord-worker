@@ -6,6 +6,9 @@ export default defineConfig({
     cloudflareTest(({ inject }) => ({
       wrangler: { configPath: './wrangler.jsonc' },
       miniflare: {
+        durableObjects: {
+          REMINDER_SCHEDULER: 'ReminderDurableObject',
+        },
         kvNamespaces: ['KV'],
         queueProducers: { FOLLOW_UP_QUEUE: 'discord-follow-up-queue-dev' },
         queueConsumers: {

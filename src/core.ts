@@ -110,6 +110,14 @@ export type AckAndEnqueueTaskResult = {
   delaySeconds?: number;
 };
 
+export type AckAndScheduleTaskResult = {
+  kind: 'ack-and-schedule-task';
+  content: string;
+  task: FollowUpTask;
+  ephemeral: boolean;
+  delaySeconds: number;
+};
+
 export type ChannelMessageResult = {
   kind: 'channel-message';
   content: string;
@@ -122,6 +130,7 @@ export type CommandResult =
   | SaveSubmissionResult
   | EnqueueFollowUpResult
   | AckAndEnqueueTaskResult
+  | AckAndScheduleTaskResult
   | ChannelMessageResult;
 
 export type CommandHandler = (request: CommandRequest) => Promise<CommandResult> | CommandResult;

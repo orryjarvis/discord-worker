@@ -51,7 +51,6 @@ const REMINDER_COMMAND = {
       type: ApplicationCommandOptionType.Integer,
       required: true,
       min_value: 1,
-      max_value: 1_440,
     },
     {
       name: 'interval',
@@ -72,6 +71,14 @@ const REMINDER_COMMAND = {
           value: 'days',
         },
       ],
+    },
+    {
+      name: 'note',
+      description: 'What should I remind you about?',
+      type: ApplicationCommandOptionType.String,
+      required: true,
+      min_length: 1,
+      max_length: 1000,
     },
   ],
 } satisfies RESTPostAPIApplicationCommandsJSONBody;

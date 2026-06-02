@@ -3,7 +3,6 @@ import {
   verifyDiscordRequest,
   jsonResponse,
   editOriginalInteractionResponse,
-  createChannelMessage,
 } from './discord.js';
 import {
   ApplicationCommandType,
@@ -21,7 +20,13 @@ import {
   WOTD_COMMAND_NAME,
 } from './command.js';
 import { dispatchRequest } from './dispatch.js';
-import type { Ai, KVNamespace, MessageBatch, Queue } from '@cloudflare/workers-types';
+import type {
+  Ai,
+  DurableObjectNamespace,
+  KVNamespace,
+  MessageBatch,
+  Queue,
+} from '@cloudflare/workers-types';
 import type { ExecutionContext, ScheduledController } from '@cloudflare/workers-types';
 import type {
   AppRequest,
@@ -34,6 +39,7 @@ import type {
 } from './core.js';
 import { runScheduledActivities } from './scheduled.js';
 import { postWordOfDayMessage } from './wordOfDaySchedule.js';
+import { scheduleReminderTaskWithAlarm } from './reminder.js';
 
 interface FollowUpMessage {
   token?: string;
@@ -48,6 +54,7 @@ export interface Env {
   WORD_OF_DAY_CHANNEL_ID?: string;
   WORD_OF_DAY_FEED_URL?: string;
   FOLLOW_UP_QUEUE: Queue<FollowUpMessage>;
+  REMINDER_SCHEDULER: DurableObjectNamespace;
   KV: KVNamespace;
   DISCORD_API_BASE_URL?: string;
 }
@@ -411,6 +418,20 @@ async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Respons
         },
       });
 
+    case 'ack-and-schedule-task':
+      if (outcome.task.commandName !== REMINDER_COMMAND_NAME) {
+        throw new Error(`Unsupported scheduled task command: ${outcome.task.commandName}`);
+      }
+
+      await scheduleReminderTaskWithAlarm(outcome.task, outcome.delaySeconds, env);
+      return jsonResponse({
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+          content: outcome.content,
+          flags: outcome.ephemeral ? MessageFlags.Ephemeral : 0,
+        },
+      });
+
     case 'save-submission':
       await env.KV.put(outcome.submission.interactionId, JSON.stringify(outcome.submission));
       return jsonResponse({
@@ -511,33 +532,6 @@ export default {
         const task = message.body.task;
         if (task?.commandName === WOTD_COMMAND_NAME) {
           await postWordOfDayMessage(env, new Date());
-          message.ack();
-          continue;
-        }
-
-        if (task?.commandName === REMINDER_COMMAND_NAME) {
-          const channelId = typeof task.payload.channelId === 'string' ? task.payload.channelId : null;
-          const userId = typeof task.payload.userId === 'string' ? task.payload.userId : null;
-          const length = typeof task.payload.length === 'number' ? task.payload.length : null;
-          const interval = typeof task.payload.interval === 'string' ? task.payload.interval : null;
-          if (!channelId || !userId || !length || !interval) {
-            throw new Error('Reminder queue payload missing required values');
-          }
-
-          const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-          const response = await createChannelMessage(
-            channelId,
-            env.DISCORD_TOKEN,
-            {
-              content: `<@${userId}> ⏰ Reminder: ${length} ${interval} elapsed.`,
-            },
-            apiBaseUrl,
-          );
-
-          if (!response.ok) {
-            throw new Error(`Failed to create reminder channel message: ${response.status} ${response.statusText}`);
-          }
-
           message.ack();
           continue;
         }
