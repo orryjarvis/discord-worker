@@ -11,6 +11,7 @@ export const ISSUE_TITLE_INPUT_ID = 'issue_title';
 export const ISSUE_BODY_INPUT_ID = 'issue_body';
 
 const GITHUB_API_VERSION = '2022-11-28';
+const GITHUB_USER_AGENT = 'discord-worker (+https://github.com/orryjarvis/discord-worker)';
 const GITHUB_ISSUE_FAILURE_MESSAGE = 'Could not create GitHub issue right now. Try again in a moment.';
 
 type GitHubIssueRepository = {
@@ -189,6 +190,7 @@ async function createInstallationAccessToken(env: IssueRuntimeEnv, apiBaseUrl: s
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${jwt}`,
       'Content-Type': 'application/json',
+      'User-Agent': GITHUB_USER_AGENT,
       'X-GitHub-Api-Version': GITHUB_API_VERSION,
     },
   });
@@ -222,6 +224,7 @@ async function createGitHubIssue(
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${installationToken}`,
       'Content-Type': 'application/json',
+      'User-Agent': GITHUB_USER_AGENT,
       'X-GitHub-Api-Version': GITHUB_API_VERSION,
     },
     body: JSON.stringify({

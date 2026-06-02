@@ -991,12 +991,22 @@ describe('Discord Worker', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       'https://api.github.com/app/installations/987654/access_tokens',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'User-Agent': expect.stringContaining('discord-worker'),
+        }),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       'https://api.github.com/repos/oaj/discord-worker/issues',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'User-Agent': expect.stringContaining('discord-worker'),
+        }),
+      }),
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,

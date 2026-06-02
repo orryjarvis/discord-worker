@@ -202,6 +202,16 @@ function startMockServer(port: number): Promise<http.Server> {
 
       const githubTokenMatch = GITHUB_INSTALLATION_TOKEN_PATH_RE.exec(urlPath);
       if (githubTokenMatch) {
+        const userAgentHeader = req.headers['user-agent'];
+        const hasUserAgent = typeof userAgentHeader === 'string' && userAgentHeader.trim().length > 0;
+        if (!hasUserAgent) {
+          res.writeHead(403, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({
+            message: 'Request forbidden by administrative rules. Please make sure your request has a User-Agent header.',
+          }));
+          return;
+        }
+
         res.writeHead(201, { 'content-type': 'application/json' });
         res.end(JSON.stringify({
           token: 'github-installation-token-e2e',
@@ -212,6 +222,16 @@ function startMockServer(port: number): Promise<http.Server> {
 
       const githubIssueMatch = GITHUB_ISSUE_PATH_RE.exec(urlPath);
       if (githubIssueMatch) {
+        const userAgentHeader = req.headers['user-agent'];
+        const hasUserAgent = typeof userAgentHeader === 'string' && userAgentHeader.trim().length > 0;
+        if (!hasUserAgent) {
+          res.writeHead(403, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({
+            message: 'Request forbidden by administrative rules. Please make sure your request has a User-Agent header.',
+          }));
+          return;
+        }
+
         const repoSlug = `${githubIssueMatch[1]}/${githubIssueMatch[2]}`;
         enqueueGitHubIssue(repoSlug, {
           method,
