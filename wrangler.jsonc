@@ -34,7 +34,8 @@
       "name": "discord-worker-test",
       "vars": {
         "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
-        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2",
+        "GITHUB_DEPLOY_WORKFLOW_PATH": ".github/workflows/prod.yaml"
       },
       "ai": { "binding": "AI" },
       "durable_objects": {
@@ -68,7 +69,8 @@
       "name": "discord-worker",
       "vars": {
         "DISCORD_API_BASE_URL": "https://discord.com/api/v10",
-        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2"
+        "WORD_OF_DAY_FEED_URL": "https://www.merriam-webster.com/wotd/feed/rss2",
+        "GITHUB_DEPLOY_WORKFLOW_PATH": ".github/workflows/prod.yaml"
       },
       "ai": { "binding": "AI" },
       "durable_objects": {

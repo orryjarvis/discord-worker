@@ -9,7 +9,8 @@ For deeper operating principles, see [docs/design-docs/index.md](docs/design-doc
 ## Project snapshot
 
 A Cloudflare Worker that receives Discord slash command interactions, verifies
-the request signature, and runs bot skills.
+the request signature, runs bot skills, and receives GitHub webhook delivery
+events for deployment-status channel notifications.
 
 Current skills:
 - Command skill: `/pastify` — Opens a modal immediately, accepts a free-form idea, defers
@@ -25,9 +26,11 @@ Runtime: Cloudflare Workers (no Node.js APIs at runtime).
 Language: TypeScript.  
 Dev/build: Vite + Cloudflare Vite plugin (`vite.config.ts`) with Wrangler config input (`wrangler.jsonc`).  
 Required env bindings: `DISCORD_APPLICATION_ID`, `SIGNATURE_PUBLIC_KEY`,
-`DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`.
+`DISCORD_TOKEN`, `FOLLOW_UP_QUEUE`, `AI`, `GITHUB_WEBHOOK_SECRET`.
 Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posting),
 `WORD_OF_DAY_FEED_URL` (optional override).
+GitHub webhook config: `GITHUB_DEPLOY_WORKFLOW_PATH` (workflow file filter for
+`/github` webhook events).
 
 ## Agent bootstrap
 
@@ -43,6 +46,7 @@ Scheduled skill bindings: `WORD_OF_DAY_CHANNEL_ID` (required for scheduled posti
 |---|---|
 | Worker entry point | `src/index.ts` |
 | App adapter (Discord <-> app transforms) | `src/app.ts` |
+| GitHub webhook handling | `src/githubWebhook.ts` |
 | Command skills definitions | `src/command.ts` |
 | Scheduled skill dispatcher | `src/scheduled.ts` |
 | Word-of-day scheduled skill | `src/wordOfDaySchedule.ts` |

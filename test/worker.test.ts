@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import * as ed from '@noble/ed25519';
+import { createHmac } from 'node:crypto';
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
@@ -34,6 +35,8 @@ const TEST_ENV = {
   WORD_OF_DAY_CHANNEL_ID: 'word-channel-1',
   WORD_OF_DAY_FEED_URL: 'https://example.com/wotd.xml',
   DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
+  GITHUB_WEBHOOK_SECRET: 'github-test-secret',
+  GITHUB_DEPLOY_WORKFLOW_PATH: '.github/workflows/prod.yaml',
   FOLLOW_UP_QUEUE: mockQueue,
   REMINDER_SCHEDULER: mockReminderNamespace,
   KV: mockKv,
@@ -69,6 +72,32 @@ async function signedRequest(body: object): Promise<Request> {
   });
 }
 
+function signedGitHubWebhookRequest(
+  body: object,
+  {
+    event = 'workflow_run',
+    deliveryId = `delivery-${Date.now()}`,
+    secret = TEST_ENV.GITHUB_WEBHOOK_SECRET,
+  }: {
+    event?: string;
+    deliveryId?: string;
+    secret?: string;
+  } = {},
+): Request {
+  const json = JSON.stringify(body);
+  const signature = createHmac('sha256', secret).update(json).digest('hex');
+  return new Request('http://localhost/github', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-hub-signature-256': `sha256=${signature}`,
+      'x-github-event': event,
+      'x-github-delivery': deliveryId,
+    },
+    body: json,
+  });
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   mockQueue.send.mockClear();
@@ -90,6 +119,12 @@ describe('Discord Worker', () => {
 
   it('returns 405 for non-POST requests on /discord', async () => {
     const req = new Request('http://localhost/discord', { method: 'GET' });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(405);
+  });
+
+  it('returns 405 for non-POST requests on /github', async () => {
+    const req = new Request('http://localhost/github', { method: 'GET' });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(405);
   });
@@ -116,6 +151,127 @@ describe('Discord Worker', () => {
     });
     const res = await worker.fetch(req, TEST_ENV as any);
     expect(res.status).toBe(401);
+  });
+
+  it('returns 401 for invalid github webhook signature', async () => {
+    const req = signedGitHubWebhookRequest({
+      action: 'completed',
+      repository: { full_name: 'oaj/discord-worker' },
+      workflow_run: {
+        id: 1001,
+        name: 'prod',
+        path: '.github/workflows/prod.yaml',
+      },
+    }, {
+      secret: 'wrong-secret',
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(401);
+  });
+
+  it('ignores github webhook events that are not workflow_run', async () => {
+    const req = signedGitHubWebhookRequest({ action: 'published' }, { event: 'release' });
+    const res = await worker.fetch(req, TEST_ENV as any);
+    expect(res.status).toBe(202);
+  });
+
+  it('ignores completed workflow_run events for other workflow files', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const req = signedGitHubWebhookRequest({
+      action: 'completed',
+      repository: { full_name: 'oaj/discord-worker' },
+      workflow_run: {
+        id: 1002,
+        name: 'ci',
+        path: '.github/workflows/ci.yaml',
+        status: 'completed',
+        conclusion: 'success',
+        html_url: 'https://github.com/oaj/discord-worker/actions/runs/1002',
+        head_branch: 'main',
+        event: 'push',
+        actor: { login: 'github-actions[bot]' },
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(202);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockKv.put).not.toHaveBeenCalled();
+  });
+
+  it('posts workflow_run completion status to Discord channel for configured deploy workflow', async () => {
+    mockKv.get.mockResolvedValueOnce(null);
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"msg-1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const req = signedGitHubWebhookRequest({
+      action: 'completed',
+      repository: { full_name: 'oaj/discord-worker' },
+      workflow_run: {
+        id: 1003,
+        name: 'prod',
+        path: '.github/workflows/prod.yaml',
+        status: 'completed',
+        conclusion: 'success',
+        html_url: 'https://github.com/oaj/discord-worker/actions/runs/1003',
+        head_branch: 'main',
+        event: 'workflow_dispatch',
+        actor: { login: 'release-bot' },
+      },
+    }, {
+      deliveryId: 'delivery-success-1003',
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/word-channel-1/messages',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(typeof requestInit.body).toBe('string');
+    const postedBody = JSON.parse(requestInit.body as string) as { content: string };
+    expect(postedBody.content).toContain('GitHub deploy status: SUCCESS');
+    expect(postedBody.content).toContain('workflow: prod (.github/workflows/prod.yaml)');
+    expect(postedBody.content).toContain('run: https://github.com/oaj/discord-worker/actions/runs/1003');
+
+    expect(mockKv.put).toHaveBeenCalledWith(
+      'github-delivery:delivery-success-1003',
+      expect.any(String),
+      expect.objectContaining({ expirationTtl: expect.any(Number) }),
+    );
+  });
+
+  it('does not post duplicate github deliveries when delivery id was already processed', async () => {
+    mockKv.get.mockResolvedValueOnce('{"processedAt":"2026-06-02T10:10:00.000Z"}');
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const req = signedGitHubWebhookRequest({
+      action: 'completed',
+      repository: { full_name: 'oaj/discord-worker' },
+      workflow_run: {
+        id: 1004,
+        name: 'prod',
+        path: '.github/workflows/prod.yaml',
+      },
+    }, {
+      deliveryId: 'delivery-duplicate-1004',
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mockKv.put).not.toHaveBeenCalled();
   });
 
   it('responds to PING with PONG (type 1)', async () => {
