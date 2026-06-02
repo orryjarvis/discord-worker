@@ -311,8 +311,9 @@ export function parseCommandModalSubmit(data: {
 
 export async function executeFollowUpTask(
   task: FollowUpTask,
-  env: AiRuntimeEnv & IssueRuntimeEnv,
+  env: AiRuntimeEnv,
   context: FollowUpExecutionContext,
+  issueEnv?: IssueRuntimeEnv,
 ): Promise<FollowUpExecutionResult> {
   if (task.commandName === PASTIFY_COMMAND_NAME) {
     return executePastifyFollowUp(task, env, context);
@@ -327,7 +328,10 @@ export async function executeFollowUpTask(
   }
 
   if (task.commandName === ISSUE_COMMAND_NAME) {
-    return executeIssueFollowUp(task, env, context);
+    if (!issueEnv) {
+      throw new Error('Issue follow-up requires GitHub configuration');
+    }
+    return executeIssueFollowUp(task, issueEnv, context);
   }
 
   throw new Error(`Unknown follow-up task command: ${task.commandName}`);

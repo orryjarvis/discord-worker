@@ -342,7 +342,7 @@ function parseAppRequest(raw: RawInteraction): AppRequest | Response {
       }
 
       if (modalResult.kind === 'missing-fields') {
-        return new Response('Missing Modal Text', { status: 400 });
+        return new Response('Missing required modal fields.', { status: 400 });
       }
 
       if (modalResult.kind !== 'parsed') {
@@ -570,10 +570,10 @@ export default {
         }
 
         const followUpResult = task
-          ? await executeFollowUpTask(task, env, {
+          ? await executeFollowUpTask(task, { AI: env.AI }, {
             messageId: message.id,
             token,
-          })
+          }, env)
           : {
             content: 'Could not process follow-up payload. Please try again.',
           };

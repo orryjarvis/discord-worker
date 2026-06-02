@@ -1,5 +1,4 @@
 import type {
-  AiRuntimeEnv,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
@@ -71,10 +70,17 @@ function encodeBase64UrlJson(value: unknown): string {
 }
 
 function decodePemToArrayBuffer(pem: string): ArrayBuffer {
-  const base64 = pem
+  const normalizedPem = pem.replace(/\\n/g, '\n');
+  const base64 = normalizedPem
     .replace(/-----BEGIN PRIVATE KEY-----/g, '')
     .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/-----BEGIN RSA PRIVATE KEY-----/g, '')
+    .replace(/-----END RSA PRIVATE KEY-----/g, '')
     .replace(/\s+/g, '');
+
+  if (!base64) {
+    throw new Error('GITHUB_APP_PRIVATE_KEY is empty or not a valid PEM value');
+  }
 
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -243,7 +249,7 @@ async function createGitHubIssue(
 
 export async function executeIssueFollowUp(
   task: FollowUpTask,
-  env: AiRuntimeEnv & IssueRuntimeEnv,
+  env: IssueRuntimeEnv,
   context: FollowUpExecutionContext,
 ): Promise<FollowUpExecutionResult> {
   const title = typeof task.payload.title === 'string' ? task.payload.title.trim() : '';
