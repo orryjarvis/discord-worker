@@ -4,7 +4,12 @@ import type {
   FollowUpTask,
 } from './core/index.js';
 import type { AiRuntimeEnv } from './runtime.js';
-import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
+import {
+  type AiPromptMessage,
+  describeError,
+  runAiTextGeneration,
+  summarizeAiResultShape,
+} from './skills/ai.js';
 
 export const EIGHT_BALL_COMMAND_NAME = '8ball';
 
@@ -41,7 +46,7 @@ async function generateEightBallText(context: EightBallTargetContext, env: AiRun
     ? `<@${context.targetMessageAuthorId}>`
     : 'unknown user';
 
-  const promptMessages = [
+  const promptMessages: AiPromptMessage[] = [
     {
       role: 'system',
       content:
@@ -67,16 +72,20 @@ async function generateEightBallText(context: EightBallTargetContext, env: AiRun
     },
   ];
 
-  const rawResult = await env.AI.run(EIGHT_BALL_MODEL, {
-    messages: promptMessages,
-    temperature: 0.9,
-  });
+  const aiResult = await runAiTextGeneration(
+    {
+      model: EIGHT_BALL_MODEL,
+      messages: promptMessages,
+      temperature: 0.9,
+    },
+    env,
+  );
 
-  const output = extractAiText(rawResult);
+  const output = aiResult.text;
   if (!output) {
     console.error('8ball model output had no extractable text', {
       model: EIGHT_BALL_MODEL,
-      shape: summarizeAiResultShape(rawResult),
+      shape: summarizeAiResultShape(aiResult.rawResult),
     });
     throw new Error('Workers AI returned no text output');
   }

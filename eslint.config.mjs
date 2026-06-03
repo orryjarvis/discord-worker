@@ -67,6 +67,18 @@ export default tseslint.config(
           selector: "Literal[value=/discord|github|cloudflare/i]",
           message: "Do not introduce platform-specific terms in core contracts.",
         },
+        {
+          selector: "ImportDeclaration[source.value^='../']",
+          message: "Core modules must only import from within src/core or from npm packages.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../']",
+          message: "Core modules must only re-export from within src/core or from npm packages.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../']",
+          message: "Core modules must only re-export from within src/core or from npm packages.",
+        },
       ],
     },
   },

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { KVNamespace } from '@cloudflare/workers-types';
-import { dispatchRequest } from './dispatch.js';
+import { dispatchRequest } from './core/index.js';
 import {
   createGitHubCommands,
   GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND,

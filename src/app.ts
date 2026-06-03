@@ -19,7 +19,6 @@ import {
   REMINDER_COMMAND_NAME,
   WOTD_COMMAND_NAME,
 } from './command.js';
-import { dispatchRequest } from './dispatch.js';
 import type {
   Ai,
   DurableObjectNamespace,
@@ -38,6 +37,7 @@ import type {
   PingRequest,
   ShowModalResult,
 } from './core/index.js';
+import { dispatchRequest } from './core/index.js';
 import { runScheduledActivities } from './scheduled.js';
 import { postWordOfDayMessage } from './wordOfDaySchedule.js';
 import { scheduleReminderTaskWithAlarm } from './reminder.js';

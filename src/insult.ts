@@ -4,7 +4,12 @@ import type {
   FollowUpTask,
 } from './core/index.js';
 import type { AiRuntimeEnv } from './runtime.js';
-import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
+import {
+  type AiPromptMessage,
+  describeError,
+  runAiTextGeneration,
+  summarizeAiResultShape,
+} from './skills/ai.js';
 
 export const INSULT_COMMAND_NAME = 'insult';
 
@@ -23,7 +28,7 @@ function parseInsultTarget(task: FollowUpTask): string | null {
 }
 
 async function generateInsultText(targetMention: string, env: AiRuntimeEnv): Promise<string> {
-  const promptMessages = [
+  const promptMessages: AiPromptMessage[] = [
     {
       role: 'system',
       content:
@@ -42,16 +47,20 @@ async function generateInsultText(targetMention: string, env: AiRuntimeEnv): Pro
     },
   ];
 
-  const rawResult = await env.AI.run(INSULT_MODEL, {
-    messages: promptMessages,
-    temperature: 0.9,
-  });
+  const aiResult = await runAiTextGeneration(
+    {
+      model: INSULT_MODEL,
+      messages: promptMessages,
+      temperature: 0.9,
+    },
+    env,
+  );
 
-  const output = extractAiText(rawResult);
+  const output = aiResult.text;
   if (!output) {
     console.error('Insult model output had no extractable text', {
       model: INSULT_MODEL,
-      shape: summarizeAiResultShape(rawResult),
+      shape: summarizeAiResultShape(aiResult.rawResult),
     });
     throw new Error('Workers AI returned no text output');
   }
