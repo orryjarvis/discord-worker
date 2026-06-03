@@ -1,12 +1,12 @@
 import type {
-  AiRuntimeEnv,
   CommandMap,
   CommandRequest,
   CommandResult,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from './core.js';
+} from './core/index.js';
+import type { AiRuntimeEnv } from './runtime.js';
 import {
   EIGHT_BALL_COMMAND_NAME,
   executeEightBallFollowUp,
@@ -22,7 +22,7 @@ import {
   executePastifyFollowUp,
   parsePastifyModalSubmit,
   type PastifyModalParseResult,
-} from './pastify.js';
+} from './pastify';
 import {
   ISSUE_BODY_INPUT_ID,
   ISSUE_COMMAND_NAME,
@@ -32,14 +32,14 @@ import {
   parseIssueModalSubmit,
   type IssueModalParseResult,
   type IssueRuntimeEnv,
-} from './issue.js';
+} from './issue';
 import {
   parseReminderInterval,
   parseReminderLength,
   toReminderDelaySeconds,
-} from './reminder.js';
+} from './reminder';
 
-export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify.js';
+export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify';
 export { INSULT_COMMAND_NAME } from './insult.js';
 export { EIGHT_BALL_COMMAND_NAME } from './8ball.js';
 export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_INPUT_ID } from './issue.js';
@@ -288,7 +288,7 @@ function handleIssueCommand(request: CommandRequest): CommandResult {
   }
 }
 
-export const commands: CommandMap = {
+export const commands: CommandMap<CommandRequest, CommandResult> = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
   [INSULT_COMMAND_NAME]: handleInsultCommand,
   [EIGHT_BALL_COMMAND_NAME]: handleEightBallCommand,

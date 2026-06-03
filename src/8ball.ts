@@ -1,9 +1,9 @@
 import type {
-  AiRuntimeEnv,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from './core.js';
+} from './core/index.js';
+import type { AiRuntimeEnv } from './runtime.js';
 import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
 
 export const EIGHT_BALL_COMMAND_NAME = '8ball';

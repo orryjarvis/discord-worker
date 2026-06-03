@@ -2,7 +2,7 @@ import type {
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from './core.js';
+} from './core/index.js';
 import { extractModalFields, type ModalComponentRows } from './modal.js';
 
 export const ISSUE_COMMAND_NAME = 'issue';

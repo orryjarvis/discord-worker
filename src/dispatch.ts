@@ -1,14 +1,25 @@
-import type { AppRequest, CommandMap, DispatchOutcome } from './core.js';
+import type {
+  CommandMap,
+  CommandNamedRequest,
+  DispatchOutcome,
+  PingRequest,
+  PongResult,
+} from './core/index.js';
 
-export async function dispatchRequest(request: AppRequest, commands: CommandMap): Promise<DispatchOutcome> {
+export async function dispatchRequest<TRequest extends CommandNamedRequest, TResult>(
+  request: PingRequest | TRequest,
+  commands: CommandMap<TRequest, TResult>,
+): Promise<DispatchOutcome<TResult>> {
   if (request.kind === 'ping') {
-    return { kind: 'pong' };
+    const pong: PongResult = { kind: 'pong' };
+    return pong;
   }
 
-  const handler = commands[request.commandName];
+  const commandRequest = request as TRequest;
+  const handler = commands[commandRequest.commandName];
   if (!handler) {
-    return { kind: 'unknown-command', commandName: request.commandName };
+    return { kind: 'unknown-command', commandName: commandRequest.commandName };
   }
 
-  return handler(request);
+  return handler(commandRequest);
 }

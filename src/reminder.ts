@@ -2,8 +2,8 @@ import type {
   DurableObjectNamespace,
   DurableObjectState,
 } from '@cloudflare/workers-types';
-import { createChannelMessage } from './discord.js';
-import type { FollowUpTask } from './core.js';
+import type { FollowUpTask } from './core/index.js';
+import { sendDiscordMessage } from './skills/sendDiscordMessage.js';
 
 export type ReminderInterval = 'minutes' | 'hours' | 'days';
 
@@ -116,16 +116,6 @@ function buildReminderContent(payload: ReminderTaskPayload): string {
   return `<@${payload.userId}> ⏰ Reminder: ${payload.length} ${payload.interval} elapsed.\n📝 ${payload.note}`;
 }
 
-async function describePostFailure(response: Response): Promise<string> {
-  const body = (await response.text()).trim();
-  if (!body) {
-    return '';
-  }
-
-  const truncatedBody = body.length > 300 ? `${body.slice(0, 300)}...` : body;
-  return ` body=${truncatedBody}`;
-}
-
 export async function scheduleReminderTaskWithAlarm(
   task: FollowUpTask,
   delaySeconds: number,
@@ -235,27 +225,26 @@ export class ReminderDurableObject {
       return;
     }
 
-    const apiBaseUrl = this.env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-    const response = await createChannelMessage(
-      reminder.task.payload.channelId,
-      this.env.DISCORD_TOKEN,
-      {
-        content: buildReminderContent(reminder.task.payload),
-        allowed_mentions: {
-          parse: [],
-          users: [reminder.task.payload.userId],
+    try {
+      await sendDiscordMessage(
+        {
+          channelId: reminder.task.payload.channelId,
+          content: buildReminderContent(reminder.task.payload),
+          allowedMentions: {
+            parse: [],
+            users: [reminder.task.payload.userId],
+          },
+          failurePrefix: 'Reminder delivery failed',
         },
-      },
-      apiBaseUrl,
-    );
-
-    if (!response.ok) {
-      const details = await describePostFailure(response);
+        this.env,
+      );
+    } catch (error) {
       await this.state.storage.put(REMINDER_STORAGE_KEY, {
         ...reminder,
         attempts: reminder.attempts + 1,
       } satisfies PersistedReminderTask);
-      throw new Error(`Reminder delivery failed: ${response.status} ${response.statusText}${details}`);
+
+      throw error;
     }
 
     await this.state.storage.put(REMINDER_STORAGE_KEY, {

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import type { KVNamespace } from '@cloudflare/workers-types';
-import { createChannelMessage } from './discord.js';
+import { dispatchRequest } from './dispatch.js';
+import {
+  createGitHubCommands,
+  GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND,
+  type GitHubWorkflowRunRequest,
+} from './githubCommand.js';
 
 const GITHUB_DELIVERY_DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 14;
 
@@ -26,8 +31,6 @@ const WorkflowRunEventSchema = z.object({
     login: z.string().optional(),
   }).optional(),
 }).passthrough();
-
-type WorkflowRunEventPayload = z.infer<typeof WorkflowRunEventSchema>;
 
 export interface GitHubWebhookEnv {
   DISCORD_TOKEN: string;
@@ -77,89 +80,6 @@ async function isValidGitHubSignature(secret: string, rawBody: string, signature
   const expected = signatureMatch[1].toLowerCase();
   const actual = await computeHmacSha256Hex(secret, rawBody);
   return timingSafeEqual(actual, expected);
-}
-
-async function describePostFailure(response: Response): Promise<string> {
-  const body = (await response.text()).trim();
-  if (!body) {
-    return '';
-  }
-
-  try {
-    const parsed = JSON.parse(body) as { message?: string; code?: number };
-    if (typeof parsed.message === 'string' || typeof parsed.code === 'number') {
-      const code = typeof parsed.code === 'number' ? ` code=${parsed.code}` : '';
-      const message = typeof parsed.message === 'string' ? ` message=${parsed.message}` : '';
-      return `${code}${message}`.trim();
-    }
-  } catch {
-    // Fall through to non-JSON fallback.
-  }
-
-  const truncatedBody = body.length > 300 ? `${body.slice(0, 300)}...` : body;
-  return `body=${truncatedBody}`;
-}
-
-function toStatusLabel(conclusion: string | null | undefined): string {
-  switch (conclusion) {
-    case 'success':
-      return 'SUCCESS';
-    case 'failure':
-    case 'timed_out':
-    case 'startup_failure':
-    case 'cancelled':
-      return 'FAILED';
-    default:
-      return 'COMPLETED';
-  }
-}
-
-function buildDiscordContent(payload: WorkflowRunEventPayload): string {
-  const workflow = payload.workflow_run;
-  const status = toStatusLabel(workflow.conclusion);
-  const branch = workflow.head_branch ?? 'unknown';
-  const actor = workflow.actor?.login ?? payload.sender?.login ?? 'unknown';
-  const runUrl = workflow.html_url ?? 'not available';
-  const workflowPathSuffix = workflow.path ? ` (${workflow.path})` : '';
-
-  return [
-    `GitHub deploy status: ${status}`,
-    `repo: ${payload.repository.full_name}`,
-    `workflow: ${workflow.name}${workflowPathSuffix}`,
-    `branch: ${branch}`,
-    `trigger: ${workflow.event ?? 'unknown'}`,
-    `actor: ${actor}`,
-    `run: ${runUrl}`,
-  ].join('\n');
-}
-
-async function postDeploymentStatusToDiscord(
-  payload: WorkflowRunEventPayload,
-  env: GitHubWebhookEnv,
-): Promise<void> {
-  const channelId = env.WORD_OF_DAY_CHANNEL_ID;
-  if (!channelId) {
-    throw new Error('GitHub webhook cannot post status because channel id is missing');
-  }
-
-  const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-  const response = await createChannelMessage(
-    channelId,
-    env.DISCORD_TOKEN,
-    {
-      content: buildDiscordContent(payload),
-      allowed_mentions: {
-        parse: [],
-      },
-    },
-    apiBaseUrl,
-  );
-
-  if (!response.ok) {
-    const details = await describePostFailure(response);
-    const detailSuffix = details ? ` (${details})` : '';
-    throw new Error(`Failed to post GitHub deployment status: ${response.status} ${response.statusText}${detailSuffix}`);
-  }
 }
 
 export async function handleGitHubWebhook(request: Request, env: GitHubWebhookEnv): Promise<Response> {
@@ -225,7 +145,26 @@ export async function handleGitHubWebhook(request: Request, env: GitHubWebhookEn
     return new Response('GitHub event ignored.', { status: 202 });
   }
 
-  await postDeploymentStatusToDiscord(payload, env);
+  const githubRequest: GitHubWorkflowRunRequest = {
+    kind: 'github-command',
+    commandName: GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND,
+    repositoryFullName: payload.repository.full_name,
+    workflowRun: {
+      id: payload.workflow_run.id,
+      name: payload.workflow_run.name,
+      path: payload.workflow_run.path ?? null,
+      conclusion: payload.workflow_run.conclusion ?? null,
+      htmlUrl: payload.workflow_run.html_url ?? null,
+      headBranch: payload.workflow_run.head_branch ?? null,
+      event: payload.workflow_run.event ?? null,
+      actorLogin: payload.workflow_run.actor?.login ?? payload.sender?.login ?? null,
+    },
+  };
+
+  const dispatchOutcome = await dispatchRequest(githubRequest, createGitHubCommands(env));
+  if (dispatchOutcome.kind === 'unknown-command' || dispatchOutcome.kind === 'pong') {
+    return new Response('GitHub event ignored.', { status: 202 });
+  }
 
   await env.KV.put(
     dedupeKey,

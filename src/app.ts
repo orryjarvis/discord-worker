@@ -30,13 +30,14 @@ import type {
 import type { ExecutionContext, ScheduledController } from '@cloudflare/workers-types';
 import type {
   AppRequest,
+  CommandResult,
   CommandRequest,
   DispatchOutcome,
   FollowUpExecutionResult,
   FollowUpTask,
   PingRequest,
   ShowModalResult,
-} from './core.js';
+} from './core/index.js';
 import { runScheduledActivities } from './scheduled.js';
 import { postWordOfDayMessage } from './wordOfDaySchedule.js';
 import { scheduleReminderTaskWithAlarm } from './reminder.js';
@@ -397,7 +398,7 @@ function toModalResponse(result: ShowModalResult): Response {
   });
 }
 
-async function applyOutcome(outcome: DispatchOutcome, env: Env): Promise<Response> {
+async function applyOutcome(outcome: DispatchOutcome<CommandResult>, env: Env): Promise<Response> {
   switch (outcome.kind) {
     case 'pong':
       return jsonResponse({ type: InteractionResponseType.Pong });

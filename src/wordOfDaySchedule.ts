@@ -1,10 +1,10 @@
 import type { KVNamespace, ScheduledController } from '@cloudflare/workers-types';
-import { createChannelMessage } from './discord.js';
 import {
   fetchWordOfDayEntry,
   formatWordOfDayMessage,
   WORD_OF_DAY_DEFAULT_FEED_URL,
 } from './wordOfDay.js';
+import { sendDiscordMessage } from './skills/sendDiscordMessage.js';
 
 const WORD_OF_DAY_POST_HOUR = 7;
 const WORD_OF_DAY_POST_MINUTE = 30;
@@ -20,27 +20,6 @@ export interface WordOfDayScheduledEnv {
 export type WordOfDayPostEnv = Pick<WordOfDayScheduledEnv,
   'DISCORD_TOKEN' | 'DISCORD_API_BASE_URL' | 'WORD_OF_DAY_CHANNEL_ID' | 'WORD_OF_DAY_FEED_URL'>;
 
-async function describePostFailure(response: Response): Promise<string> {
-  const body = (await response.text()).trim();
-  if (!body) {
-    return '';
-  }
-
-  try {
-    const parsed = JSON.parse(body) as { message?: string; code?: number };
-    if (typeof parsed.message === 'string' || typeof parsed.code === 'number') {
-      const code = typeof parsed.code === 'number' ? ` code=${parsed.code}` : '';
-      const message = typeof parsed.message === 'string' ? ` message=${parsed.message}` : '';
-      return `${code}${message}`.trim();
-    }
-  } catch {
-    // Fall through to non-JSON fallback.
-  }
-
-  const truncatedBody = body.length > 300 ? `${body.slice(0, 300)}...` : body;
-  return `body=${truncatedBody}`;
-}
-
 export async function postWordOfDayMessage(
   env: WordOfDayPostEnv,
   scheduledTime: Date,
@@ -54,24 +33,17 @@ export async function postWordOfDayMessage(
   const wordOfDay = await fetchWordOfDayEntry(feedUrl);
   const content = formatWordOfDayMessage(wordOfDay, scheduledTime);
 
-  const apiBaseUrl = env.DISCORD_API_BASE_URL ?? 'https://discord.com/api/v10';
-  const response = await createChannelMessage(
-    channelId,
-    env.DISCORD_TOKEN,
+  await sendDiscordMessage(
     {
+      channelId,
       content,
-      allowed_mentions: {
+      allowedMentions: {
         parse: [],
       },
+      failurePrefix: 'Failed to post word-of-day message',
     },
-    apiBaseUrl,
+    env,
   );
-
-  if (!response.ok) {
-    const details = await describePostFailure(response);
-    const detailSuffix = details ? ` (${details})` : '';
-    throw new Error(`Failed to post word-of-day message: ${response.status} ${response.statusText}${detailSuffix}`);
-  }
 
   return {
     word: wordOfDay.word,

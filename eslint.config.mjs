@@ -58,4 +58,16 @@ export default tseslint.config(
       "@typescript-eslint/no-unnecessary-type-assertion": "off",
     },
   },
+  {
+    files: ["src/core/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/discord|github|cloudflare/i]",
+          message: "Do not introduce platform-specific terms in core contracts.",
+        },
+      ],
+    },
+  },
 );
