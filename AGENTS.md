@@ -100,7 +100,7 @@ GitHub webhook config: `GITHUB_DEPLOY_WORKFLOW_PATH` (workflow file filter for
 The codebase uses a six-layer model with enforced import boundaries:
 
 ```
-core → integrations → skills → commands → handlers → app
+app → handlers → commands → skills → integrations → core
 ```
 
 Each layer may only import from layers below it (or same-folder modules and npm packages). The rules are enforced by ESLint `no-restricted-syntax` in `eslint.config.mjs`.
