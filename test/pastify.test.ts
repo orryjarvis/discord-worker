@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractAiText } from '../src/pastify.js';
+import { extractAiText } from '../src/commands/pastify.js';
 
 describe('extractAiText', () => {
   it('returns direct response text', () => {

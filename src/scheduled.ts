@@ -1,6 +1,6 @@
 import type { ScheduledController } from '@cloudflare/workers-types';
 import { describeError } from './skills/ai.js';
-import { runWordOfDayScheduledActivity, type WordOfDayScheduledEnv } from './wordOfDaySchedule.js';
+import { runWordOfDayScheduledActivity, type WordOfDayScheduledEnv } from './commands/wordOfDaySchedule.js';
 
 export type ScheduledActivityEnv = WordOfDayScheduledEnv;
 

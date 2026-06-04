@@ -82,4 +82,44 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ["src/skills/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value^='../commands/']",
+          message: "Skills modules must not import from commands modules.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../commands/']",
+          message: "Skills modules must not re-export from commands modules.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../commands/']",
+          message: "Skills modules must not re-export from commands modules.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/integrations/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value^='../']",
+          message: "Integrations modules must only import from within src/integrations or from npm packages.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../']",
+          message: "Integrations modules must only re-export from within src/integrations or from npm packages.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../']",
+          message: "Integrations modules must only re-export from within src/integrations or from npm packages.",
+        },
+      ],
+    },
+  },
 );

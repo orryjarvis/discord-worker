@@ -1,15 +1,15 @@
 import type {
   CommandMap,
-} from './core/index.js';
-import { sendDiscordMessage, type SendDiscordMessageEnv } from './skills/sendDiscordMessage.js';
+} from '../core/index.js';
+import { sendDiscordMessage, type SendDiscordMessageEnv } from '../skills/sendDiscordMessage.js';
 
-export const GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND = 'github-workflow-run-completed';
+export const DEPLOYMENT_STATUS_COMMAND_NAME = 'github-workflow-run-completed';
 
-export interface GitHubCommandEnv extends SendDiscordMessageEnv {
+export interface DeploymentStatusCommandEnv extends SendDiscordMessageEnv {
   WORD_OF_DAY_CHANNEL_ID?: string;
 }
 
-export interface GitHubWorkflowRunRequest {
+export interface DeploymentStatusRequest {
   kind: 'github-command';
   commandName: string;
   repositoryFullName: string;
@@ -25,7 +25,7 @@ export interface GitHubWorkflowRunRequest {
   };
 }
 
-export type GitHubCommandResult = {
+export type DeploymentStatusCommandResult = {
   kind: 'github-command-handled';
 };
 
@@ -43,7 +43,7 @@ function toStatusLabel(conclusion: string | null): string {
   }
 }
 
-function buildDiscordContent(request: GitHubWorkflowRunRequest): string {
+function buildDiscordContent(request: DeploymentStatusRequest): string {
   const workflow = request.workflowRun;
   const status = toStatusLabel(workflow.conclusion);
   const branch = workflow.headBranch ?? 'unknown';
@@ -62,10 +62,10 @@ function buildDiscordContent(request: GitHubWorkflowRunRequest): string {
   ].join('\n');
 }
 
-async function handleWorkflowRunCompleted(
-  request: GitHubWorkflowRunRequest,
-  env: GitHubCommandEnv,
-): Promise<GitHubCommandResult> {
+async function handleDeploymentStatusCommand(
+  request: DeploymentStatusRequest,
+  env: DeploymentStatusCommandEnv,
+): Promise<DeploymentStatusCommandResult> {
   const channelId = env.WORD_OF_DAY_CHANNEL_ID;
   if (!channelId) {
     throw new Error('GitHub webhook cannot post status because channel id is missing');
@@ -86,10 +86,10 @@ async function handleWorkflowRunCompleted(
   return { kind: 'github-command-handled' };
 }
 
-export function createGitHubCommands(
-  env: GitHubCommandEnv,
-): CommandMap<GitHubWorkflowRunRequest, GitHubCommandResult> {
+export function createDeploymentStatusCommands(
+  env: DeploymentStatusCommandEnv,
+): CommandMap<DeploymentStatusRequest, DeploymentStatusCommandResult> {
   return {
-    [GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND]: (request) => handleWorkflowRunCompleted(request, env),
+    [DEPLOYMENT_STATUS_COMMAND_NAME]: (request) => handleDeploymentStatusCommand(request, env),
   };
 }

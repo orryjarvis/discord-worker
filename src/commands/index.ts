@@ -5,8 +5,8 @@ import type {
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from './core/index.js';
-import type { AiRuntimeEnv } from './runtime.js';
+} from '../core/index.js';
+import type { AiRuntimeEnv } from '../runtime.js';
 import {
   EIGHT_BALL_COMMAND_NAME,
   executeEightBallFollowUp,
@@ -22,7 +22,7 @@ import {
   executePastifyFollowUp,
   parsePastifyModalSubmit,
   type PastifyModalParseResult,
-} from './pastify';
+} from './pastify.js';
 import {
   ISSUE_BODY_INPUT_ID,
   ISSUE_COMMAND_NAME,
@@ -32,14 +32,14 @@ import {
   parseIssueModalSubmit,
   type IssueModalParseResult,
   type IssueRuntimeEnv,
-} from './issue';
+} from './issue.js';
 import {
   parseReminderInterval,
   parseReminderLength,
   toReminderDelaySeconds,
-} from './reminder';
+} from './reminder.js';
 
-export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify';
+export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify.js';
 export { INSULT_COMMAND_NAME } from './insult.js';
 export { EIGHT_BALL_COMMAND_NAME } from './8ball.js';
 export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_INPUT_ID } from './issue.js';

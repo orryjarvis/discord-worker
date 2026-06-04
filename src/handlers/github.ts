@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import type { KVNamespace } from '@cloudflare/workers-types';
-import { dispatchRequest } from './core/index.js';
+import { dispatchRequest } from '../core/index.js';
 import {
-  createGitHubCommands,
-  GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND,
-  type GitHubWorkflowRunRequest,
-} from './githubCommand.js';
+  createDeploymentStatusCommands,
+  DEPLOYMENT_STATUS_COMMAND_NAME,
+  type DeploymentStatusRequest,
+} from '../commands/deploymentStatus.js';
 
 const GITHUB_DELIVERY_DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 14;
 
@@ -145,9 +145,9 @@ export async function handleGitHubWebhook(request: Request, env: GitHubWebhookEn
     return new Response('GitHub event ignored.', { status: 202 });
   }
 
-  const githubRequest: GitHubWorkflowRunRequest = {
+  const githubRequest: DeploymentStatusRequest = {
     kind: 'github-command',
-    commandName: GITHUB_WORKFLOW_RUN_COMPLETED_COMMAND,
+    commandName: DEPLOYMENT_STATUS_COMMAND_NAME,
     repositoryFullName: payload.repository.full_name,
     workflowRun: {
       id: payload.workflow_run.id,
@@ -161,7 +161,7 @@ export async function handleGitHubWebhook(request: Request, env: GitHubWebhookEn
     },
   };
 
-  const dispatchOutcome = await dispatchRequest(githubRequest, createGitHubCommands(env));
+  const dispatchOutcome = await dispatchRequest(githubRequest, createDeploymentStatusCommands(env));
   if (dispatchOutcome.kind === 'unknown-command' || dispatchOutcome.kind === 'pong') {
     return new Response('GitHub event ignored.', { status: 202 });
   }

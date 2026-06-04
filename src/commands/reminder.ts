@@ -2,8 +2,8 @@ import type {
   DurableObjectNamespace,
   DurableObjectState,
 } from '@cloudflare/workers-types';
-import type { FollowUpTask } from './core/index.js';
-import { sendDiscordMessage } from './skills/sendDiscordMessage.js';
+import type { FollowUpTask } from '../core/index.js';
+import { sendDiscordMessage } from '../skills/sendDiscordMessage.js';
 
 export type ReminderInterval = 'minutes' | 'hours' | 'days';
 

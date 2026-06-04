@@ -1,4 +1,3 @@
-import * as ed from '@noble/ed25519';
 import type {
   RESTPostAPIChannelMessageJSONBody,
   RESTAPIMessageReference,
@@ -12,24 +11,6 @@ export type CreateFollowUpMessagePayload = RESTPostAPIWebhookWithTokenJSONBody &
 };
 
 export type CreateChannelMessagePayload = RESTPostAPIChannelMessageJSONBody;
-
-export async function verifyDiscordRequest(
-  signature: string,
-  timestamp: string,
-  body: string,
-  publicKey: string,
-): Promise<boolean> {
-  try {
-    const message = new TextEncoder().encode(timestamp + body);
-    return await ed.verifyAsync(
-      ed.etc.hexToBytes(signature),
-      message,
-      ed.etc.hexToBytes(publicKey),
-    );
-  } catch {
-    return false;
-  }
-}
 
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

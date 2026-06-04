@@ -1,4 +1,4 @@
-import { createChannelMessage, type CreateChannelMessagePayload } from '../discord.js';
+import { createChannelMessage, type CreateChannelMessagePayload } from '../integrations/discord.js';
 
 export interface SendDiscordMessageEnv {
   DISCORD_TOKEN: string;
