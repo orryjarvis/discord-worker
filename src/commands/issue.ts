@@ -2,9 +2,9 @@ import type {
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from '../core/index.js';
-import { createIssue, type IssueSkillEnv } from '../skills/issue.js';
-import { extractModalFields, type ModalComponentRows } from '../skills/modalFields.js';
+} from '@/core';
+import { createIssue, type IssueSkillEnv } from '@/skills/issue';
+import { extractModalFields, type ModalComponentRows } from '@/skills/modalFields';
 
 export const ISSUE_COMMAND_NAME = 'issue';
 export const ISSUE_MODAL_ID = 'issue_modal';

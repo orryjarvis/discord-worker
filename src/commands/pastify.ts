@@ -2,15 +2,15 @@ import type {
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from '../core/index.js';
-import type { AiRuntimeEnv } from '../skills/ai.js';
+} from '@/core';
+import type { AiRuntimeEnv } from '@/skills/ai';
 import {
   type AiPromptMessage,
   describeError,
   runAiTextGeneration,
   summarizeAiResultShape,
-} from '../skills/ai.js';
-import { extractModalFields, type ModalComponentRows } from '../skills/modalFields.js';
+} from '@/skills/ai';
+import { extractModalFields, type ModalComponentRows } from '@/skills/modalFields';
 
 export const PASTIFY_COMMAND_NAME = 'pastify';
 export const PASTIFY_MODAL_ID = 'pastify_modal';
@@ -61,7 +61,7 @@ export function parsePastifyModalSubmit(data: {
   };
 }
 
-export { extractAiText } from '../skills/ai.js';
+export { extractAiText } from '@/skills/ai';
 
 async function generatePastifiedText(idea: string, env: AiRuntimeEnv): Promise<string> {
   const promptMessages: AiPromptMessage[] = [

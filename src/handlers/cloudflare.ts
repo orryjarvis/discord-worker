@@ -1,15 +1,15 @@
 import type { ScheduledController, MessageBatch } from '@cloudflare/workers-types';
-import type { FollowUpTask } from '../core/index.js';
+import type { FollowUpTask } from '@/core';
 import {
   executeAndDeliverFollowUp,
   WOTD_COMMAND_NAME,
   type FollowUpDeliveryEnv,
-} from '../commands/index.js';
+} from '@/commands';
 import {
   postWordOfDayMessage,
   runWordOfDayScheduledActivity,
   type WordOfDayScheduledEnv,
-} from '../commands/wordOfDaySchedule.js';
+} from '@/commands/wordOfDaySchedule';
 
 export interface CloudflareHandlerEnv extends FollowUpDeliveryEnv, WordOfDayScheduledEnv {}
 

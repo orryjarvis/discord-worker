@@ -1,11 +1,11 @@
-import type { WordOfDayEntry } from '../integrations/wordOfDay.js';
+import type { WordOfDayEntry } from '@/integrations/wordOfDay';
 
 export {
   fetchWordOfDayEntry,
   parseWordOfDayFeed,
   WORD_OF_DAY_DEFAULT_FEED_URL,
   type WordOfDayEntry,
-} from '../integrations/wordOfDay.js';
+} from '@/integrations/wordOfDay';
 
 const WORD_OF_DAY_MAX_MESSAGE_LENGTH = 2000;
 const SECTION_SEPARATOR = '\n';

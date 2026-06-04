@@ -1,5 +1,5 @@
-import { createGitHubIssue, type GitHubIssueClientEnv } from '../integrations/github/issueClient.js';
-import { describeError } from './ai.js';
+import { createGitHubIssue, type GitHubIssueClientEnv } from '@/integrations/github/issueClient';
+import { describeError } from '@/skills/ai';
 
 export type IssueSkillEnv = GitHubIssueClientEnv;
 

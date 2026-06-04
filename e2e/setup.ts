@@ -12,8 +12,8 @@ import {
   SELF,
 } from 'cloudflare:test';
 import * as ed from '@noble/ed25519';
-import worker from '../src/index.js';
-import type { Env as AppEnv } from '../src/app.js';
+import worker from '@/index';
+import type { Env as AppEnv } from '@/app';
 
 // Replace the AI binding with a lightweight stub so e2e tests run without
 // Cloudflare credentials. env is the same object the fetch handler receives,

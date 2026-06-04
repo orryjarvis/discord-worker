@@ -16,7 +16,7 @@ import {
   waitForChannelPost,
   waitForFollowUp,
 } from './setup';
-import { ReminderDurableObject } from '../src/commands/reminder.js';
+import { ReminderDurableObject } from '@/commands/reminder';
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {

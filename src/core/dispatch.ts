@@ -4,7 +4,7 @@ import type {
   DispatchOutcome,
   PingRequest,
   PongResult,
-} from './index.js';
+} from '@/core';
 
 export async function dispatchRequest<TRequest extends CommandNamedRequest, TResult>(
   request: PingRequest | TRequest,

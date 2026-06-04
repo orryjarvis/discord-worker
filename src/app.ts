@@ -1,13 +1,13 @@
 import type { ExecutionContext, MessageBatch } from '@cloudflare/workers-types';
 import type { ScheduledController } from '@cloudflare/workers-types';
-import { handleDiscordInteractionRequest, type DiscordInteractionHandlerEnv } from './handlers/discord.js';
-import { handleGitHubWebhook, type GitHubWebhookEnv } from './handlers/github.js';
+import { handleDiscordInteractionRequest, type DiscordInteractionHandlerEnv } from '@/handlers/discord';
+import { handleGitHubWebhook, type GitHubWebhookEnv } from '@/handlers/github';
 import {
   handleQueueBatch,
   runScheduled,
   type CloudflareHandlerEnv,
-} from './handlers/cloudflare.js';
-import type { FollowUpTask } from './core/index.js';
+} from '@/handlers/cloudflare';
+import type { FollowUpTask } from '@/core';
 
 type FollowUpMessage = {
   token?: string;

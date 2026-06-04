@@ -89,6 +89,9 @@ GitHub webhook config: `GITHUB_DEPLOY_WORKFLOW_PATH` (workflow file filter for
   without understanding what it does.
 - **Run validation before considering work done.** See _Testing and
   validation_ below.
+- **Import style defaults.** For any module inside `src/`, use the `@/`
+  alias, omit file extensions, and omit trailing `/index` when possible
+  (prefer `@/core` over `@/core/index`).
 
 ---
 

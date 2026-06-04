@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "target": "esnext",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
     "lib": [
       "esnext"
     ],

@@ -153,4 +153,4 @@ export type DispatchError = {
 
 export type DispatchOutcome<TResult> = PongResult | TResult | DispatchError;
 
-export { dispatchRequest } from './dispatch.js';
+export { dispatchRequest } from '@/core/dispatch';

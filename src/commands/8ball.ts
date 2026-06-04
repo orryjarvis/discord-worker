@@ -2,14 +2,14 @@ import type {
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from '../core/index.js';
-import type { AiRuntimeEnv } from '../skills/ai.js';
+} from '@/core';
+import type { AiRuntimeEnv } from '@/skills/ai';
 import {
   type AiPromptMessage,
   describeError,
   runAiTextGeneration,
   summarizeAiResultShape,
-} from '../skills/ai.js';
+} from '@/skills/ai';
 
 export const EIGHT_BALL_COMMAND_NAME = '8ball';
 

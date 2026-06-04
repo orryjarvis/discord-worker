@@ -26,6 +26,12 @@ Also treat the repo's agent tooling files as part of the bootstrap state:
 - **Preserve the test harness.** `test/e2e/` setup and configs are
   load-bearing. Understand what they do before touching them.
 
+## Import style quick rules
+
+- For any import/re-export targeting modules under `src/`, use the `@/` alias.
+- Omit `.js`/`.ts` file extensions in import paths.
+- Omit trailing `/index` in import paths when possible (prefer `@/core` over `@/core/index`).
+
 ## What not to do
 
 - Do not add command frameworks, plugin registries, or service layers

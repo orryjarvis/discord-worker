@@ -12,7 +12,7 @@ import {
   commands,
   parseCommandModalSubmit,
   REMINDER_COMMAND_NAME,
-} from '../commands/index.js';
+} from '@/commands';
 import type {
   DurableObjectNamespace,
   KVNamespace,
@@ -25,9 +25,9 @@ import type {
   FollowUpTask,
   PingRequest,
   ShowModalResult,
-} from '../core/index.js';
-import { dispatchRequest } from '../core/index.js';
-import { scheduleReminderTaskWithAlarm } from '../commands/reminder.js';
+} from '@/core';
+import { dispatchRequest } from '@/core';
+import { scheduleReminderTaskWithAlarm } from '@/commands/reminder';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {

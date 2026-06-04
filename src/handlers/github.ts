@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import type { KVNamespace } from '@cloudflare/workers-types';
-import { dispatchRequest } from '../core/index.js';
+import { dispatchRequest } from '@/core';
 import {
   createDeploymentStatusCommands,
   DEPLOYMENT_STATUS_COMMAND_NAME,
   type DeploymentStatusRequest,
-} from '../commands/deploymentStatus.js';
+} from '@/commands/deploymentStatus';
 
 const GITHUB_DELIVERY_DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 14;
 

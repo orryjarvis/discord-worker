@@ -1,7 +1,7 @@
 import type {
   CommandMap,
-} from '../core/index.js';
-import { sendDiscordMessage, type SendDiscordMessageEnv } from '../skills/sendDiscordMessage.js';
+} from '@/core';
+import { sendDiscordMessage, type SendDiscordMessageEnv } from '@/skills/sendDiscordMessage';
 
 export const DEPLOYMENT_STATUS_COMMAND_NAME = 'github-workflow-run-completed';
 

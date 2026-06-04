@@ -1,5 +1,6 @@
 import { cloudflareTest } from '@cloudflare/vitest-pool-workers';
 import { generateKeyPairSync } from 'node:crypto';
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 const { privateKey: TEST_GITHUB_PRIVATE_KEY } = generateKeyPairSync('rsa', {
@@ -9,6 +10,11 @@ const { privateKey: TEST_GITHUB_PRIVATE_KEY } = generateKeyPairSync('rsa', {
 });
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('../src', import.meta.url)),
+    },
+  },
   plugins: [
     cloudflareTest(({ inject }) => ({
       wrangler: { configPath: './wrangler.jsonc' },

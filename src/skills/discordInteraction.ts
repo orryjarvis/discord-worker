@@ -1,5 +1,5 @@
-import type { FollowUpExecutionResult } from '../core/index.js';
-import { editOriginalInteractionResponse, type EditOriginalInteractionPayload } from '../integrations/discord.js';
+import type { FollowUpExecutionResult } from '@/core';
+import { editOriginalInteractionResponse, type EditOriginalInteractionPayload } from '@/integrations/discord';
 
 const QUOTED_SOURCE_MAX_LENGTH = 240;
 const QUOTED_SOURCE_ELLIPSIS = '...';

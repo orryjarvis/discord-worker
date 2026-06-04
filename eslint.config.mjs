@@ -59,6 +59,54 @@ export default tseslint.config(
     },
   },
   {
+    files: ["**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value=/\\.(js|ts)$/]",
+          message: "Do not include file extensions in imports.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value=/\\.(js|ts)$/]",
+          message: "Do not include file extensions in re-exports.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value=/\\.(js|ts)$/]",
+          message: "Do not include file extensions in re-exports.",
+        },
+        {
+          selector: "ImportDeclaration[source.value=/\\/index$/]:not([source.value='@/index'])",
+          message: "Omit trailing /index in imports (prefer '@/core' over '@/core/index').",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value=/\\/index$/]:not([source.value='@/index'])",
+          message: "Omit trailing /index in re-exports.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value=/\\/index$/]:not([source.value='@/index'])",
+          message: "Omit trailing /index in re-exports.",
+        },
+        {
+          selector: "ImportDeclaration[source.value^='../src/']",
+          message: "Use @/ to import from src.",
+        },
+        {
+          selector: "ImportDeclaration[source.value^='./src/']",
+          message: "Use @/ to import from src.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../src/']",
+          message: "Use @/ to re-export from src.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../src/']",
+          message: "Use @/ to re-export from src.",
+        },
+      ],
+    },
+  },
+  {
     files: ["src/core/**/*.ts"],
     rules: {
       "no-restricted-syntax": [
@@ -68,16 +116,16 @@ export default tseslint.config(
           message: "Do not introduce platform-specific terms in core contracts.",
         },
         {
-          selector: "ImportDeclaration[source.value^='../']",
-          message: "Core modules must only import from within src/core or from npm packages.",
+          selector: "ImportDeclaration[source.value^='@/']:not([source.value^='@/core/'])",
+          message: "Core modules must only import from src/core or from npm packages.",
         },
         {
-          selector: "ExportNamedDeclaration[source.value^='../']",
-          message: "Core modules must only re-export from within src/core or from npm packages.",
+          selector: "ExportNamedDeclaration[source.value^='@/']:not([source.value^='@/core/'])",
+          message: "Core modules must only re-export from src/core or from npm packages.",
         },
         {
-          selector: "ExportAllDeclaration[source.value^='../']",
-          message: "Core modules must only re-export from within src/core or from npm packages.",
+          selector: "ExportAllDeclaration[source.value^='@/']:not([source.value^='@/core/'])",
+          message: "Core modules must only re-export from src/core or from npm packages.",
         },
       ],
     },
@@ -88,16 +136,16 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../integrations/'])",
-          message: "Skills modules may only import from src/core, src/integrations, or npm packages.",
+          selector: "ImportDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/integrations/']):not([source.value^='@/skills/'])",
+          message: "Skills modules may only import from src/core, src/integrations, src/skills, or npm packages.",
         },
         {
-          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../integrations/'])",
-          message: "Skills modules may only re-export from src/core, src/integrations, or npm packages.",
+          selector: "ExportNamedDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/integrations/']):not([source.value^='@/skills/'])",
+          message: "Skills modules may only re-export from src/core, src/integrations, src/skills, or npm packages.",
         },
         {
-          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../integrations/'])",
-          message: "Skills modules may only re-export from src/core, src/integrations, or npm packages.",
+          selector: "ExportAllDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/integrations/']):not([source.value^='@/skills/'])",
+          message: "Skills modules may only re-export from src/core, src/integrations, src/skills, or npm packages.",
         },
       ],
     },
@@ -108,16 +156,16 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/'])",
-          message: "Integrations modules may only import from src/core or npm packages.",
+          selector: "ImportDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/integrations/'])",
+          message: "Integrations modules may only import from src/core, src/integrations, or npm packages.",
         },
         {
-          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/'])",
-          message: "Integrations modules may only re-export from src/core or npm packages.",
+          selector: "ExportNamedDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/integrations/'])",
+          message: "Integrations modules may only re-export from src/core, src/integrations, or npm packages.",
         },
         {
-          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/'])",
-          message: "Integrations modules may only re-export from src/core or npm packages.",
+          selector: "ExportAllDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/integrations/'])",
+          message: "Integrations modules may only re-export from src/core, src/integrations, or npm packages.",
         },
       ],
     },
@@ -128,16 +176,16 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../skills/'])",
-          message: "Commands modules may only import from src/core, src/skills, or npm packages.",
+          selector: "ImportDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/skills/']):not([source.value^='@/commands/'])",
+          message: "Commands modules may only import from src/core, src/skills, src/commands, or npm packages.",
         },
         {
-          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../skills/'])",
-          message: "Commands modules may only re-export from src/core, src/skills, or npm packages.",
+          selector: "ExportNamedDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/skills/']):not([source.value^='@/commands/'])",
+          message: "Commands modules may only re-export from src/core, src/skills, src/commands, or npm packages.",
         },
         {
-          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../skills/'])",
-          message: "Commands modules may only re-export from src/core, src/skills, or npm packages.",
+          selector: "ExportAllDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/skills/']):not([source.value^='@/commands/'])",
+          message: "Commands modules may only re-export from src/core, src/skills, src/commands, or npm packages.",
         },
       ],
     },
@@ -148,16 +196,16 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../commands/'])",
-          message: "Handlers modules may only import from src/core, src/commands, or npm packages.",
+          selector: "ImportDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/commands/']):not([source.value^='@/handlers/'])",
+          message: "Handlers modules may only import from src/core, src/commands, src/handlers, or npm packages.",
         },
         {
-          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../commands/'])",
-          message: "Handlers modules may only re-export from src/core, src/commands, or npm packages.",
+          selector: "ExportNamedDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/commands/']):not([source.value^='@/handlers/'])",
+          message: "Handlers modules may only re-export from src/core, src/commands, src/handlers, or npm packages.",
         },
         {
-          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../commands/'])",
-          message: "Handlers modules may only re-export from src/core, src/commands, or npm packages.",
+          selector: "ExportAllDeclaration[source.value^='@/']:not([source.value^='@/core/']):not([source.value^='@/commands/']):not([source.value^='@/handlers/'])",
+          message: "Handlers modules may only re-export from src/core, src/commands, src/handlers, or npm packages.",
         },
       ],
     },
@@ -168,12 +216,8 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportDeclaration[source.value^='./']:not([source.value^='./handlers/']):not([source.value^='./core/'])",
-          message: "app.ts may only import from ./handlers/ or ./core/.",
-        },
-        {
-          selector: "ImportDeclaration[source.value^='../']",
-          message: "app.ts must not use parent-directory imports.",
+          selector: "ImportDeclaration[source.value^='@/']:not([source.value^='@/handlers/']):not([source.value^='@/core/'])",
+          message: "app.ts may only import from src/handlers or src/core.",
         },
       ],
     },
