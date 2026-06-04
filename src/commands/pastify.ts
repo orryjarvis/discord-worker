@@ -1,11 +1,16 @@
 import type {
-  AiRuntimeEnv,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from './core.js';
-import { describeError, extractAiText, summarizeAiResultShape } from './ai.js';
-import { extractModalFields, type ModalComponentRows } from './modal.js';
+} from '@/core';
+import type { AiRuntimeEnv } from '@/skills/ai';
+import {
+  type AiPromptMessage,
+  describeError,
+  runAiTextGeneration,
+  summarizeAiResultShape,
+} from '@/skills/ai';
+import { extractModalFields, type ModalComponentRows } from '@/skills/modalFields';
 
 export const PASTIFY_COMMAND_NAME = 'pastify';
 export const PASTIFY_MODAL_ID = 'pastify_modal';
@@ -56,10 +61,10 @@ export function parsePastifyModalSubmit(data: {
   };
 }
 
-export { extractAiText } from './ai.js';
+export { extractAiText } from '@/skills/ai';
 
 async function generatePastifiedText(idea: string, env: AiRuntimeEnv): Promise<string> {
-  const promptMessages = [
+  const promptMessages: AiPromptMessage[] = [
     {
       role: 'system',
       content:
@@ -78,16 +83,20 @@ async function generatePastifiedText(idea: string, env: AiRuntimeEnv): Promise<s
     },
   ];
 
-  const rawResult = await env.AI.run(PASTIFY_MODEL, {
-    messages: promptMessages,
-    temperature: 0.9,
-  });
+  const aiResult = await runAiTextGeneration(
+    {
+      model: PASTIFY_MODEL,
+      messages: promptMessages,
+      temperature: 0.9,
+    },
+    env,
+  );
 
-  const output = extractAiText(rawResult);
+  const output = aiResult.text;
   if (!output) {
     console.error('Pastify model output had no extractable text', {
       model: PASTIFY_MODEL,
-      shape: summarizeAiResultShape(rawResult),
+      shape: summarizeAiResultShape(aiResult.rawResult),
     });
     throw new Error('Workers AI returned no text output');
   }

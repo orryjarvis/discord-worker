@@ -8,7 +8,7 @@ import {
   InteractionResponseType,
   InteractionType,
 } from 'discord-api-types/v10';
-import worker from '../src/index.js';
+import worker from '@/index';
 
 // Test key pair - matches test/e2e/setup.shared.ts defaults
 const TEST_PRIVATE_KEY = 'd46b224eca160429fbbd3c903994bb93da0532635839530a1fd6cdac1bd4023e';

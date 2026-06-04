@@ -1,5 +1,3 @@
-import type { Ai } from '@cloudflare/workers-types';
-
 export interface SubmissionRecord {
   interactionId: string;
   userId: string | null;
@@ -43,6 +41,12 @@ export interface ModalSubmitRequest {
 }
 
 export type CommandRequest = SlashCommandRequest | ComponentRequest | ModalSubmitRequest;
+
+export interface CommandNamedRequest {
+  kind: string;
+  commandName: string;
+}
+
 export type AppRequest = PingRequest | CommandRequest;
 
 export type DeferFollowUpResult = {
@@ -89,10 +93,6 @@ export interface FollowUpExecutionResult {
   renderHints?: FollowUpRenderHints;
 }
 
-export interface AiRuntimeEnv {
-  AI: Ai;
-}
-
 export interface FollowUpExecutionContext {
   messageId: string;
   token: string;
@@ -136,9 +136,11 @@ export type CommandResult =
   | AckAndScheduleTaskResult
   | ChannelMessageResult;
 
-export type CommandHandler = (request: CommandRequest) => Promise<CommandResult> | CommandResult;
+export type CommandHandler<TRequest extends CommandNamedRequest, TResult> =
+  (request: TRequest) => Promise<TResult> | TResult;
 
-export type CommandMap = Readonly<Record<string, CommandHandler>>;
+export type CommandMap<TRequest extends CommandNamedRequest, TResult> =
+  Readonly<Record<string, CommandHandler<TRequest, TResult>>>;
 
 export type PongResult = {
   kind: 'pong';
@@ -149,4 +151,6 @@ export type DispatchError = {
   commandName: string;
 };
 
-export type DispatchOutcome = PongResult | CommandResult | DispatchError;
+export type DispatchOutcome<TResult> = PongResult | TResult | DispatchError;
+
+export { dispatchRequest } from '@/core/dispatch';

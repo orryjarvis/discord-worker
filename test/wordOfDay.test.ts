@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatWordOfDayMessage, parseWordOfDayFeed } from '../src/wordOfDay.js';
+import { formatWordOfDayMessage, parseWordOfDayFeed } from '@/skills/wordOfDay';
 
 const SAMPLE_FEED = `<?xml version="1.0" encoding="UTF-8"?>
 <rss xmlns:merriam="https://www.merriam-webster.com/word-of-the-day" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" version="2.0">

@@ -1,3 +1,20 @@
+import type { Ai } from '@cloudflare/workers-types';
+
+export interface AiRuntimeEnv {
+  AI: Ai;
+}
+
+export interface AiPromptMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface RunAiTextGenerationInput {
+  model: string;
+  messages: AiPromptMessage[];
+  temperature: number;
+}
+
 export function extractAiText(result: unknown): string | null {
   const fromString = (value: unknown): string | null => {
     if (typeof value !== 'string') {
@@ -168,5 +185,20 @@ export function describeError(error: unknown): Record<string, unknown> {
 
   return {
     message: String(error),
+  };
+}
+
+export async function runAiTextGeneration(
+  input: RunAiTextGenerationInput,
+  env: AiRuntimeEnv,
+): Promise<{ rawResult: unknown; text: string | null }> {
+  const rawResult = await env.AI.run(input.model, {
+    messages: input.messages,
+    temperature: input.temperature,
+  });
+
+  return {
+    rawResult,
+    text: extractAiText(rawResult),
   };
 }

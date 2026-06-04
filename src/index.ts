@@ -1,2 +1,2 @@
-export { default } from './app.js';
-export { ReminderDurableObject } from './reminder.js';
+export { default } from '@/app';
+export { ReminderDurableObject } from '@/commands/reminder';

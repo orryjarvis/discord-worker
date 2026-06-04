@@ -45,14 +45,23 @@ GitHub webhook config: `GITHUB_DEPLOY_WORKFLOW_PATH` (workflow file filter for
 | What | Where |
 |---|---|
 | Worker entry point | `src/index.ts` |
-| App adapter (Discord <-> app transforms) | `src/app.ts` |
-| GitHub webhook handling | `src/githubWebhook.ts` |
-| Command skills definitions | `src/command.ts` |
-| Scheduled skill dispatcher | `src/scheduled.ts` |
-| Word-of-day scheduled skill | `src/wordOfDaySchedule.ts` |
-| Dispatch router | `src/dispatch.ts` |
-| Core request/result interfaces | `src/core.ts` |
-| Discord helpers (verify, respond) | `src/discord.ts` |
+| App wiring (fetch/queue/scheduled routing) | `src/app.ts` |
+| Discord interaction handler | `src/handlers/discord.ts` |
+| GitHub webhook handler | `src/handlers/github.ts` |
+| Queue + scheduled handler | `src/handlers/cloudflare.ts` |
+| Command registry + follow-up execution | `src/commands/index.ts` |
+| Individual command modules | `src/commands/*.ts` |
+| Word-of-day scheduled activity | `src/commands/wordOfDaySchedule.ts` |
+| AI skill (text generation, error helpers) | `src/skills/ai.ts` |
+| Discord follow-up delivery skill | `src/skills/discordInteraction.ts` |
+| Discord channel message skill | `src/skills/sendDiscordMessage.ts` |
+| GitHub issue creation skill | `src/skills/issue.ts` |
+| Modal field extraction skill | `src/skills/modalFields.ts` |
+| Word-of-day formatting skill | `src/skills/wordOfDay.ts` |
+| Discord API client (outbound) | `src/integrations/discord.ts` |
+| GitHub issue API client | `src/integrations/github/issueClient.ts` |
+| Word-of-day RSS feed client | `src/integrations/wordOfDay.ts` |
+| Core request/result interfaces + dispatch | `src/core/` |
 | Unit tests | `test/worker.test.ts` |
 | E2E tests | `e2e/interactions.test.ts` |
 | E2E test config | `e2e/vitest.config.ts` |
@@ -80,50 +89,38 @@ GitHub webhook config: `GITHUB_DEPLOY_WORKFLOW_PATH` (workflow file filter for
   without understanding what it does.
 - **Run validation before considering work done.** See _Testing and
   validation_ below.
+- **Import style defaults.** For any module inside `src/`, use the `@/`
+  alias, omit file extensions, and omit trailing `/index` when possible
+  (prefer `@/core` over `@/core/index`).
 
 ---
 
 ## Architecture boundaries
 
-The codebase is intentionally small but now uses a documented layering split:
+The codebase uses a six-layer model with enforced import boundaries:
 
-- `src/app.ts` is the Discord-facing app adapter. It validates/signature-checks
-  requests, transforms Discord payloads to flat app requests, calls dispatch,
-  and maps dispatch results back to Discord responses.
-- `src/app.ts` owns transport/orchestration only. Do not place
-  skill-specific modal parsing, AI prompt/output parsing, or skill-specific
-  follow-up payload semantics in this layer.
-- `src/dispatch.ts` is the routing core for command skills. It chooses a command handler by name
-  and does not import Discord-specific code.
-- `src/command.ts` defines command-skill behavior and command constants. It works in
-  terms of core request/result interfaces and does not import dispatch.
-- `src/scheduled.ts` is the routing core for scheduled skills. It runs scheduled
-  activities and should remain generic.
-- `src/wordOfDaySchedule.ts` defines the word-of-day scheduled skill behavior.
-- `src/core.ts` defines shared interfaces used by app, dispatch, and command.
-  Keep `core` command-skill-agnostic: no command-specific type names or string
-  literals in core contracts.
+```
+app → handlers → commands → skills → integrations → core
+```
 
-Dependency direction (allowed edges):
+Each layer may only import from layers below it (or same-folder modules and npm packages). The rules are enforced by ESLint `no-restricted-syntax` in `eslint.config.mjs`.
 
-- `app -> dispatch`
-- `app -> command`
-- `app -> scheduled`
-- `app -> core`
-- `dispatch -> core`
-- `command -> core`
-- `scheduled -> wordOfDaySchedule`
+| Layer | Location | May import from |
+|---|---|---|
+| `core` | `src/core/` | npm only (no `../`) |
+| `integrations` | `src/integrations/` | `core`, npm |
+| `skills` | `src/skills/` | `core`, `integrations`, npm |
+| `commands` | `src/commands/` | `core`, `skills`, npm |
+| `handlers` | `src/handlers/` | `core`, `commands`, npm |
+| `app` | `src/app.ts` | `handlers`, `core`, npm |
 
-Disallowed edges:
-
-- `dispatch -> command`
-- `command -> dispatch`
-- Any lower layer importing from `app`
-
-`src/index.ts` should remain a thin entrypoint that re-exports `src/app.ts`.
-
-See [docs/design-docs/core-beliefs.md](docs/design-docs/core-beliefs.md) for
-the reasoning behind this.
+Layer purposes:
+- **core** — shared request/result interfaces and dispatch. No platform terms.
+- **integrations** — outbound API clients (Discord, GitHub, RSS). Pure transport.
+- **skills** — app-bespoke logic composing integrations: AI generation, content formatting, issue creation, follow-up delivery.
+- **commands** — command handlers and follow-up execution. Composes skills into Discord-presentable results.
+- **handlers** — inbound platform handlers: Discord interaction verification and routing, GitHub webhook HMAC + deduplication, Cloudflare queue batch and scheduled dispatch.
+- **app** — Worker entry point. Routes `fetch`, `queue`, and `scheduled` to handler functions. No logic.
 
 ---
 
@@ -165,7 +162,6 @@ Do not delete or rewrite test helpers without understanding what they test.
 
 - A command framework or plugin registry.
 - Generated documentation or table-of-contents machinery.
-- Strict import-boundary enforcement tooling (ESLint/import graph rules).
 - Execution-plan systems or quality scorecards.
 - Doc-gardening automation.
 - A broad `docs/` hierarchy beyond `docs/design-docs/`.

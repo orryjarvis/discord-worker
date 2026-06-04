@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ReminderDurableObject } from '../src/reminder.js';
+import { ReminderDurableObject } from '@/commands/reminder';
 
 type StoredValue = Record<string, unknown>;
 

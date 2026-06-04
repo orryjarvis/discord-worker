@@ -1,20 +1,21 @@
 import type {
-  AiRuntimeEnv,
   CommandMap,
   CommandRequest,
   CommandResult,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
-} from './core.js';
+} from '@/core';
+import type { AiRuntimeEnv } from '@/skills/ai';
+import { deliverFollowUpEdit, type DeliverFollowUpEnv } from '@/skills/discordInteraction';
 import {
   EIGHT_BALL_COMMAND_NAME,
   executeEightBallFollowUp,
-} from './8ball.js';
+} from '@/commands/8ball';
 import {
   INSULT_COMMAND_NAME,
   executeInsultFollowUp,
-} from './insult.js';
+} from '@/commands/insult';
 import {
   PASTIFY_COMMAND_NAME,
   PASTIFY_MODAL_ID,
@@ -22,7 +23,7 @@ import {
   executePastifyFollowUp,
   parsePastifyModalSubmit,
   type PastifyModalParseResult,
-} from './pastify.js';
+} from '@/commands/pastify';
 import {
   ISSUE_BODY_INPUT_ID,
   ISSUE_COMMAND_NAME,
@@ -32,17 +33,17 @@ import {
   parseIssueModalSubmit,
   type IssueModalParseResult,
   type IssueRuntimeEnv,
-} from './issue.js';
+} from '@/commands/issue';
 import {
   parseReminderInterval,
   parseReminderLength,
   toReminderDelaySeconds,
-} from './reminder.js';
+} from '@/commands/reminder';
 
-export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from './pastify.js';
-export { INSULT_COMMAND_NAME } from './insult.js';
-export { EIGHT_BALL_COMMAND_NAME } from './8ball.js';
-export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_INPUT_ID } from './issue.js';
+export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from '@/commands/pastify';
+export { INSULT_COMMAND_NAME } from '@/commands/insult';
+export { EIGHT_BALL_COMMAND_NAME } from '@/commands/8ball';
+export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_INPUT_ID } from '@/commands/issue';
 
 export const WOTD_COMMAND_NAME = 'wotd';
 export const REMINDER_COMMAND_NAME = 'reminder';
@@ -288,7 +289,7 @@ function handleIssueCommand(request: CommandRequest): CommandResult {
   }
 }
 
-export const commands: CommandMap = {
+export const commands: CommandMap<CommandRequest, CommandResult> = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
   [INSULT_COMMAND_NAME]: handleInsultCommand,
   [EIGHT_BALL_COMMAND_NAME]: handleEightBallCommand,
@@ -335,4 +336,18 @@ export async function executeFollowUpTask(
   }
 
   throw new Error(`Unknown follow-up task command: ${task.commandName}`);
+}
+
+export type FollowUpDeliveryEnv = AiRuntimeEnv & DeliverFollowUpEnv & IssueRuntimeEnv;
+
+export async function executeAndDeliverFollowUp(
+  task: FollowUpTask | undefined,
+  context: FollowUpExecutionContext,
+  env: FollowUpDeliveryEnv,
+): Promise<void> {
+  const result: FollowUpExecutionResult = task
+    ? await executeFollowUpTask(task, { AI: env.AI }, context, env)
+    : { content: 'Could not process follow-up payload. Please try again.' };
+
+  await deliverFollowUpEdit(context.token, result, env);
 }
