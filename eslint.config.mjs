@@ -88,16 +88,16 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ImportDeclaration[source.value^='../commands/']",
-          message: "Skills modules must not import from commands modules.",
+          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../integrations/'])",
+          message: "Skills modules may only import from src/core, src/integrations, or npm packages.",
         },
         {
-          selector: "ExportNamedDeclaration[source.value^='../commands/']",
-          message: "Skills modules must not re-export from commands modules.",
+          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../integrations/'])",
+          message: "Skills modules may only re-export from src/core, src/integrations, or npm packages.",
         },
         {
-          selector: "ExportAllDeclaration[source.value^='../commands/']",
-          message: "Skills modules must not re-export from commands modules.",
+          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../integrations/'])",
+          message: "Skills modules may only re-export from src/core, src/integrations, or npm packages.",
         },
       ],
     },
@@ -108,16 +108,72 @@ export default tseslint.config(
       "no-restricted-syntax": [
         "error",
         {
+          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/'])",
+          message: "Integrations modules may only import from src/core or npm packages.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/'])",
+          message: "Integrations modules may only re-export from src/core or npm packages.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/'])",
+          message: "Integrations modules may only re-export from src/core or npm packages.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/commands/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../skills/'])",
+          message: "Commands modules may only import from src/core, src/skills, or npm packages.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../skills/'])",
+          message: "Commands modules may only re-export from src/core, src/skills, or npm packages.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../skills/'])",
+          message: "Commands modules may only re-export from src/core, src/skills, or npm packages.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/handlers/**/*.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../commands/'])",
+          message: "Handlers modules may only import from src/core, src/commands, or npm packages.",
+        },
+        {
+          selector: "ExportNamedDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../commands/'])",
+          message: "Handlers modules may only re-export from src/core, src/commands, or npm packages.",
+        },
+        {
+          selector: "ExportAllDeclaration[source.value^='../']:not([source.value^='../core/']):not([source.value^='../commands/'])",
+          message: "Handlers modules may only re-export from src/core, src/commands, or npm packages.",
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/app.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ImportDeclaration[source.value^='./']:not([source.value^='./handlers/']):not([source.value^='./core/'])",
+          message: "app.ts may only import from ./handlers/ or ./core/.",
+        },
+        {
           selector: "ImportDeclaration[source.value^='../']",
-          message: "Integrations modules must only import from within src/integrations or from npm packages.",
-        },
-        {
-          selector: "ExportNamedDeclaration[source.value^='../']",
-          message: "Integrations modules must only re-export from within src/integrations or from npm packages.",
-        },
-        {
-          selector: "ExportAllDeclaration[source.value^='../']",
-          message: "Integrations modules must only re-export from within src/integrations or from npm packages.",
+          message: "app.ts must not use parent-directory imports.",
         },
       ],
     },

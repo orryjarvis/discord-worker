@@ -3,7 +3,7 @@ import type {
   FollowUpExecutionResult,
   FollowUpTask,
 } from '../core/index.js';
-import type { AiRuntimeEnv } from '../runtime.js';
+import type { AiRuntimeEnv } from '../skills/ai.js';
 import {
   type AiPromptMessage,
   describeError,

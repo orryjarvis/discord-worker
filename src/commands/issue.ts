@@ -3,8 +3,8 @@ import type {
   FollowUpExecutionResult,
   FollowUpTask,
 } from '../core/index.js';
-import { createGitHubIssue, type GitHubIssueClientEnv } from '../integrations/github/issueClient.js';
-import { extractModalFields, type ModalComponentRows } from '../modal.js';
+import { createIssue, type IssueSkillEnv } from '../skills/issue.js';
+import { extractModalFields, type ModalComponentRows } from '../skills/modalFields.js';
 
 export const ISSUE_COMMAND_NAME = 'issue';
 export const ISSUE_MODAL_ID = 'issue_modal';
@@ -12,7 +12,7 @@ export const ISSUE_TITLE_INPUT_ID = 'issue_title';
 export const ISSUE_BODY_INPUT_ID = 'issue_body';
 
 const GITHUB_ISSUE_FAILURE_MESSAGE = 'Could not create GitHub issue right now. Try again in a moment.';
-export type IssueRuntimeEnv = GitHubIssueClientEnv;
+export type IssueRuntimeEnv = IssueSkillEnv;
 
 export type IssueModalParseResult =
   | { kind: 'unknown-modal' }
@@ -22,14 +22,6 @@ export type IssueModalParseResult =
     commandName: typeof ISSUE_COMMAND_NAME;
     fields: Record<string, string>;
   };
-
-function describeError(error: unknown): string {
-  if (error instanceof Error) {
-    return `${error.name}: ${error.message}`;
-  }
-
-  return String(error);
-}
 
 export function parseIssueModalSubmit(data: {
   customId: string;
@@ -73,21 +65,5 @@ export async function executeIssueFollowUp(
     };
   }
 
-  try {
-    const issue = await createGitHubIssue(env, title, body);
-    return {
-      content: `Created GitHub issue #${issue.number}: ${issue.htmlUrl}`,
-    };
-  } catch (error) {
-    console.error('GitHub issue creation failed', {
-      messageId: context.messageId,
-      commandName: task.commandName,
-      titleLength: title.length,
-      bodyLength: body.length,
-      error: describeError(error),
-    });
-    return {
-      content: GITHUB_ISSUE_FAILURE_MESSAGE,
-    };
-  }
+  return createIssue(env, title, body, { messageId: context.messageId, commandName: task.commandName });
 }

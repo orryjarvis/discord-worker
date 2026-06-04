@@ -3,14 +3,14 @@ import type {
   FollowUpExecutionResult,
   FollowUpTask,
 } from '../core/index.js';
-import type { AiRuntimeEnv } from '../runtime.js';
+import type { AiRuntimeEnv } from '../skills/ai.js';
 import {
   type AiPromptMessage,
   describeError,
   runAiTextGeneration,
   summarizeAiResultShape,
 } from '../skills/ai.js';
-import { extractModalFields, type ModalComponentRows } from '../modal.js';
+import { extractModalFields, type ModalComponentRows } from '../skills/modalFields.js';
 
 export const PASTIFY_COMMAND_NAME = 'pastify';
 export const PASTIFY_MODAL_ID = 'pastify_modal';

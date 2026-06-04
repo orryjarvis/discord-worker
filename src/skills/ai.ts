@@ -1,4 +1,8 @@
-import type { AiRuntimeEnv } from '../runtime.js';
+import type { Ai } from '@cloudflare/workers-types';
+
+export interface AiRuntimeEnv {
+  AI: Ai;
+}
 
 export interface AiPromptMessage {
   role: 'system' | 'user' | 'assistant';

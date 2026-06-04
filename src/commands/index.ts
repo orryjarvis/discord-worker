@@ -6,7 +6,8 @@ import type {
   FollowUpExecutionResult,
   FollowUpTask,
 } from '../core/index.js';
-import type { AiRuntimeEnv } from '../runtime.js';
+import type { AiRuntimeEnv } from '../skills/ai.js';
+import { deliverFollowUpEdit, type DeliverFollowUpEnv } from '../skills/discordInteraction.js';
 import {
   EIGHT_BALL_COMMAND_NAME,
   executeEightBallFollowUp,
@@ -335,4 +336,18 @@ export async function executeFollowUpTask(
   }
 
   throw new Error(`Unknown follow-up task command: ${task.commandName}`);
+}
+
+export type FollowUpDeliveryEnv = AiRuntimeEnv & DeliverFollowUpEnv & IssueRuntimeEnv;
+
+export async function executeAndDeliverFollowUp(
+  task: FollowUpTask | undefined,
+  context: FollowUpExecutionContext,
+  env: FollowUpDeliveryEnv,
+): Promise<void> {
+  const result: FollowUpExecutionResult = task
+    ? await executeFollowUpTask(task, { AI: env.AI }, context, env)
+    : { content: 'Could not process follow-up payload. Please try again.' };
+
+  await deliverFollowUpEdit(context.token, result, env);
 }

@@ -3,7 +3,7 @@ import {
   fetchWordOfDayEntry,
   formatWordOfDayMessage,
   WORD_OF_DAY_DEFAULT_FEED_URL,
-} from '../wordOfDay.js';
+} from '../skills/wordOfDay.js';
 import { sendDiscordMessage } from '../skills/sendDiscordMessage.js';
 
 const WORD_OF_DAY_POST_HOUR = 7;

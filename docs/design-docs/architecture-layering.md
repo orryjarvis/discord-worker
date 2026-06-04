@@ -2,52 +2,91 @@
 
 This document records the current intentional layering used by the Worker.
 
-The goal is to keep skill logic independent from Discord payload shape while
-preserving a small, direct codebase.
+The goal is to keep skill logic independent from Discord payload shape,
+make integration boundaries explicit and enforceable, and keep the
+codebase small and direct.
 
 ---
 
 ## Layers
 
-- `app` (`src/app.ts`)
-  - Discord-facing boundary.
-  - Validates/verifies incoming HTTP requests.
-  - Transforms Discord interaction payloads into flat app request types.
-  - Calls dispatch and translates dispatch outcomes into Discord responses.
+Six layers, from lowest to highest:
 
-- `dispatch` (`src/dispatch.ts`)
-  - Core routing logic.
-  - Resolves command handlers by command name.
-  - Returns command outcomes without Discord-specific formatting.
+- **`core`** (`src/core/`)
+  - Shared request/result interfaces used across the codebase.
+  - No external runtime or platform dependencies.
+  - No Discord, GitHub, or Cloudflare-specific terms.
 
-- `command` (`src/command.ts`)
-  - Command skill definitions and implementations.
-  - Returns domain results described by `core` interfaces.
-  - Contains no Discord request/response schema knowledge.
+- **`integrations`** (`src/integrations/`)
+  - Outbound API clients and external data parsers.
+  - Wraps HTTP calls to Discord, GitHub, and third-party feeds.
+  - No app-specific business logic — pure transport.
 
-- `scheduled` (`src/scheduled.ts`)
-  - Scheduled skill dispatcher.
-  - Runs all scheduled skills and aggregates failure handling.
-  - Contains no Discord request/response schema knowledge.
+- **`skills`** (`src/skills/`)
+  - App-bespoke logic that uses integrations.
+  - Content formatting, AI prompt orchestration, GitHub issue creation.
+  - No knowledge of Discord interaction payloads or command routing.
 
-- scheduled skill modules (for example `src/wordOfDaySchedule.ts`)
-  - Skill-specific scheduled behavior.
-  - Validate and execute scheduled skill logic.
-  - Keep transport details out of `app`.
+- **`commands`** (`src/commands/`)
+  - Command handlers and follow-up execution logic.
+  - Interprets app request types from `core` and returns `core` result types.
+  - Composes skills to produce Discord-presentable content.
 
-- `core` (`src/core.ts`)
-  - Shared request/result interfaces for app, dispatch, and command.
-  - No external runtime dependencies.
+- **`handlers`** (`src/handlers/`)
+  - Inbound request handlers for each platform surface.
+  - `discord.ts`: verifies signatures, parses interactions, dispatches to commands.
+  - `github.ts`: verifies HMAC, deduplicates events, dispatches to commands.
+  - `cloudflare.ts`: queue batch processing and scheduled event dispatch.
+
+- **`app`** (`src/app.ts`)
+  - Worker entry point wiring only.
+  - Routes `fetch`, `queue`, and `scheduled` to the appropriate handler.
+  - No skill logic, no integration calls, no command routing.
 
 ---
 
 ## Dependency directions
 
-Allowed dependencies:
+Allowed edges (lower layers may not import from higher layers):
 
-- `app -> dispatch`
-- `app -> command`
-- `app -> scheduled`
+```
+core  ←  integrations  ←  skills  ←  commands  ←  handlers  ←  app
+```
+
+Explicitly:
+
+- `integrations` → `core` only
+- `skills` → `core`, `integrations`
+- `commands` → `core`, `skills`
+- `handlers` → `core`, `commands`
+- `app` → `handlers`, `core`
+
+---
+
+## Enforcement
+
+ESLint `no-restricted-syntax` rules in `eslint.config.mjs` enforce the allowed
+import edges for each layer. Violations are lint errors. The rules use esquery
+attribute selectors with `:not()` to whitelist allowed parent-directory imports
+and ban everything else.
+
+`src/core/**` also bans string literals containing `discord`, `github`, or
+`cloudflare` to prevent platform-specific terms from leaking into core contracts.
+
+---
+
+## Notable design choices
+
+- `AiRuntimeEnv` lives in `src/skills/ai.ts`, not `core`, because it
+  references the Cloudflare `Ai` binding type which is platform-specific.
+- `jsonResponse` is inlined in `src/handlers/discord.ts` (3 lines) rather
+  than imported from integrations, so handlers remain clean of integration
+  dependencies.
+- Follow-up delivery (Discord PATCH after queue processing) lives in
+  `src/skills/discordInteraction.ts`. Commands compose it via
+  `executeAndDeliverFollowUp` in `src/commands/index.ts`, keeping the
+  handler free of direct integration access.
+
 - `app -> core`
 - `dispatch -> core`
 - `command -> core`

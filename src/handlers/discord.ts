@@ -28,7 +28,13 @@ import type {
 } from '../core/index.js';
 import { dispatchRequest } from '../core/index.js';
 import { scheduleReminderTaskWithAlarm } from '../commands/reminder.js';
-import { jsonResponse } from '../integrations/discord.js';
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json;charset=UTF-8' },
+  });
+}
 
 interface FollowUpMessage {
   token?: string;
