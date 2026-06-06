@@ -166,6 +166,33 @@ describe('Discord Worker', () => {
     expect((payload.content as string)).not.toContain('<');
   });
 
+  it('responds to /shiny immediately with a channel-visible uniformly generated roll', async () => {
+    const token = `test-token-shiny-${Date.now()}`;
+
+    const res = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token,
+      data: {
+        name: 'shiny',
+      },
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json() as any;
+    expect(json.type).toBe(InteractionResponseType.ChannelMessageWithSource);
+    expect(typeof json.data?.content).toBe('string');
+    expect(json.data?.flags).toBe(0);
+
+    const content = json.data.content as string;
+    const match = content.match(/^You rolled (\d+)\/8192\./);
+    expect(match).not.toBeNull();
+    const roll = Number(match?.[1]);
+    expect(Number.isInteger(roll)).toBe(true);
+    expect(roll).toBeGreaterThanOrEqual(1);
+    expect(roll).toBeLessThanOrEqual(8192);
+  });
+
   it('accepts github workflow_run completion webhook and posts deploy status to configured channel', async () => {
     const channelId = 'test-word-of-day-channel';
     await clearChannelPost(channelId);

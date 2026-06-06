@@ -110,6 +110,7 @@ function signedGitHubWebhookRequest(
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   mockQueue.send.mockClear();
   mockAI.run.mockClear();
   mockReminderStub.fetch.mockClear();
@@ -446,6 +447,156 @@ describe('Discord Worker', () => {
         payload: {},
       },
     });
+  });
+
+  it('responds to /shiny immediately with a channel-visible roll and no queue enqueue', async () => {
+    const randomSpy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((typedArray) => {
+      const sample = typedArray as Uint16Array;
+      sample[0] = 1234;
+      return typedArray;
+    });
+
+    const req = await signedRequest({
+      id: 'cmd-shiny-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'shiny-token',
+      data: {
+        name: 'shiny',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'You rolled 1235/8192.',
+        flags: 0,
+      },
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+    expect(randomSpy).toHaveBeenCalled();
+  });
+
+  it('uses uniformly mapped lower bound for /shiny when random sample is 0', async () => {
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation((typedArray) => {
+      const sample = typedArray as Uint16Array;
+      sample[0] = 0;
+      return typedArray;
+    });
+
+    const req = await signedRequest({
+      id: 'cmd-shiny-lower-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'shiny-lower-token',
+      data: {
+        name: 'shiny',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'You rolled 1/8192.',
+        flags: 0,
+      },
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('uses uniformly mapped upper bound and shiny fanfare when random sample maps to 8192', async () => {
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation((typedArray) => {
+      const sample = typedArray as Uint16Array;
+      sample[0] = 8191;
+      return typedArray;
+    });
+
+    const req = await signedRequest({
+      id: 'cmd-shiny-upper-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'shiny-upper-token',
+      data: {
+        name: 'shiny',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'You rolled 8192/8192. ✨ SHINY ENCOUNTER! ✨',
+        flags: 0,
+      },
+    });
+    expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('maps full Uint16 domain uniformly for /shiny without retries', async () => {
+    const randomSpy = vi.spyOn(crypto, 'getRandomValues').mockImplementation((typedArray) => {
+      const sample = typedArray as Uint16Array;
+      sample[0] = 65535;
+      return typedArray;
+    });
+
+    const req = await signedRequest({
+      id: 'cmd-shiny-reject-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'shiny-reject-token',
+      data: {
+        name: 'shiny',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'You rolled 8192/8192. ✨ SHINY ENCOUNTER! ✨',
+        flags: 0,
+      },
+    });
+    expect(randomSpy).toHaveBeenCalled();
+    expect(mockQueue.send).not.toHaveBeenCalled();
+  });
+
+  it('does not rely on Math.random for /shiny', async () => {
+    const mathRandomSpy = vi.spyOn(Math, 'random').mockImplementation(() => {
+      throw new Error('Math.random should not be used by /shiny');
+    });
+    vi.spyOn(crypto, 'getRandomValues').mockImplementation((typedArray) => {
+      const sample = typedArray as Uint16Array;
+      sample[0] = 42;
+      return typedArray;
+    });
+
+    const req = await signedRequest({
+      id: 'cmd-shiny-no-math-random-1',
+      type: InteractionType.ApplicationCommand,
+      token: 'shiny-no-math-random-token',
+      data: {
+        name: 'shiny',
+      },
+    });
+
+    const res = await worker.fetch(req, TEST_ENV as any);
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      type: InteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content: 'You rolled 43/8192.',
+        flags: 0,
+      },
+    });
+    expect(mathRandomSpy).not.toHaveBeenCalled();
   });
 
   it('acknowledges /reminder immediately and schedules reminder via durable object alarm', async () => {
