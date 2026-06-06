@@ -110,6 +110,7 @@ function signedGitHubWebhookRequest(
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   mockQueue.send.mockClear();
   mockAI.run.mockClear();
   mockReminderStub.fetch.mockClear();
