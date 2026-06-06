@@ -47,6 +47,29 @@ export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_IN
 
 export const WOTD_COMMAND_NAME = 'wotd';
 export const REMINDER_COMMAND_NAME = 'reminder';
+export const SHINY_COMMAND_NAME = 'shiny';
+
+const SHINY_ROLL_MIN = 1;
+const SHINY_ROLL_MAX = 8192;
+
+function rollUniformInteger(minInclusive: number, maxInclusive: number): number {
+  const span = maxInclusive - minInclusive + 1;
+  if (!Number.isInteger(span) || span <= 0) {
+    throw new Error('Invalid integer span for uniform roll');
+  }
+
+  const maxUint16 = 0xffff;
+  const maxAcceptable = Math.floor((maxUint16 + 1) / span) * span - 1;
+  const sample = new Uint16Array(1);
+
+  while (true) {
+    crypto.getRandomValues(sample);
+    const value = sample[0];
+    if (value <= maxAcceptable) {
+      return minInclusive + (value % span);
+    }
+  }
+}
 
 function parseReminderNote(value: string | number | boolean | undefined): string | null {
   if (typeof value !== 'string') {
@@ -181,6 +204,30 @@ function handleWotdCommand(request: CommandRequest): CommandResult {
   }
 }
 
+function handleShinyCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command': {
+      const roll = rollUniformInteger(SHINY_ROLL_MIN, SHINY_ROLL_MAX);
+      const content = roll === SHINY_ROLL_MAX
+        ? 'You rolled 8192/8192. ✨ SHINY ENCOUNTER! ✨'
+        : `You rolled ${roll}/8192.`;
+
+      return {
+        kind: 'channel-message',
+        content,
+        ephemeral: false,
+      };
+    }
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 function handleReminderCommand(request: CommandRequest): CommandResult {
   switch (request.kind) {
     case 'command': {
@@ -295,6 +342,7 @@ export const commands: CommandMap<CommandRequest, CommandResult> = {
   [EIGHT_BALL_COMMAND_NAME]: handleEightBallCommand,
   [ISSUE_COMMAND_NAME]: handleIssueCommand,
   [WOTD_COMMAND_NAME]: handleWotdCommand,
+  [SHINY_COMMAND_NAME]: handleShinyCommand,
   [REMINDER_COMMAND_NAME]: handleReminderCommand,
 };
 
