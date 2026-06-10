@@ -95,6 +95,66 @@ const REMINDER_COMMAND = {
   ],
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
+const RELEASE_COMMAND = {
+  name: 'release',
+  description: 'Track upcoming game releases and hype reminders',
+  type: ApplicationCommandType.ChatInput,
+  options: [
+    {
+      name: 'list',
+      description: 'List tracked releases',
+      type: ApplicationCommandOptionType.Subcommand,
+    },
+    {
+      name: 'set',
+      description: 'Create or overwrite a tracked release',
+      type: ApplicationCommandOptionType.Subcommand,
+      options: [
+        {
+          name: 'title',
+          description: 'Game title',
+          type: ApplicationCommandOptionType.String,
+          required: true,
+          min_length: 1,
+          max_length: 200,
+        },
+        {
+          name: 'year',
+          description: 'Release year (e.g. 2027)',
+          type: ApplicationCommandOptionType.Integer,
+          required: false,
+          min_value: 1970,
+          max_value: 3000,
+        },
+        {
+          name: 'quarter',
+          description: 'Release quarter',
+          type: ApplicationCommandOptionType.Integer,
+          required: false,
+          min_value: 1,
+          max_value: 4,
+        },
+        {
+          name: 'month',
+          description: 'Release month (1-12)',
+          type: ApplicationCommandOptionType.Integer,
+          required: false,
+          min_value: 1,
+          max_value: 12,
+        },
+        {
+          name: 'day',
+          description: 'Release day of month',
+          type: ApplicationCommandOptionType.Integer,
+          required: false,
+          min_value: 1,
+          max_value: 31,
+        },
+      ],
+    },
+  ],
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
   const botToken = process.env.DISCORD_TOKEN;
@@ -122,6 +182,7 @@ async function deployCommands() {
       SHINY_COMMAND,
       ISSUE_COMMAND,
       REMINDER_COMMAND,
+      RELEASE_COMMAND,
     ]),
   });
 
@@ -129,7 +190,7 @@ async function deployCommands() {
     throw new Error(`Error registering commands: ${response.status} ${await response.text()}`);
   }
 
-  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, shiny, issue, reminder');
+  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, shiny, issue, reminder, release');
 }
 
 void deployCommands().catch((error: unknown) => {

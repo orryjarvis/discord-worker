@@ -39,11 +39,19 @@ import {
   parseReminderLength,
   toReminderDelaySeconds,
 } from '@/commands/reminder';
+import {
+  executeReleaseFollowUp,
+  parseReleaseSubcommand,
+  toReleaseSetPayload,
+  RELEASE_COMMAND_NAME,
+  type ReleaseRuntimeEnv,
+} from '@/commands/release';
 
 export { PASTIFY_COMMAND_NAME, PASTIFY_MODAL_ID, PASTIFY_MODAL_TEXT_INPUT_ID } from '@/commands/pastify';
 export { INSULT_COMMAND_NAME } from '@/commands/insult';
 export { EIGHT_BALL_COMMAND_NAME } from '@/commands/8ball';
 export { ISSUE_COMMAND_NAME, ISSUE_MODAL_ID, ISSUE_TITLE_INPUT_ID, ISSUE_BODY_INPUT_ID } from '@/commands/issue';
+export { RELEASE_COMMAND_NAME } from '@/commands/release';
 
 export const WOTD_COMMAND_NAME = 'wotd';
 export const REMINDER_COMMAND_NAME = 'reminder';
@@ -344,6 +352,61 @@ function handleIssueCommand(request: CommandRequest): CommandResult {
   }
 }
 
+function handleReleaseCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command': {
+      const subcommand = parseReleaseSubcommand(request.options.subcommand);
+      if (subcommand === 'list') {
+        return {
+          kind: 'enqueue-follow-up',
+          token: request.token,
+          task: {
+            commandName: RELEASE_COMMAND_NAME,
+            payload: {
+              action: 'list',
+            },
+          },
+          ephemeral: false,
+        };
+      }
+
+      if (subcommand === 'set') {
+        const payload = toReleaseSetPayload(request.options, request.channelId);
+        if (!payload) {
+          return {
+            kind: 'channel-message',
+            content: 'Usage: /release set title:<text> [year:<number>] [quarter:<1-4>] [month:<1-12>] [day:<1-31>]',
+            ephemeral: true,
+          };
+        }
+
+        return {
+          kind: 'enqueue-follow-up',
+          token: request.token,
+          task: {
+            commandName: RELEASE_COMMAND_NAME,
+            payload,
+          },
+          ephemeral: false,
+        };
+      }
+
+      return {
+        kind: 'channel-message',
+        content: 'Usage: /release list or /release set title:<text> [year] [quarter] [month] [day]',
+        ephemeral: true,
+      };
+    }
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 export const commands: CommandMap<CommandRequest, CommandResult> = {
   [PASTIFY_COMMAND_NAME]: handlePastifyCommand,
   [INSULT_COMMAND_NAME]: handleInsultCommand,
@@ -352,6 +415,7 @@ export const commands: CommandMap<CommandRequest, CommandResult> = {
   [WOTD_COMMAND_NAME]: handleWotdCommand,
   [SHINY_COMMAND_NAME]: handleShinyCommand,
   [REMINDER_COMMAND_NAME]: handleReminderCommand,
+  [RELEASE_COMMAND_NAME]: handleReleaseCommand,
 };
 
 export function parseCommandModalSubmit(data: {
@@ -368,7 +432,7 @@ export function parseCommandModalSubmit(data: {
 
 export async function executeFollowUpTask(
   task: FollowUpTask,
-  env: AiRuntimeEnv,
+  env: AiRuntimeEnv & ReleaseRuntimeEnv,
   context: FollowUpExecutionContext,
   issueEnv?: IssueRuntimeEnv,
 ): Promise<FollowUpExecutionResult> {
@@ -391,10 +455,14 @@ export async function executeFollowUpTask(
     return executeIssueFollowUp(task, issueEnv, context);
   }
 
+  if (task.commandName === RELEASE_COMMAND_NAME) {
+    return executeReleaseFollowUp(task, env);
+  }
+
   throw new Error(`Unknown follow-up task command: ${task.commandName}`);
 }
 
-export type FollowUpDeliveryEnv = AiRuntimeEnv & DeliverFollowUpEnv & IssueRuntimeEnv;
+export type FollowUpDeliveryEnv = AiRuntimeEnv & DeliverFollowUpEnv & IssueRuntimeEnv & ReleaseRuntimeEnv;
 
 export async function executeAndDeliverFollowUp(
   task: FollowUpTask | undefined,
@@ -402,7 +470,16 @@ export async function executeAndDeliverFollowUp(
   env: FollowUpDeliveryEnv,
 ): Promise<void> {
   const result: FollowUpExecutionResult = task
-    ? await executeFollowUpTask(task, { AI: env.AI }, context, env)
+    ? await executeFollowUpTask(
+      task,
+      {
+        AI: env.AI,
+        RELEASES_DB: env.RELEASES_DB,
+        REMINDER_SCHEDULER: env.REMINDER_SCHEDULER,
+      },
+      context,
+      env,
+    )
     : { content: 'Could not process follow-up payload. Please try again.' };
 
   await deliverFollowUpEdit(context.token, result, env);

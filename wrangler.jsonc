@@ -62,6 +62,14 @@
           "id": "f7b9e2cbd87640a286eb71509304ce9b"
         }
       ],
+      "d1_databases": [
+        {
+          "binding": "RELEASES_DB",
+          "database_name": "discord-worker-test",
+          "database_id": "cd75047d-31bf-4c51-8632-5daec16ec15c",
+          "migrations_dir": "schema"
+        }
+      ],
       "queues": {
         "producers": [{ "binding": "FOLLOW_UP_QUEUE", "queue": "discord-follow-up-queue-test" }],
         "consumers": [{ "queue": "discord-follow-up-queue-test" }]
@@ -97,6 +105,14 @@
         {
           "binding": "KV",
           "id": "1ac499a14b8345f0b30a7f526b9df6b9"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "RELEASES_DB",
+          "database_name": "discord-worker",
+          "database_id": "4cbf1b53-1f98-48b3-a9f8-63b86b3eb71e",
+          "migrations_dir": "schema"
         }
       ],
       "queues": {

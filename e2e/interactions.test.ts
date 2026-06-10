@@ -9,6 +9,8 @@ import {
 } from 'discord-api-types/v10';
 import {
   clearChannelPost,
+  clearReleases,
+  getReleaseByNormalizedTitle,
   runScheduled,
   signAndSendGitHubWebhook,
   signAndSendRequest,
@@ -17,6 +19,58 @@ import {
   waitForFollowUp,
 } from './setup';
 import { ReminderDurableObject } from '@/commands/reminder';
+
+function releaseSetOptions(
+  title: string,
+  dateParts: {
+    year?: number;
+    quarter?: number;
+    month?: number;
+    day?: number;
+  },
+): Array<Record<string, unknown>> {
+  const options: Array<Record<string, unknown>> = [
+    {
+      name: 'title',
+      type: ApplicationCommandOptionType.String,
+      value: title,
+    },
+  ];
+
+  if (typeof dateParts.year === 'number') {
+    options.push({
+      name: 'year',
+      type: ApplicationCommandOptionType.Integer,
+      value: dateParts.year,
+    });
+  }
+
+  if (typeof dateParts.quarter === 'number') {
+    options.push({
+      name: 'quarter',
+      type: ApplicationCommandOptionType.Integer,
+      value: dateParts.quarter,
+    });
+  }
+
+  if (typeof dateParts.month === 'number') {
+    options.push({
+      name: 'month',
+      type: ApplicationCommandOptionType.Integer,
+      value: dateParts.month,
+    });
+  }
+
+  if (typeof dateParts.day === 'number') {
+    options.push({
+      name: 'day',
+      type: ApplicationCommandOptionType.Integer,
+      value: dateParts.day,
+    });
+  }
+
+  return options;
+}
 
 describe('Discord Worker', () => {
   it('responds to Discord Ping interaction', async () => {
@@ -507,6 +561,173 @@ describe('Discord Worker', () => {
     // Running the alarm a second time returns false (no alarm re-scheduled after delivery).
     const alarmRanAgain = await runDurableObjectAlarm(stub);
     expect(alarmRanAgain).toBe(false);
+  });
+
+  it('supports /release set and /release list through deferred follow-up output', async () => {
+    await clearReleases();
+
+    const setCorrelationId = `release-set-${Date.now()}`;
+    const setToken = `test-token-${setCorrelationId}`;
+
+    const setResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: setToken,
+      channel_id: 'release-test-channel',
+      member: {
+        user: {
+          id: 'release-user-e2e',
+        },
+      },
+      data: {
+        name: 'release',
+        options: [
+          {
+            name: 'set',
+            type: ApplicationCommandOptionType.Subcommand,
+            options: releaseSetOptions('Hades 2', {
+              year: 2027,
+              month: 2,
+              day: 10,
+            }),
+          },
+        ],
+      },
+    });
+
+    expect(setResponse.status).toBe(200);
+    expect(await setResponse.json() as any).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+
+    const setFollowUp = await waitForFollowUp(setCorrelationId);
+    const setPayload = JSON.parse(setFollowUp.body) as Record<string, unknown>;
+    expect(typeof setPayload.content).toBe('string');
+    expect(setPayload.content).toContain('Upcoming releases');
+    expect(setPayload.content).toContain('- Hades 2: 2027-02-10');
+
+    const stored = await getReleaseByNormalizedTitle('hades 2');
+    expect(stored).toMatchObject({
+      title_normalized: 'hades 2',
+      title: 'Hades 2',
+      channel_id: 'release-test-channel',
+      year: 2027,
+      quarter: null,
+      month: 2,
+      day: 10,
+    });
+
+    const listCorrelationId = `release-list-${Date.now()}`;
+    const listToken = `test-token-${listCorrelationId}`;
+    const listResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: listToken,
+      data: {
+        name: 'release',
+        options: [
+          {
+            name: 'list',
+            type: ApplicationCommandOptionType.Subcommand,
+          },
+        ],
+      },
+    });
+
+    expect(listResponse.status).toBe(200);
+    expect(await listResponse.json() as any).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+    });
+
+    const listFollowUp = await waitForFollowUp(listCorrelationId);
+    const listPayload = JSON.parse(listFollowUp.body) as Record<string, unknown>;
+    expect(typeof listPayload.content).toBe('string');
+    expect(listPayload.content).toContain('Upcoming releases');
+    expect(listPayload.content).toContain('- Hades 2: 2027-02-10');
+    expect(listPayload.content).toContain('Past releases');
+    expect(listPayload.content).toContain('TBD');
+  });
+
+  it('overwrites /release set by normalized title and moves non-exact dates to TBD', async () => {
+    await clearReleases();
+
+    const reminderNamespace = (env as any).REMINDER_SCHEDULER;
+
+    const firstCorrelationId = `release-overwrite-first-${Date.now()}`;
+    const firstToken = `test-token-${firstCorrelationId}`;
+    const firstResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: firstToken,
+      channel_id: 'release-overwrite-channel',
+      member: {
+        user: {
+          id: 'release-overwrite-user',
+        },
+      },
+      data: {
+        name: 'release',
+        options: [
+          {
+            name: 'set',
+            type: ApplicationCommandOptionType.Subcommand,
+            options: releaseSetOptions('  HADES 2  ', {
+              year: 2027,
+              month: 5,
+              day: 11,
+            }),
+          },
+        ],
+      },
+    });
+
+    expect(firstResponse.status).toBe(200);
+    await waitForFollowUp(firstCorrelationId);
+
+    const scheduleStub = reminderNamespace.get(reminderNamespace.idFromName('release:hades 2'));
+
+    const secondCorrelationId = `release-overwrite-second-${Date.now()}`;
+    const secondToken = `test-token-${secondCorrelationId}`;
+    const secondResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: secondToken,
+      channel_id: 'release-overwrite-channel',
+      member: {
+        user: {
+          id: 'release-overwrite-user',
+        },
+      },
+      data: {
+        name: 'release',
+        options: [
+          {
+            name: 'set',
+            type: ApplicationCommandOptionType.Subcommand,
+            options: releaseSetOptions('hades 2', {}),
+          },
+        ],
+      },
+    });
+
+    expect(secondResponse.status).toBe(200);
+    const secondFollowUp = await waitForFollowUp(secondCorrelationId);
+    const secondPayload = JSON.parse(secondFollowUp.body) as Record<string, unknown>;
+    expect(secondPayload.content).toContain('TBD');
+    expect(secondPayload.content).toContain('- hades 2: TBD');
+
+    const updated = await getReleaseByNormalizedTitle('hades 2');
+    expect(updated).toMatchObject({
+      title_normalized: 'hades 2',
+      title: 'hades 2',
+      year: null,
+      quarter: null,
+      month: null,
+      day: null,
+    });
+
+    const alarmRan = await runDurableObjectAlarm(scheduleStub);
+    expect(alarmRan).toBe(false);
   });
 
   it('responds to unknown command with 400', async () => {
