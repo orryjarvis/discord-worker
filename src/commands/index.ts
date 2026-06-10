@@ -6,5 +6,6 @@ export * from '@/commands/pastify';
 export * from '@/commands/release';
 export * from '@/commands/reminder';
 export * from '@/commands/shiny';
+export * from '@/commands/scheduled';
 export * from '@/commands/wotd';
 export * from '@/commands/wordOfDaySchedule';

@@ -644,6 +644,7 @@ describe('Discord Worker', () => {
     });
     expect(mockQueue.send).not.toHaveBeenCalled();
     expect(mockReminderNamespace.idFromName).toHaveBeenCalledTimes(1);
+    expect(mockReminderNamespace.idFromName).toHaveBeenCalledWith('global-scheduler');
     expect(mockReminderNamespace.get).toHaveBeenCalledTimes(1);
     expect(mockReminderStub.fetch).toHaveBeenCalledWith(
       'https://reminder.internal/schedule',
@@ -670,7 +671,7 @@ describe('Discord Worker', () => {
       };
     };
 
-    expect(scheduleBody.reminderId).toBeTypeOf('string');
+    expect(scheduleBody.reminderId).toBe('reminder-token');
     expect(scheduleBody.scheduledFor).toBeGreaterThan(Date.now());
     expect(scheduleBody.task).toEqual({
       commandName: 'reminder',
@@ -680,6 +681,7 @@ describe('Discord Worker', () => {
         length: 3,
         interval: 'hours',
         note: 'switch the laundry',
+        requestToken: 'reminder-token',
       },
     });
   });

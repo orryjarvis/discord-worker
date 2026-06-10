@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { env } from 'cloudflare:workers';
-import { listDurableObjectIds, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
+import { listDurableObjectIds, runDurableObjectAlarm } from 'cloudflare:test';
 import {
   ApplicationCommandOptionType,
   ApplicationCommandType,
@@ -11,6 +11,9 @@ import {
   clearChannelPost,
   clearReleases,
   getReleaseByNormalizedTitle,
+  forceScheduledMessageDueForTests,
+  getScheduledMessageByKey,
+  listScheduledMessagesForTests,
   runScheduled,
   signAndSendGitHubWebhook,
   signAndSendRequest,
@@ -18,7 +21,6 @@ import {
   waitForChannelPost,
   waitForFollowUp,
 } from './setup';
-import { ReminderDurableObject } from '@/commands/reminder';
 
 function releaseSetOptions(
   title: string,
@@ -427,16 +429,16 @@ describe('Discord Worker', () => {
 
   it('schedules a reminder durable object with correct payload when /reminder is invoked', async () => {
     const channelId = `reminder-schedule-test-${Date.now()}`;
-    const beforeSchedule = Date.now();
+    const correlationToken = `test-token-reminder-sched-${Date.now()}`;
 
-    // Snapshot existing DOs before dispatch so we can find the newly created one after.
+    await clearReleases();
+
     const reminderNamespace = (env as any).REMINDER_SCHEDULER;
-    const idsBefore = new Set((await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString()));
 
     const res = await signAndSendRequest({
       id: `cmd-${Date.now()}`,
       type: InteractionType.ApplicationCommand,
-      token: `test-token-reminder-sched-${Date.now()}`,
+      token: correlationToken,
       channel_id: channelId,
       member: {
         user: {
@@ -474,45 +476,32 @@ describe('Discord Worker', () => {
       },
     });
 
-    // Identify the DO created by this dispatch using a before/after diff.
-    const idsAfter = await listDurableObjectIds(reminderNamespace);
-    const newIds = idsAfter.filter((id: { toString(): string }) => !idsBefore.has(id.toString()));
-    expect(newIds.length).toBe(1);
-
-    const stub = reminderNamespace.get(newIds[0]);
-    await runInDurableObject(stub, async (instance: ReminderDurableObject, state) => {
-      expect(instance).toBeInstanceOf(ReminderDurableObject);
-
-      const stored = await state.storage.get('reminder-task') as Record<string, unknown>;
-      expect(typeof stored.reminderId).toBe('string');
-      expect(stored.scheduledFor as number).toBeGreaterThan(beforeSchedule + (2 * 60 * 60 * 1000) - 10_000);
-      expect(stored.attempts).toBe(0);
-      expect(stored.firedAt).toBeUndefined();
-
-      const task = stored.task as { commandName: string; payload: Record<string, unknown> };
-      expect(task.commandName).toBe('reminder');
-      expect(task.payload).toMatchObject({
-        channelId,
-        userId: 'user-reminder-e2e',
-        length: 2,
-        interval: 'hours',
-        note: 'submit the expense report',
-      });
+    const scheduled = await getScheduledMessageByKey(`reminder:${correlationToken}`);
+    expect(scheduled).toMatchObject({
+      schedule_key: `reminder:${correlationToken}`,
+      schedule_type: 'reminder',
+      channel_id: channelId,
+      status: 'scheduled',
+      attempts: 0,
+      fired_at: null,
     });
+
+    const idsAfter = (await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString());
+    expect(idsAfter).toContain(reminderNamespace.idFromName('global-scheduler').toString());
   });
 
   it('delivers a reminder channel message when the durable object alarm fires', async () => {
     const channelId = `reminder-fire-test-${Date.now()}`;
+    const correlationToken = `test-token-reminder-fire-${Date.now()}`;
     await clearChannelPost(channelId);
+    await clearReleases();
 
-    // Snapshot existing DOs before dispatch so we can find the newly created one after.
     const reminderNamespace = (env as any).REMINDER_SCHEDULER;
-    const idsBefore = new Set((await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString()));
 
     const res = await signAndSendRequest({
       id: `cmd-${Date.now()}`,
       type: InteractionType.ApplicationCommand,
-      token: `test-token-reminder-fire-${Date.now()}`,
+      token: correlationToken,
       channel_id: channelId,
       member: {
         user: {
@@ -543,22 +532,25 @@ describe('Discord Worker', () => {
 
     expect(res.status).toBe(200);
 
-    const idsAfter = await listDurableObjectIds(reminderNamespace);
-    const newIds = idsAfter.filter((id: { toString(): string }) => !idsBefore.has(id.toString()));
-    expect(newIds.length).toBe(1);
-    const stub = reminderNamespace.get(newIds[0]);
+    await forceScheduledMessageDueForTests(`reminder:${correlationToken}`);
 
-    // Fire the alarm immediately without waiting for the real timer.
+    const stub = reminderNamespace.get(reminderNamespace.idFromName('global-scheduler'));
+
     const alarmRan = await runDurableObjectAlarm(stub);
     expect(alarmRan).toBe(true);
 
-    // The alarm handler posts to the channel; the mock server captures it.
     const channelPost = await waitForChannelPost(channelId);
     const payload = JSON.parse(channelPost.body) as Record<string, unknown>;
     expect(payload.content).toContain('<@user-alarm-e2e> ⏰ Reminder: 30 days elapsed.');
     expect(payload.content).toContain('📝 rotate the API keys');
 
-    // Running the alarm a second time returns false (no alarm re-scheduled after delivery).
+    const scheduled = await getScheduledMessageByKey(`reminder:${correlationToken}`);
+    expect(scheduled).toMatchObject({
+      schedule_key: `reminder:${correlationToken}`,
+      status: 'fired',
+      attempts: 1,
+    });
+
     const alarmRanAgain = await runDurableObjectAlarm(stub);
     expect(alarmRanAgain).toBe(false);
   });
@@ -648,6 +640,73 @@ describe('Discord Worker', () => {
     expect(listPayload.content).toContain('TBD');
   });
 
+  it('supports /scheduled metadata command through deferred follow-up output', async () => {
+    await clearReleases();
+
+    const reminderToken = `scheduled-cmd-reminder-${Date.now()}`;
+    const reminderResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: reminderToken,
+      channel_id: 'scheduled-command-channel',
+      member: {
+        user: {
+          id: 'scheduled-command-user',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 15,
+          },
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'minutes',
+          },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'scheduled command coverage',
+          },
+        ],
+      },
+    });
+    expect(reminderResponse.status).toBe(200);
+
+    const scheduledCorrelationId = `scheduled-list-${Date.now()}`;
+    const scheduledResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: `test-token-${scheduledCorrelationId}`,
+      channel_id: 'scheduled-command-channel',
+      member: {
+        user: {
+          id: 'scheduled-command-user',
+        },
+      },
+      data: {
+        name: 'scheduled',
+      },
+    });
+
+    expect(scheduledResponse.status).toBe(200);
+    expect(await scheduledResponse.json() as any).toEqual({
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+      data: {
+        flags: 64,
+      },
+    });
+
+    const followUp = await waitForFollowUp(scheduledCorrelationId);
+    const payload = JSON.parse(followUp.body) as Record<string, unknown>;
+    expect(payload.content).toContain('Scheduled metadata');
+    expect(payload.content).toContain(`reminder:${reminderToken}`);
+  });
+
   it('overwrites /release set by normalized title and moves non-exact dates to TBD', async () => {
     await clearReleases();
 
@@ -684,7 +743,7 @@ describe('Discord Worker', () => {
     expect(firstResponse.status).toBe(200);
     await waitForFollowUp(firstCorrelationId);
 
-    const scheduleStub = reminderNamespace.get(reminderNamespace.idFromName('release:hades 2'));
+    const scheduleStub = reminderNamespace.get(reminderNamespace.idFromName('global-scheduler'));
 
     const secondCorrelationId = `release-overwrite-second-${Date.now()}`;
     const secondToken = `test-token-${secondCorrelationId}`;
@@ -728,6 +787,162 @@ describe('Discord Worker', () => {
 
     const alarmRan = await runDurableObjectAlarm(scheduleStub);
     expect(alarmRan).toBe(false);
+  });
+
+  it('keeps exactly one scheduler DO instance across release and reminder scheduling', async () => {
+    await clearReleases();
+
+    const reminderNamespace = (env as any).REMINDER_SCHEDULER;
+
+    const reminderResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: `singleton-reminder-${Date.now()}`,
+      channel_id: 'singleton-channel',
+      member: {
+        user: {
+          id: 'singleton-user',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 10,
+          },
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'minutes',
+          },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'singleton check',
+          },
+        ],
+      },
+    });
+
+    expect(reminderResponse.status).toBe(200);
+
+    const releaseCorrelationId = `singleton-release-${Date.now()}`;
+    const releaseResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: `test-token-${releaseCorrelationId}`,
+      channel_id: 'singleton-channel',
+      member: {
+        user: {
+          id: 'singleton-user',
+        },
+      },
+      data: {
+        name: 'release',
+        options: [
+          {
+            name: 'set',
+            type: ApplicationCommandOptionType.Subcommand,
+            options: releaseSetOptions('Singleton Game', {
+              year: 2027,
+              month: 3,
+              day: 15,
+            }),
+          },
+        ],
+      },
+    });
+
+    expect(releaseResponse.status).toBe(200);
+    await waitForFollowUp(releaseCorrelationId);
+
+    const ids = (await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString());
+    const globalId = reminderNamespace.idFromName('global-scheduler').toString();
+    expect(ids).toContain(globalId);
+    expect(ids.length).toBe(1);
+  });
+
+  it('updates scheduler to earlier time when a sooner schedule is inserted', async () => {
+    await clearReleases();
+
+    const reminderNamespace = (env as any).REMINDER_SCHEDULER;
+
+    const releaseCorrelationId = `earlier-release-${Date.now()}`;
+    const releaseResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: `test-token-${releaseCorrelationId}`,
+      channel_id: 'earlier-schedule-channel',
+      member: {
+        user: {
+          id: 'earlier-user',
+        },
+      },
+      data: {
+        name: 'release',
+        options: [
+          {
+            name: 'set',
+            type: ApplicationCommandOptionType.Subcommand,
+            options: releaseSetOptions('Far Future Game', {
+              year: 2030,
+              month: 6,
+              day: 1,
+            }),
+          },
+        ],
+      },
+    });
+
+    expect(releaseResponse.status).toBe(200);
+    await waitForFollowUp(releaseCorrelationId);
+
+    const reminderToken = `earlier-reminder-${Date.now()}`;
+    const reminderResponse = await signAndSendRequest({
+      id: `cmd-${Date.now()}`,
+      type: InteractionType.ApplicationCommand,
+      token: reminderToken,
+      channel_id: 'earlier-schedule-channel',
+      member: {
+        user: {
+          id: 'earlier-user',
+        },
+      },
+      data: {
+        name: 'reminder',
+        options: [
+          {
+            name: 'length',
+            type: ApplicationCommandOptionType.Integer,
+            value: 1,
+          },
+          {
+            name: 'interval',
+            type: ApplicationCommandOptionType.String,
+            value: 'minutes',
+          },
+          {
+            name: 'note',
+            type: ApplicationCommandOptionType.String,
+            value: 'earlier alarm check',
+          },
+        ],
+      },
+    });
+
+    expect(reminderResponse.status).toBe(200);
+
+    const rows = await listScheduledMessagesForTests();
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+
+    const earliest = rows[0];
+    expect(earliest.schedule_key).toBe(`reminder:${reminderToken}`);
+
+    const stub = reminderNamespace.get(reminderNamespace.idFromName('global-scheduler'));
+    const alarmRan = await runDurableObjectAlarm(stub);
+    expect(alarmRan).toBe(true);
   });
 
   it('responds to unknown command with 400', async () => {

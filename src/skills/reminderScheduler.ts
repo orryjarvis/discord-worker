@@ -16,6 +16,7 @@ type ReminderTaskPayload = {
   length: number;
   interval: ReminderInterval;
   note: string;
+  requestToken?: string;
 };
 
 type ReminderTask = {
@@ -40,6 +41,8 @@ export type ScheduleMessageRequest = {
 export interface ReminderSchedulerBinding {
   REMINDER_SCHEDULER: DurableObjectNamespace;
 }
+
+const GLOBAL_SCHEDULER_DO_NAME = 'global-scheduler';
 
 function isReminderTaskPayload(payload: Record<string, unknown>): payload is ReminderTaskPayload {
   if (typeof payload.channelId !== 'string') {
@@ -90,10 +93,10 @@ export async function scheduleReminderTaskWithAlarm(
   }
 
   const reminderTask = parseReminderTask(task);
-  const reminderId = crypto.randomUUID();
+  const reminderId = reminderTask.payload.requestToken?.trim() || crypto.randomUUID();
   const scheduledFor = Date.now() + Math.round(delaySeconds * 1000);
 
-  const id = env.REMINDER_SCHEDULER.idFromName(reminderId);
+  const id = env.REMINDER_SCHEDULER.idFromName(GLOBAL_SCHEDULER_DO_NAME);
   const stub = env.REMINDER_SCHEDULER.get(id);
 
   const response = await stub.fetch('https://reminder.internal/schedule', {
@@ -119,7 +122,7 @@ export async function scheduleChannelMessageAtWithAlarm(
   input: ScheduleMessageRequest,
   env: ReminderSchedulerBinding,
 ): Promise<void> {
-  const id = env.REMINDER_SCHEDULER.idFromName(input.scheduleId);
+  const id = env.REMINDER_SCHEDULER.idFromName(GLOBAL_SCHEDULER_DO_NAME);
   const stub = env.REMINDER_SCHEDULER.get(id);
 
   const response = await stub.fetch('https://reminder.internal/schedule-message', {
@@ -141,7 +144,7 @@ export async function unscheduleChannelMessageAlarm(
   scheduleId: string,
   env: ReminderSchedulerBinding,
 ): Promise<void> {
-  const id = env.REMINDER_SCHEDULER.idFromName(scheduleId);
+  const id = env.REMINDER_SCHEDULER.idFromName(GLOBAL_SCHEDULER_DO_NAME);
   const stub = env.REMINDER_SCHEDULER.get(id);
 
   const response = await stub.fetch('https://reminder.internal/unschedule-message', {

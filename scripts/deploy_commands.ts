@@ -155,6 +155,12 @@ const RELEASE_COMMAND = {
   ],
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
+const SCHEDULED_COMMAND = {
+  name: 'scheduled',
+  description: 'List scheduler metadata tracked in D1',
+  type: ApplicationCommandType.ChatInput,
+} satisfies RESTPostAPIApplicationCommandsJSONBody;
+
 async function deployCommands() {
   const applicationId = process.env.DISCORD_APPLICATION_ID;
   const botToken = process.env.DISCORD_TOKEN;
@@ -183,6 +189,7 @@ async function deployCommands() {
       ISSUE_COMMAND,
       REMINDER_COMMAND,
       RELEASE_COMMAND,
+      SCHEDULED_COMMAND,
     ]),
   });
 
@@ -190,7 +197,7 @@ async function deployCommands() {
     throw new Error(`Error registering commands: ${response.status} ${await response.text()}`);
   }
 
-  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, shiny, issue, reminder, release');
+  console.log('Registered commands: pastify, insult (slash), insult (user), 8ball (message), wotd, shiny, issue, reminder, release, scheduled');
 }
 
 void deployCommands().catch((error: unknown) => {

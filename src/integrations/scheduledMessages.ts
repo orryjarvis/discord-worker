@@ -107,7 +107,6 @@ export async function upsertScheduledMessage(
 
 export async function listPendingScheduledMessages(
   db: D1Database,
-  nowMs = Date.now(),
 ): Promise<ScheduledMessageRecord[]> {
   const result = await db.prepare(
     `SELECT
@@ -124,16 +123,15 @@ export async function listPendingScheduledMessages(
       created_at,
       updated_at
     FROM scheduled_messages
-    WHERE status = 'scheduled' AND scheduled_for >= ?
+    WHERE status = 'scheduled'
     ORDER BY scheduled_for ASC, schedule_key ASC`,
-  ).bind(nowMs).all<ScheduledMessageRow>();
+  ).all<ScheduledMessageRow>();
 
   return (result.results ?? []).map(toScheduledMessageRecord);
 }
 
 export async function getNextPendingScheduledMessage(
   db: D1Database,
-  nowMs = Date.now(),
 ): Promise<ScheduledMessageRecord | null> {
   const result = await db.prepare(
     `SELECT
@@ -150,10 +148,10 @@ export async function getNextPendingScheduledMessage(
       created_at,
       updated_at
     FROM scheduled_messages
-    WHERE status = 'scheduled' AND scheduled_for >= ?
+    WHERE status = 'scheduled'
     ORDER BY scheduled_for ASC, schedule_key ASC
     LIMIT 1`,
-  ).bind(nowMs).all<ScheduledMessageRow>();
+  ).all<ScheduledMessageRow>();
 
   const row = result.results?.[0];
   return row ? toScheduledMessageRecord(row) : null;
@@ -169,4 +167,101 @@ export async function markScheduledMessageCanceled(
       updated_at = CURRENT_TIMESTAMP
     WHERE schedule_key = ?`,
   ).bind(scheduleKey).run();
+}
+
+export async function listDueScheduledMessages(
+  db: D1Database,
+  nowMs = Date.now(),
+  limit = 25,
+): Promise<ScheduledMessageRecord[]> {
+  const safeLimit = Math.max(1, Math.floor(limit));
+  const result = await db.prepare(
+    `SELECT
+      schedule_key,
+      schedule_type,
+      source_key,
+      channel_id,
+      scheduled_for,
+      content,
+      allowed_mentions_json,
+      status,
+      attempts,
+      fired_at,
+      created_at,
+      updated_at
+    FROM scheduled_messages
+    WHERE status = 'scheduled' AND scheduled_for <= ?
+    ORDER BY scheduled_for ASC, schedule_key ASC
+    LIMIT ?`,
+  ).bind(nowMs, safeLimit).all<ScheduledMessageRow>();
+
+  return (result.results ?? []).map(toScheduledMessageRecord);
+}
+
+export async function tryMarkScheduledMessageFiring(
+  db: D1Database,
+  scheduleKey: string,
+): Promise<boolean> {
+  const result = await db.prepare(
+    `UPDATE scheduled_messages
+    SET status = 'firing',
+      attempts = attempts + 1,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE schedule_key = ? AND status = 'scheduled'`,
+  ).bind(scheduleKey).run();
+
+  return Number(result.meta.changes ?? 0) > 0;
+}
+
+export async function markScheduledMessageFired(
+  db: D1Database,
+  scheduleKey: string,
+  firedAtIso: string,
+): Promise<void> {
+  await db.prepare(
+    `UPDATE scheduled_messages
+    SET status = 'fired',
+      fired_at = ?,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE schedule_key = ?`,
+  ).bind(firedAtIso, scheduleKey).run();
+}
+
+export async function resetScheduledMessageToScheduled(
+  db: D1Database,
+  scheduleKey: string,
+): Promise<void> {
+  await db.prepare(
+    `UPDATE scheduled_messages
+    SET status = 'scheduled',
+      updated_at = CURRENT_TIMESTAMP
+    WHERE schedule_key = ?`,
+  ).bind(scheduleKey).run();
+}
+
+export async function listScheduledMessages(
+  db: D1Database,
+  limit = 20,
+): Promise<ScheduledMessageRecord[]> {
+  const safeLimit = Math.max(1, Math.floor(limit));
+  const result = await db.prepare(
+    `SELECT
+      schedule_key,
+      schedule_type,
+      source_key,
+      channel_id,
+      scheduled_for,
+      content,
+      allowed_mentions_json,
+      status,
+      attempts,
+      fired_at,
+      created_at,
+      updated_at
+    FROM scheduled_messages
+    ORDER BY scheduled_for ASC, schedule_key ASC
+    LIMIT ?`,
+  ).bind(safeLimit).all<ScheduledMessageRow>();
+
+  return (result.results ?? []).map(toScheduledMessageRecord);
 }

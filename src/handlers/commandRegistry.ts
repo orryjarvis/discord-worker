@@ -32,6 +32,10 @@ import {
   SHINY_COMMAND_NAME,
 } from '@/commands/shiny';
 import {
+  handleScheduledCommand,
+  SCHEDULED_COMMAND_NAME,
+} from '@/commands/scheduled';
+import {
   handleWotdCommand,
   WOTD_COMMAND_NAME,
 } from '@/commands/wotd';
@@ -44,6 +48,7 @@ export {
   RELEASE_COMMAND_NAME,
   REMINDER_COMMAND_NAME,
   SHINY_COMMAND_NAME,
+  SCHEDULED_COMMAND_NAME,
   WOTD_COMMAND_NAME,
 };
 
@@ -54,6 +59,7 @@ export const commands: CommandMap<CommandRequest, CommandResult> = {
   [ISSUE_COMMAND_NAME]: handleIssueCommand,
   [WOTD_COMMAND_NAME]: handleWotdCommand,
   [SHINY_COMMAND_NAME]: handleShinyCommand,
+  [SCHEDULED_COMMAND_NAME]: handleScheduledCommand,
   [REMINDER_COMMAND_NAME]: handleReminderCommand,
   [RELEASE_COMMAND_NAME]: handleReleaseCommand,
 };

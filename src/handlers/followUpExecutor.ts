@@ -27,8 +27,18 @@ import {
   RELEASE_COMMAND_NAME,
   type ReleaseRuntimeEnv,
 } from '@/commands/release';
+import {
+  executeScheduledFollowUp,
+  SCHEDULED_COMMAND_NAME,
+  type ScheduledRuntimeEnv,
+} from '@/commands/scheduled';
 
-export type FollowUpDeliveryEnv = AiRuntimeEnv & DeliverFollowUpEnv & IssueRuntimeEnv & ReleaseRuntimeEnv;
+export type FollowUpDeliveryEnv =
+  AiRuntimeEnv
+  & DeliverFollowUpEnv
+  & IssueRuntimeEnv
+  & ReleaseRuntimeEnv
+  & ScheduledRuntimeEnv;
 
 export async function executeFollowUpTask(
   task: FollowUpTask,
@@ -57,6 +67,10 @@ export async function executeFollowUpTask(
 
   if (task.commandName === RELEASE_COMMAND_NAME) {
     return executeReleaseFollowUp(task, env);
+  }
+
+  if (task.commandName === SCHEDULED_COMMAND_NAME) {
+    return executeScheduledFollowUp(task, env);
   }
 
   throw new Error(`Unknown follow-up task command: ${task.commandName}`);
