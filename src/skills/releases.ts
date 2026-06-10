@@ -29,6 +29,22 @@ export function normalizeReleaseTitle(title: string): string {
 export function validateReleaseDateParts(parts: ReleaseDateParts): string | null {
   const { year, quarter, month, day } = parts;
 
+  if (year !== null && (!Number.isInteger(year) || year < 1970 || year > 3000)) {
+    return 'Year must be between 1970 and 3000.';
+  }
+
+  if (quarter !== null && (!Number.isInteger(quarter) || quarter < 1 || quarter > 4)) {
+    return 'Quarter must be between 1 and 4.';
+  }
+
+  if (month !== null && (!Number.isInteger(month) || month < 1 || month > 12)) {
+    return 'Month must be between 1 and 12.';
+  }
+
+  if (day !== null && (!Number.isInteger(day) || day < 1 || day > 31)) {
+    return 'Day must be between 1 and 31.';
+  }
+
   if (quarter !== null && month !== null) {
     return 'Quarter and month cannot be used together.';
   }

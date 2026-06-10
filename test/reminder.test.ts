@@ -171,7 +171,15 @@ describe('ReminderDurableObject', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://discord.com/api/v10/channels/channel-9/messages',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          content: 'Upcoming release hype: **Hades 2** is scheduled for 2027-02-10.',
+          allowed_mentions: {
+            parse: [],
+          },
+        }),
+      }),
     );
 
     const unscheduleResponse = await reminder.fetch(new Request('https://reminder.internal/unschedule-message', {

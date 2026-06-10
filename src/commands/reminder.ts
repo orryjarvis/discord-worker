@@ -174,7 +174,7 @@ function parseScheduleMessageRequest(input: unknown): ScheduleMessageRequest | n
     scheduledFor: Math.floor(schedule.scheduledFor),
     channelId: schedule.channelId,
     content: schedule.content,
-    allowedMentions: schedule.allowedMentions,
+    allowedMentions: schedule.allowedMentions ?? { parse: [] },
   };
 }
 

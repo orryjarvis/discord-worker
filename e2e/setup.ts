@@ -12,7 +12,6 @@ import {
   SELF,
 } from 'cloudflare:test';
 import * as ed from '@noble/ed25519';
-import type { D1Database } from '@cloudflare/workers-types';
 import worker from '@/index';
 import type { Env as AppEnv } from '@/app';
 
@@ -161,7 +160,8 @@ export async function clearChannelPost(channelId: string): Promise<void> {
 }
 
 export async function clearReleases(): Promise<void> {
-  const db = (env as unknown as { RELEASES_DB: D1Database }).RELEASES_DB;
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
   await db.prepare(
     `CREATE TABLE IF NOT EXISTS releases (
       title_normalized TEXT PRIMARY KEY,
@@ -179,7 +179,8 @@ export async function clearReleases(): Promise<void> {
 }
 
 export async function getReleaseByNormalizedTitle(titleNormalized: string): Promise<Record<string, unknown> | null> {
-  const db = (env as unknown as { RELEASES_DB: D1Database }).RELEASES_DB;
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
   const result = await db.prepare(
     `SELECT title_normalized, title, channel_id, year, quarter, month, day
      FROM releases

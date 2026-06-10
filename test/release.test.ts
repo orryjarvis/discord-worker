@@ -42,6 +42,21 @@ describe('release validation', () => {
     );
   });
 
+  it('rejects out-of-range numeric date parts', () => {
+    expect(validateReleaseDateParts({ year: 1969, quarter: null, month: null, day: null })).toBe(
+      'Year must be between 1970 and 3000.',
+    );
+    expect(validateReleaseDateParts({ year: 2027, quarter: 0, month: null, day: null })).toBe(
+      'Quarter must be between 1 and 4.',
+    );
+    expect(validateReleaseDateParts({ year: 2027, quarter: null, month: 13, day: null })).toBe(
+      'Month must be between 1 and 12.',
+    );
+    expect(validateReleaseDateParts({ year: 2027, quarter: null, month: 5, day: 32 })).toBe(
+      'Day must be between 1 and 31.',
+    );
+  });
+
   it('accepts TBD and full dates', () => {
     expect(validateReleaseDateParts({ year: null, quarter: null, month: null, day: null })).toBeNull();
     expect(validateReleaseDateParts({ year: 2027, quarter: null, month: 11, day: 20 })).toBeNull();
