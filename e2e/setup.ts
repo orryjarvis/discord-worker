@@ -175,7 +175,26 @@ export async function clearReleases(): Promise<void> {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
   ).run();
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS scheduled_messages (
+      schedule_key TEXT PRIMARY KEY,
+      schedule_type TEXT NOT NULL,
+      source_key TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      scheduled_for INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      allowed_mentions_json TEXT NOT NULL DEFAULT '{"parse":[]}',
+      status TEXT NOT NULL DEFAULT 'scheduled',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      fired_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (schedule_type IN ('reminder', 'release')),
+      CHECK (status IN ('scheduled', 'firing', 'fired', 'canceled'))
+    )`,
+  ).run();
   await db.prepare('DELETE FROM releases').run();
+  await db.prepare('DELETE FROM scheduled_messages').run();
 }
 
 export async function getReleaseByNormalizedTitle(titleNormalized: string): Promise<Record<string, unknown> | null> {

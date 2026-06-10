@@ -2,11 +2,17 @@ import type {
   CreateChannelMessagePayload,
 } from '@/integrations/discord';
 import type {
-  DurableObjectNamespace,
   DurableObjectState,
 } from '@cloudflare/workers-types';
-import type { FollowUpTask } from '@/core';
+import type {
+  CommandRequest,
+  CommandResult,
+  FollowUpTask,
+} from '@/core';
 import { sendDiscordMessage } from '@/skills/sendDiscordMessage';
+export { scheduleReminderTaskWithAlarm } from '@/skills/reminderScheduler';
+
+export const REMINDER_COMMAND_NAME = 'reminder';
 
 export type ReminderInterval = 'minutes' | 'hours' | 'days';
 
@@ -53,10 +59,6 @@ type PersistedScheduledMessage = ScheduleMessageRequest & {
   firedAt?: string;
 };
 
-export interface ReminderSchedulerBinding {
-  REMINDER_SCHEDULER: DurableObjectNamespace;
-}
-
 export interface ReminderAlarmEnv {
   DISCORD_TOKEN: string;
   DISCORD_API_BASE_URL?: string;
@@ -88,6 +90,76 @@ export function parseReminderInterval(value: string | number | boolean | undefin
 
 export function toReminderDelaySeconds(length: number, interval: ReminderInterval): number {
   return length * REMINDER_INTERVAL_SECONDS[interval];
+}
+
+function parseReminderNote(value: string | number | boolean | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const note = value.trim();
+  if (!note) {
+    return null;
+  }
+
+  return note;
+}
+
+export function handleReminderCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command': {
+      const length = parseReminderLength(request.options.length);
+      const interval = parseReminderInterval(request.options.interval);
+      const note = parseReminderNote(request.options.note);
+      if (!length || !interval || !note) {
+        return {
+          kind: 'channel-message',
+          content: 'Usage: /reminder length:<number> interval:<minutes|hours|days> note:<text>',
+          ephemeral: true,
+        };
+      }
+
+      if (length < 1) {
+        return {
+          kind: 'channel-message',
+          content: 'Length must be at least 1.',
+          ephemeral: true,
+        };
+      }
+
+      if (!request.channelId || !request.userId) {
+        return {
+          kind: 'channel-message',
+          content: 'Could not schedule reminder from this context.',
+          ephemeral: true,
+        };
+      }
+
+      return {
+        kind: 'ack-and-schedule-task',
+        content: `Reminder set for ${length} ${interval}.`,
+        task: {
+          commandName: REMINDER_COMMAND_NAME,
+          payload: {
+            channelId: request.channelId,
+            userId: request.userId,
+            length,
+            interval,
+            note,
+          },
+        },
+        ephemeral: true,
+        delaySeconds: toReminderDelaySeconds(length, interval),
+      };
+    }
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
 }
 
 function isReminderTaskPayload(payload: Record<string, unknown>): payload is ReminderTaskPayload {
@@ -191,84 +263,6 @@ function isPersistedScheduledMessage(value: unknown): value is PersistedSchedule
     && typeof candidate.attempts === 'number';
 }
 
-export async function scheduleReminderTaskWithAlarm(
-  task: FollowUpTask,
-  delaySeconds: number,
-  env: ReminderSchedulerBinding,
-): Promise<void> {
-  if (!Number.isFinite(delaySeconds) || delaySeconds <= 0) {
-    throw new Error('Reminder delay must be a positive number');
-  }
-
-  const reminderTask = parseReminderTask(task);
-  const reminderId = crypto.randomUUID();
-  const scheduledFor = Date.now() + Math.round(delaySeconds * 1000);
-
-  const id = env.REMINDER_SCHEDULER.idFromName(reminderId);
-  const stub = env.REMINDER_SCHEDULER.get(id);
-
-  const response = await stub.fetch('https://reminder.internal/schedule', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      reminderId,
-      scheduledFor,
-      task: reminderTask,
-    } satisfies ScheduleReminderTaskRequest),
-  });
-
-  if (!response.ok) {
-    const details = (await response.text()).trim();
-    const suffix = details ? ` ${details}` : '';
-    throw new Error(`Failed to schedule reminder alarm: ${response.status}${suffix}`);
-  }
-}
-
-export async function scheduleChannelMessageAtWithAlarm(
-  input: ScheduleMessageRequest,
-  env: ReminderSchedulerBinding,
-): Promise<void> {
-  const id = env.REMINDER_SCHEDULER.idFromName(input.scheduleId);
-  const stub = env.REMINDER_SCHEDULER.get(id);
-
-  const response = await stub.fetch('https://reminder.internal/schedule-message', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify(input),
-  });
-
-  if (!response.ok) {
-    const details = (await response.text()).trim();
-    const suffix = details ? ` ${details}` : '';
-    throw new Error(`Failed to schedule channel message alarm: ${response.status}${suffix}`);
-  }
-}
-
-export async function unscheduleChannelMessageAlarm(
-  scheduleId: string,
-  env: ReminderSchedulerBinding,
-): Promise<void> {
-  const id = env.REMINDER_SCHEDULER.idFromName(scheduleId);
-  const stub = env.REMINDER_SCHEDULER.get(id);
-
-  const response = await stub.fetch('https://reminder.internal/unschedule-message', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({ scheduleId }),
-  });
-
-  if (!response.ok) {
-    const details = (await response.text()).trim();
-    const suffix = details ? ` ${details}` : '';
-    throw new Error(`Failed to unschedule channel message alarm: ${response.status}${suffix}`);
-  }
-}
 
 export class ReminderDurableObject {
   private readonly state: DurableObjectState;

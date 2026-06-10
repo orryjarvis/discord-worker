@@ -1,4 +1,6 @@
 import type {
+  CommandRequest,
+  CommandResult,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
@@ -25,6 +27,30 @@ function parseInsultTarget(task: FollowUpTask): string | null {
 
   const trimmed = targetUserId.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+export function handleInsultCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'enqueue-follow-up',
+        token: request.token,
+        task: {
+          commandName: INSULT_COMMAND_NAME,
+          payload: {
+            targetUserId: request.targetId,
+          },
+        },
+        ephemeral: false,
+      };
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
 }
 
 async function generateInsultText(targetMention: string, env: AiRuntimeEnv): Promise<string> {
