@@ -1,6 +1,7 @@
 import * as ed from '@noble/ed25519';
 import { z } from 'zod';
 import {
+  ApplicationCommandOptionType,
   ApplicationCommandType,
   ComponentType,
   InteractionResponseType,
@@ -118,6 +119,7 @@ const ApplicationCommandInteractionSchema = BaseInteractionSchema.extend({
       name: z.string(),
       type: z.number(),
       value: z.union([z.string(), z.number(), z.boolean()]).optional(),
+      options: z.array(z.any()).optional(),
     })).optional(),
     resolved: z.object({
       messages: z.record(z.string(), z.object({
@@ -170,6 +172,16 @@ function extractSlashCommandOptions(
     name: string;
     type: number;
     value?: string | number | boolean;
+    options?: Array<{
+      name: string;
+      type: number;
+      value?: string | number | boolean;
+      options?: Array<{
+        name: string;
+        type: number;
+        value?: string | number | boolean;
+      }>;
+    }>;
   }> | undefined,
 ): Record<string, string | number | boolean> {
   if (!options) {
@@ -177,8 +189,59 @@ function extractSlashCommandOptions(
   }
 
   const extracted: Record<string, string | number | boolean> = {};
+  const SUBCOMMAND_OPTION_TYPE = Number(ApplicationCommandOptionType.Subcommand);
+  const SUBCOMMAND_GROUP_OPTION_TYPE = Number(ApplicationCommandOptionType.SubcommandGroup);
+
+  const collectValueOptions = (nestedOptions: Array<{
+    name: string;
+    type: number;
+    value?: string | number | boolean;
+    options?: Array<{
+      name: string;
+      type: number;
+      value?: string | number | boolean;
+    }>;
+  }>) => {
+    for (const nested of nestedOptions) {
+      if (nested.type === SUBCOMMAND_OPTION_TYPE) {
+        extracted.subcommand = nested.name;
+        if (nested.options?.length) {
+          collectValueOptions(nested.options);
+        }
+        continue;
+      }
+
+      if (nested.type === SUBCOMMAND_GROUP_OPTION_TYPE) {
+        extracted.subcommand_group = nested.name;
+        if (nested.options?.length) {
+          collectValueOptions(nested.options);
+        }
+        continue;
+      }
+
+      if (typeof nested.value !== 'undefined') {
+        extracted[nested.name] = nested.value;
+      }
+    }
+  };
 
   for (const option of options) {
+    if (option.type === SUBCOMMAND_OPTION_TYPE) {
+      extracted.subcommand = option.name;
+      if (option.options?.length) {
+        collectValueOptions(option.options);
+      }
+      continue;
+    }
+
+    if (option.type === SUBCOMMAND_GROUP_OPTION_TYPE) {
+      extracted.subcommand_group = option.name;
+      if (option.options?.length) {
+        collectValueOptions(option.options);
+      }
+      continue;
+    }
+
     if (typeof option.value === 'undefined') {
       continue;
     }

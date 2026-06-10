@@ -22,6 +22,7 @@ export default defineConfig({
         durableObjects: {
           REMINDER_SCHEDULER: 'ReminderDurableObject',
         },
+        d1Databases: ['RELEASES_DB'],
         kvNamespaces: ['KV'],
         queueProducers: { FOLLOW_UP_QUEUE: 'discord-follow-up-queue-dev' },
         queueConsumers: {

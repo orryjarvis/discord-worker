@@ -159,6 +159,37 @@ export async function clearChannelPost(channelId: string): Promise<void> {
   await fetch(`${env.MOCK_SERVER_BASE_URL}/test-api/channel-posts/${channelId}`, { method: 'DELETE' });
 }
 
+export async function clearReleases(): Promise<void> {
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS releases (
+      title_normalized TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      year INTEGER,
+      quarter INTEGER,
+      month INTEGER,
+      day INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+  ).run();
+  await db.prepare('DELETE FROM releases').run();
+}
+
+export async function getReleaseByNormalizedTitle(titleNormalized: string): Promise<Record<string, unknown> | null> {
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
+  const result = await db.prepare(
+    `SELECT title_normalized, title, channel_id, year, quarter, month, day
+     FROM releases
+     WHERE title_normalized = ?`,
+  ).bind(titleNormalized).first<Record<string, unknown>>();
+
+  return result ?? null;
+}
+
 export async function runScheduled(cron: string, time: number): Promise<Response> {
   const ctrl = createScheduledController({ cron, scheduledTime: new Date(time) });
   const ctx = createExecutionContext();

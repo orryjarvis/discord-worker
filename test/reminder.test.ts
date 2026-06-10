@@ -4,18 +4,26 @@ import { ReminderDurableObject } from '@/commands/reminder';
 type StoredValue = Record<string, unknown>;
 
 function createMockState() {
-  let storedReminder: StoredValue | undefined;
+  const stored = new Map<string, StoredValue>();
   let alarmTime: number | null = null;
 
   const state = {
     storage: {
-      get: vi.fn(() => Promise.resolve(storedReminder)),
+      get: vi.fn((key: string) => Promise.resolve(stored.get(key))),
       put: vi.fn((_key: string, value: StoredValue) => {
-        storedReminder = value;
+        stored.set(_key, value);
+        return Promise.resolve();
+      }),
+      delete: vi.fn((key: string) => {
+        stored.delete(key);
         return Promise.resolve();
       }),
       setAlarm: vi.fn((time: number) => {
         alarmTime = time;
+        return Promise.resolve();
+      }),
+      deleteAlarm: vi.fn(() => {
+        alarmTime = null;
         return Promise.resolve();
       }),
     },
@@ -23,7 +31,7 @@ function createMockState() {
 
   return {
     state,
-    getStoredReminder: () => storedReminder,
+    getStoredReminder: () => stored.get('reminder-task'),
     getAlarmTime: () => alarmTime,
   };
 }
@@ -133,5 +141,57 @@ describe('ReminderDurableObject', () => {
       attempts: 1,
     });
     expect(mockState.getStoredReminder()?.firedAt).toBeTypeOf('string');
+  });
+
+  it('supports schedule-message and unschedule-message for shared scheduling flows', async () => {
+    const mockState = createMockState();
+    const reminder = new ReminderDurableObject(mockState.state as any, {
+      DISCORD_TOKEN: 'test-token',
+      DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
+    });
+
+    const scheduleResponse = await reminder.fetch(new Request('https://reminder.internal/schedule-message', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        scheduleId: 'release:hades-2',
+        scheduledFor: Date.now() + 1_000,
+        channelId: 'channel-9',
+        content: 'Upcoming release hype: **Hades 2** is scheduled for 2027-02-10.',
+      }),
+    }));
+
+    expect(scheduleResponse.status).toBe(204);
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"msg-1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await reminder.alarm();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://discord.com/api/v10/channels/channel-9/messages',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          content: 'Upcoming release hype: **Hades 2** is scheduled for 2027-02-10.',
+          allowed_mentions: {
+            parse: [],
+          },
+        }),
+      }),
+    );
+
+    const unscheduleResponse = await reminder.fetch(new Request('https://reminder.internal/unschedule-message', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        scheduleId: 'release:hades-2',
+      }),
+    }));
+
+    expect(unscheduleResponse.status).toBe(204);
   });
 });

@@ -1,4 +1,7 @@
 import type {
+  CreateChannelMessagePayload,
+} from '@/integrations/discord';
+import type {
   DurableObjectNamespace,
   DurableObjectState,
 } from '@cloudflare/workers-types';
@@ -37,6 +40,19 @@ type PersistedReminderTask = ScheduleReminderTaskRequest & {
   firedAt?: string;
 };
 
+type ScheduleMessageRequest = {
+  scheduleId: string;
+  scheduledFor: number;
+  channelId: string;
+  content: string;
+  allowedMentions?: CreateChannelMessagePayload['allowed_mentions'];
+};
+
+type PersistedScheduledMessage = ScheduleMessageRequest & {
+  attempts: number;
+  firedAt?: string;
+};
+
 export interface ReminderSchedulerBinding {
   REMINDER_SCHEDULER: DurableObjectNamespace;
 }
@@ -47,6 +63,7 @@ export interface ReminderAlarmEnv {
 }
 
 const REMINDER_STORAGE_KEY = 'reminder-task';
+const MESSAGE_STORAGE_KEY = 'scheduled-message-task';
 
 export function parseReminderLength(value: string | number | boolean | undefined): number | null {
   if (typeof value !== 'number' || !Number.isInteger(value)) {
@@ -116,6 +133,64 @@ function buildReminderContent(payload: ReminderTaskPayload): string {
   return `<@${payload.userId}> ⏰ Reminder: ${payload.length} ${payload.interval} elapsed.\n📝 ${payload.note}`;
 }
 
+function isAllowedMentions(
+  value: unknown,
+): value is CreateChannelMessagePayload['allowed_mentions'] {
+  if (typeof value === 'undefined') {
+    return true;
+  }
+
+  return Boolean(value) && typeof value === 'object';
+}
+
+function parseScheduleMessageRequest(input: unknown): ScheduleMessageRequest | null {
+  if (!input || typeof input !== 'object') {
+    return null;
+  }
+
+  const schedule = input as Partial<ScheduleMessageRequest>;
+  if (typeof schedule.scheduleId !== 'string' || !schedule.scheduleId.trim()) {
+    return null;
+  }
+
+  if (typeof schedule.channelId !== 'string' || !schedule.channelId.trim()) {
+    return null;
+  }
+
+  if (typeof schedule.content !== 'string' || !schedule.content.trim()) {
+    return null;
+  }
+
+  if (typeof schedule.scheduledFor !== 'number' || !Number.isFinite(schedule.scheduledFor)) {
+    return null;
+  }
+
+  if (!isAllowedMentions(schedule.allowedMentions)) {
+    return null;
+  }
+
+  return {
+    scheduleId: schedule.scheduleId,
+    scheduledFor: Math.floor(schedule.scheduledFor),
+    channelId: schedule.channelId,
+    content: schedule.content,
+    allowedMentions: schedule.allowedMentions ?? { parse: [] },
+  };
+}
+
+function isPersistedScheduledMessage(value: unknown): value is PersistedScheduledMessage {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<PersistedScheduledMessage>;
+  return typeof candidate.scheduleId === 'string'
+    && typeof candidate.channelId === 'string'
+    && typeof candidate.content === 'string'
+    && typeof candidate.scheduledFor === 'number'
+    && typeof candidate.attempts === 'number';
+}
+
 export async function scheduleReminderTaskWithAlarm(
   task: FollowUpTask,
   delaySeconds: number,
@@ -151,6 +226,50 @@ export async function scheduleReminderTaskWithAlarm(
   }
 }
 
+export async function scheduleChannelMessageAtWithAlarm(
+  input: ScheduleMessageRequest,
+  env: ReminderSchedulerBinding,
+): Promise<void> {
+  const id = env.REMINDER_SCHEDULER.idFromName(input.scheduleId);
+  const stub = env.REMINDER_SCHEDULER.get(id);
+
+  const response = await stub.fetch('https://reminder.internal/schedule-message', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const details = (await response.text()).trim();
+    const suffix = details ? ` ${details}` : '';
+    throw new Error(`Failed to schedule channel message alarm: ${response.status}${suffix}`);
+  }
+}
+
+export async function unscheduleChannelMessageAlarm(
+  scheduleId: string,
+  env: ReminderSchedulerBinding,
+): Promise<void> {
+  const id = env.REMINDER_SCHEDULER.idFromName(scheduleId);
+  const stub = env.REMINDER_SCHEDULER.get(id);
+
+  const response = await stub.fetch('https://reminder.internal/unschedule-message', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ scheduleId }),
+  });
+
+  if (!response.ok) {
+    const details = (await response.text()).trim();
+    const suffix = details ? ` ${details}` : '';
+    throw new Error(`Failed to unschedule channel message alarm: ${response.status}${suffix}`);
+  }
+}
+
 export class ReminderDurableObject {
   private readonly state: DurableObjectState;
   private readonly env: ReminderAlarmEnv;
@@ -162,6 +281,57 @@ export class ReminderDurableObject {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === 'POST' && url.pathname === '/unschedule-message') {
+      let body: unknown;
+      try {
+        body = await request.json();
+      } catch {
+        return new Response('Invalid unschedule payload', { status: 400 });
+      }
+
+      if (!body || typeof body !== 'object') {
+        return new Response('Invalid unschedule payload', { status: 400 });
+      }
+
+      const payload = body as Partial<{ scheduleId: string }>;
+      if (typeof payload.scheduleId !== 'string' || !payload.scheduleId.trim()) {
+        return new Response('Invalid unschedule payload', { status: 400 });
+      }
+
+      const existingMessage = await this.state.storage.get<PersistedScheduledMessage>(MESSAGE_STORAGE_KEY);
+      if (existingMessage?.scheduleId === payload.scheduleId) {
+        await this.state.storage.delete(MESSAGE_STORAGE_KEY);
+        await this.state.storage.deleteAlarm();
+      }
+
+      return new Response(null, { status: 204 });
+    }
+
+    if (request.method === 'POST' && url.pathname === '/schedule-message') {
+      let body: unknown;
+      try {
+        body = await request.json();
+      } catch {
+        return new Response('Invalid schedule payload', { status: 400 });
+      }
+
+      const schedule = parseScheduleMessageRequest(body);
+      if (!schedule) {
+        return new Response('Invalid schedule payload', { status: 400 });
+      }
+
+      const scheduledFor = Math.max(Date.now(), schedule.scheduledFor);
+      await this.state.storage.put(MESSAGE_STORAGE_KEY, {
+        ...schedule,
+        scheduledFor,
+        attempts: 0,
+        firedAt: undefined,
+      } satisfies PersistedScheduledMessage);
+      await this.state.storage.setAlarm(scheduledFor);
+
+      return new Response(null, { status: 204 });
+    }
+
     if (request.method !== 'POST' || url.pathname !== '/schedule') {
       return new Response('Not found', { status: 404 });
     }
@@ -220,6 +390,35 @@ export class ReminderDurableObject {
   }
 
   async alarm(): Promise<void> {
+    const scheduledMessageRaw = await this.state.storage.get<unknown>(MESSAGE_STORAGE_KEY);
+    if (isPersistedScheduledMessage(scheduledMessageRaw) && !scheduledMessageRaw.firedAt) {
+      try {
+        await sendDiscordMessage(
+          {
+            channelId: scheduledMessageRaw.channelId,
+            content: scheduledMessageRaw.content,
+            allowedMentions: scheduledMessageRaw.allowedMentions,
+            failurePrefix: 'Scheduled message delivery failed',
+          },
+          this.env,
+        );
+      } catch (error) {
+        await this.state.storage.put(MESSAGE_STORAGE_KEY, {
+          ...scheduledMessageRaw,
+          attempts: scheduledMessageRaw.attempts + 1,
+        } satisfies PersistedScheduledMessage);
+
+        throw error;
+      }
+
+      await this.state.storage.put(MESSAGE_STORAGE_KEY, {
+        ...scheduledMessageRaw,
+        attempts: scheduledMessageRaw.attempts + 1,
+        firedAt: new Date().toISOString(),
+      } satisfies PersistedScheduledMessage);
+      return;
+    }
+
     const reminder = await this.state.storage.get<PersistedReminderTask>(REMINDER_STORAGE_KEY);
     if (!reminder || reminder.firedAt) {
       return;
