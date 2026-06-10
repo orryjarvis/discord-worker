@@ -3,6 +3,10 @@ import {
   upsertReleaseRecord,
   type ReleaseRecord,
 } from '@/integrations/releases';
+import {
+  markScheduledMessageCanceled,
+  upsertScheduledMessage,
+} from '@/integrations/scheduledMessages';
 import type { D1Database } from '@cloudflare/workers-types';
 
 export interface ReleaseStoreEnv {
@@ -21,6 +25,18 @@ export interface UpsertReleaseRequest extends ReleaseDateParts {
   titleNormalized: string;
   channelId: string;
 }
+
+export interface ReleaseScheduledMessage {
+  scheduleKey: string;
+  scheduleType: 'release';
+  sourceKey: string;
+  channelId: string;
+  scheduledFor: number;
+  content: string;
+  allowedMentionsJson: string;
+}
+
+const RELEASE_NOTIFY_LEAD_DAYS = 7;
 
 export function normalizeReleaseTitle(title: string): string {
   return title.trim().toLowerCase();
@@ -77,6 +93,36 @@ export function toExactReleaseDate(parts: ReleaseDateParts): Date | null {
   }
 
   return new Date(Date.UTC(parts.year as number, (parts.month as number) - 1, parts.day as number, 12, 0, 0, 0));
+}
+
+export function formatReleaseAlertContent(title: string, releaseDate: Date): string {
+  const releaseDateText = releaseDate.toISOString().slice(0, 10);
+  return `Upcoming release hype: **${title}** is scheduled for ${releaseDateText}.`;
+}
+
+export function buildReleaseScheduledMessage(
+  request: UpsertReleaseRequest,
+  nowMs = Date.now(),
+): ReleaseScheduledMessage | null {
+  const releaseDate = toExactReleaseDate(request);
+  if (!releaseDate) {
+    return null;
+  }
+
+  const scheduledFor = Math.max(
+    nowMs,
+    releaseDate.getTime() - (RELEASE_NOTIFY_LEAD_DAYS * 24 * 60 * 60 * 1000),
+  );
+
+  return {
+    scheduleKey: `release:${request.titleNormalized}`,
+    scheduleType: 'release',
+    sourceKey: request.titleNormalized,
+    channelId: request.channelId,
+    scheduledFor,
+    content: formatReleaseAlertContent(request.title, releaseDate),
+    allowedMentionsJson: '{"parse":[]}',
+  };
 }
 
 function formatReleaseDate(record: ReleaseRecord): string {
@@ -185,4 +231,24 @@ export async function upsertRelease(
     month: request.month,
     day: request.day,
   });
+}
+
+export async function upsertReleaseScheduledMessageRecord(
+  env: ReleaseStoreEnv,
+  request: UpsertReleaseRequest,
+  scheduledMessage?: ReleaseScheduledMessage | null,
+): Promise<void> {
+  const message = scheduledMessage ?? buildReleaseScheduledMessage(request);
+  if (!message) {
+    return;
+  }
+
+  await upsertScheduledMessage(env.RELEASES_DB, message);
+}
+
+export async function cancelReleaseScheduledMessageRecord(
+  env: ReleaseStoreEnv,
+  titleNormalized: string,
+): Promise<void> {
+  await markScheduledMessageCanceled(env.RELEASES_DB, `release:${titleNormalized}`);
 }

@@ -175,7 +175,26 @@ export async function clearReleases(): Promise<void> {
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )`,
   ).run();
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS scheduled_messages (
+      schedule_key TEXT PRIMARY KEY,
+      schedule_type TEXT NOT NULL,
+      source_key TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      scheduled_for INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      allowed_mentions_json TEXT NOT NULL DEFAULT '{"parse":[]}',
+      status TEXT NOT NULL DEFAULT 'scheduled',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      fired_at TEXT,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (schedule_type IN ('reminder', 'release')),
+      CHECK (status IN ('scheduled', 'firing', 'fired', 'canceled'))
+    )`,
+  ).run();
   await db.prepare('DELETE FROM releases').run();
+  await db.prepare('DELETE FROM scheduled_messages').run();
 }
 
 export async function getReleaseByNormalizedTitle(titleNormalized: string): Promise<Record<string, unknown> | null> {
@@ -188,6 +207,59 @@ export async function getReleaseByNormalizedTitle(titleNormalized: string): Prom
   ).bind(titleNormalized).first<Record<string, unknown>>();
 
   return result ?? null;
+}
+
+export async function getScheduledMessageByKey(scheduleKey: string): Promise<Record<string, unknown> | null> {
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
+  const result = await db.prepare(
+    `SELECT
+      schedule_key,
+      schedule_type,
+      source_key,
+      channel_id,
+      scheduled_for,
+      content,
+      status,
+      attempts,
+      fired_at
+     FROM scheduled_messages
+     WHERE schedule_key = ?`,
+  ).bind(scheduleKey).first<Record<string, unknown>>();
+
+  return result ?? null;
+}
+
+export async function listScheduledMessagesForTests(): Promise<Array<Record<string, unknown>>> {
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
+  const result = await db.prepare(
+    `SELECT
+      schedule_key,
+      schedule_type,
+      source_key,
+      channel_id,
+      scheduled_for,
+      status,
+      attempts,
+      fired_at
+     FROM scheduled_messages
+     ORDER BY scheduled_for ASC, schedule_key ASC`,
+  ).all<Record<string, unknown>>();
+
+  return result.results ?? [];
+}
+
+export async function forceScheduledMessageDueForTests(scheduleKey: string, scheduledForMs = Date.now() - 1000): Promise<void> {
+  const runtimeEnv = env as unknown as AppEnv;
+  const db = runtimeEnv.RELEASES_DB;
+  await db.prepare(
+    `UPDATE scheduled_messages
+     SET scheduled_for = ?,
+         status = 'scheduled',
+         updated_at = CURRENT_TIMESTAMP
+     WHERE schedule_key = ?`,
+  ).bind(scheduledForMs, scheduleKey).run();
 }
 
 export async function runScheduled(cron: string, time: number): Promise<Response> {
