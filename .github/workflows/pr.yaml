@@ -7,7 +7,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: actions/setup-node@v6.4.0
         with:
           node-version-file: package.json
@@ -16,7 +16,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: actions/setup-node@v6.4.0
         with:
           node-version-file: package.json
@@ -25,7 +25,7 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: actions/setup-node@v6.4.0
         with:
           node-version-file: package.json
@@ -34,7 +34,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: actions/setup-node@v6.4.0
         with:
           node-version-file: package.json
@@ -43,7 +43,7 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: actions/setup-node@v6.4.0
         with:
           node-version-file: package.json
@@ -52,7 +52,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.3
+      - uses: actions/checkout@v7.0.0
       - uses: actions/setup-node@v6.4.0
         with:
           node-version-file: package.json
