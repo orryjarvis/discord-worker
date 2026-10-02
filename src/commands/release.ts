@@ -1,23 +1,27 @@
-import type { FollowUpExecutionResult, FollowUpTask } from '@/core';
+import type {
+  CommandRequest,
+  CommandResult,
+  FollowUpExecutionResult,
+  FollowUpTask,
+} from '@/core';
 import {
   scheduleChannelMessageAtWithAlarm,
   unscheduleChannelMessageAlarm,
   type ReminderSchedulerBinding,
-} from '@/commands/reminder';
+} from '@/skills/reminderScheduler';
 import {
+  buildReleaseScheduledMessage,
+  cancelReleaseScheduledMessageRecord,
   formatReleaseList,
-  hasExactReleaseDate,
   listReleases,
   normalizeReleaseTitle,
-  toExactReleaseDate,
   upsertRelease,
+  upsertReleaseScheduledMessageRecord,
   validateReleaseDateParts,
   type ReleaseStoreEnv,
 } from '@/skills/releases';
 
 export const RELEASE_COMMAND_NAME = 'release';
-
-const RELEASE_NOTIFY_LEAD_DAYS = 7;
 
 type ReleaseListPayload = {
   action: 'list';
@@ -87,6 +91,61 @@ export function toReleaseSetPayload(options: Record<string, string | number | bo
   };
 }
 
+export function handleReleaseCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command': {
+      const subcommand = parseReleaseSubcommand(request.options.subcommand);
+      if (subcommand === 'list') {
+        return {
+          kind: 'enqueue-follow-up',
+          token: request.token,
+          task: {
+            commandName: RELEASE_COMMAND_NAME,
+            payload: {
+              action: 'list',
+            },
+          },
+          ephemeral: false,
+        };
+      }
+
+      if (subcommand === 'set') {
+        const payload = toReleaseSetPayload(request.options, request.channelId);
+        if (!payload) {
+          return {
+            kind: 'channel-message',
+            content: 'Usage: /release set title:<text> [year:<number>] [quarter:<1-4>] [month:<1-12>] [day:<1-31>]',
+            ephemeral: true,
+          };
+        }
+
+        return {
+          kind: 'enqueue-follow-up',
+          token: request.token,
+          task: {
+            commandName: RELEASE_COMMAND_NAME,
+            payload,
+          },
+          ephemeral: false,
+        };
+      }
+
+      return {
+        kind: 'channel-message',
+        content: 'Usage: /release list or /release set title:<text> [year] [quarter] [month] [day]',
+        ephemeral: true,
+      };
+    }
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
+
 function parseReleasePayload(task: FollowUpTask): ReleasePayload {
   if (!task.payload || typeof task.payload !== 'object') {
     throw new Error('Release task payload is invalid');
@@ -136,11 +195,6 @@ function toReleaseScheduleId(titleNormalized: string): string {
   return `release:${titleNormalized}`;
 }
 
-function formatReleaseAlertContent(title: string, releaseDate: Date): string {
-  const releaseDateText = releaseDate.toISOString().slice(0, 10);
-  return `Upcoming release hype: **${title}** is scheduled for ${releaseDateText}.`;
-}
-
 async function handleReleaseSet(
   payload: ReleaseSetPayload,
   env: ReleaseRuntimeEnv,
@@ -162,27 +216,39 @@ async function handleReleaseSet(
   });
 
   const scheduleId = toReleaseScheduleId(titleNormalized);
-  if (hasExactReleaseDate(payload)) {
-    const releaseDate = toExactReleaseDate(payload);
-    if (!releaseDate) {
-      throw new Error('Release date conversion failed unexpectedly');
-    }
+  const scheduledMessage = buildReleaseScheduledMessage({
+    title: payload.title,
+    titleNormalized,
+    channelId: payload.channelId,
+    year: payload.year,
+    quarter: payload.quarter,
+    month: payload.month,
+    day: payload.day,
+  });
 
-    const notifyAt = Math.max(
-      Date.now(),
-      releaseDate.getTime() - (RELEASE_NOTIFY_LEAD_DAYS * 24 * 60 * 60 * 1000),
-    );
+  if (scheduledMessage) {
+    await upsertReleaseScheduledMessageRecord(env, {
+      title: payload.title,
+      titleNormalized,
+      channelId: payload.channelId,
+      year: payload.year,
+      quarter: payload.quarter,
+      month: payload.month,
+      day: payload.day,
+    }, scheduledMessage);
 
     await scheduleChannelMessageAtWithAlarm(
       {
         scheduleId,
-        scheduledFor: notifyAt,
+        scheduledFor: scheduledMessage.scheduledFor,
         channelId: payload.channelId,
-        content: formatReleaseAlertContent(payload.title, releaseDate),
+        content: scheduledMessage.content,
+        allowedMentions: { parse: [] },
       },
       env,
     );
   } else {
+    await cancelReleaseScheduledMessageRecord(env, titleNormalized);
     await unscheduleChannelMessageAlarm(scheduleId, env);
   }
 
