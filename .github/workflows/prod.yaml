@@ -17,9 +17,9 @@ jobs:
     environment: prod
     steps:
       - if: ${{ inputs.ref == '' }}
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
       - if: ${{ inputs.ref != '' }}
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.ref }}
       - uses: actions/setup-node@v7.0.0
