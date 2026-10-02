@@ -186,6 +186,9 @@ export async function clearReleases(): Promise<void> {
       allowed_mentions_json TEXT NOT NULL DEFAULT '{"parse":[]}',
       status TEXT NOT NULL DEFAULT 'scheduled',
       attempts INTEGER NOT NULL DEFAULT 0,
+      firing_started_at TEXT,
+      next_attempt_at INTEGER,
+      last_error TEXT,
       fired_at TEXT,
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -222,6 +225,9 @@ export async function getScheduledMessageByKey(scheduleKey: string): Promise<Rec
       content,
       status,
       attempts,
+      firing_started_at,
+      next_attempt_at,
+      last_error,
       fired_at
      FROM scheduled_messages
      WHERE schedule_key = ?`,
@@ -242,6 +248,9 @@ export async function listScheduledMessagesForTests(): Promise<Array<Record<stri
       scheduled_for,
       status,
       attempts,
+      firing_started_at,
+      next_attempt_at,
+      last_error,
       fired_at
      FROM scheduled_messages
      ORDER BY scheduled_for ASC, schedule_key ASC`,

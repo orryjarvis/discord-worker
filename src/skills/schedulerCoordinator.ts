@@ -5,6 +5,7 @@ import {
   listDueScheduledMessages,
   markScheduledMessageCanceled,
   markScheduledMessageFired,
+  reclaimStaleFiringScheduledMessages,
   resetScheduledMessageToScheduled,
   tryMarkScheduledMessageFiring,
   upsertScheduledMessage,
@@ -152,6 +153,8 @@ async function resetAlarmToNextScheduled(
   state: DurableObjectState,
   db: D1Database,
 ): Promise<void> {
+  await reclaimStaleFiringScheduledMessages(db);
+
   const next = await getNextPendingScheduledMessage(db);
   if (!next) {
     await state.storage.deleteAlarm();
@@ -267,6 +270,7 @@ export async function runSchedulerCoordinatorAlarm(
   state: DurableObjectState,
   env: SchedulerCoordinatorEnv,
 ): Promise<void> {
+  await reclaimStaleFiringScheduledMessages(env.RELEASES_DB, Date.now(), 5 * 60 * 1000);
   const dueMessages = await listDueScheduledMessages(env.RELEASES_DB, Date.now(), 25);
   let firstError: unknown = null;
 
@@ -288,7 +292,8 @@ export async function runSchedulerCoordinatorAlarm(
       );
       await markScheduledMessageFired(env.RELEASES_DB, message.scheduleKey, new Date().toISOString());
     } catch (error) {
-      await resetScheduledMessageToScheduled(env.RELEASES_DB, message.scheduleKey);
+      const messageText = error instanceof Error ? error.message : String(error);
+      await resetScheduledMessageToScheduled(env.RELEASES_DB, message.scheduleKey, messageText);
       if (!firstError) {
         firstError = error;
       }

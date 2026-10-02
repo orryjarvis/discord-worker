@@ -109,6 +109,10 @@ export function buildReleaseScheduledMessage(
     return null;
   }
 
+  if (releaseDate.getTime() <= nowMs) {
+    return null;
+  }
+
   const scheduledFor = Math.max(
     nowMs,
     releaseDate.getTime() - (RELEASE_NOTIFY_LEAD_DAYS * 24 * 60 * 60 * 1000),

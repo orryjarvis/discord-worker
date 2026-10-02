@@ -4,6 +4,10 @@ import {
   handleSchedulerCoordinatorRequest,
   runSchedulerCoordinatorAlarm,
 } from '@/skills/schedulerCoordinator';
+import {
+  markScheduledMessageFired,
+  reclaimStaleFiringScheduledMessages,
+} from '@/integrations/scheduledMessages';
 
 vi.mock('@/skills/schedulerCoordinator', () => ({
   handleSchedulerCoordinatorRequest: vi.fn(),
@@ -48,5 +52,36 @@ describe('ReminderDurableObject', () => {
     await durableObject.alarm();
 
     expect(runSchedulerCoordinatorAlarm).toHaveBeenCalledWith(state, env);
+  });
+});
+
+describe('scheduler recovery', () => {
+  it('reclaims stale firing rows back to scheduled status before re-delivery', async () => {
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: vi.fn((..._args: unknown[]) => ({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        })),
+      })),
+    } as any;
+
+    const reclaimed = await reclaimStaleFiringScheduledMessages(db, Date.now(), 60_000);
+
+    expect(reclaimed).toBe(1);
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE scheduled_messages'));
+  });
+
+  it('ignores stale firing completion when the row was already canceled', async () => {
+    const run = vi.fn().mockResolvedValue({ meta: { changes: 0 } });
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({ run })),
+      })),
+    } as any;
+
+    await markScheduledMessageFired(db, 'reminder:cancelled', new Date().toISOString());
+
+    expect(run).toHaveBeenCalled();
+    await expect(run.mock.results[0]?.value).resolves.toMatchObject({ meta: { changes: 0 } });
   });
 });

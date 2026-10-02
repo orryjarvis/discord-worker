@@ -6,6 +6,10 @@ import type {
   CommandResult,
 } from '@/core';
 import {
+  getNextPendingScheduledMessage,
+  reclaimStaleFiringScheduledMessages,
+} from '@/integrations/scheduledMessages';
+import {
   handleSchedulerCoordinatorRequest,
   runSchedulerCoordinatorAlarm,
   type SchedulerCoordinatorEnv,
@@ -125,6 +129,29 @@ export class ReminderDurableObject {
   constructor(state: DurableObjectState, env: ReminderAlarmEnv) {
     this.state = state;
     this.env = env;
+    void this.initializeFromDatabase();
+  }
+
+  private async initializeFromDatabase(): Promise<void> {
+    if (!this.state.storage || typeof this.state.storage.get !== 'function') {
+      return;
+    }
+
+    const initialized = await this.state.storage.get<boolean>('scheduler-bootstrap');
+    if (initialized) {
+      return;
+    }
+
+    await reclaimStaleFiringScheduledMessages(this.env.RELEASES_DB);
+    const next = await getNextPendingScheduledMessage(this.env.RELEASES_DB);
+    if (!next) {
+      await this.state.storage.deleteAlarm();
+      await this.state.storage.put('scheduler-bootstrap', true);
+      return;
+    }
+
+    await this.state.storage.setAlarm(Math.max(Date.now(), next.scheduledFor));
+    await this.state.storage.put('scheduler-bootstrap', true);
   }
 
   fetch(request: Request): Promise<Response> {

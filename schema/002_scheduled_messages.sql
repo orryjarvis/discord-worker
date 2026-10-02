@@ -46,4 +46,8 @@ SELECT
 FROM releases
 WHERE year IS NOT NULL
   AND month IS NOT NULL
-  AND day IS NOT NULL;
+  AND day IS NOT NULL
+  AND datetime(
+    printf('%04d-%02d-%02d 12:00:00', year, month, day),
+    '-7 days'
+  ) >= CURRENT_TIMESTAMP;
