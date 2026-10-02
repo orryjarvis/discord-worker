@@ -34,7 +34,7 @@
     "@cloudflare/vite-plugin": "^1.42.1",
     "@cloudflare/vitest-pool-workers": "^0.16.18",
     "@cloudflare/workers-types": "^4.20260601.1",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.0.1",
     "eslint": "^10.5.0",
     "globals": "^17.6.0",
     "tsx": "^4.22.4",
