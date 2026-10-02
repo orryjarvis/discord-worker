@@ -1,6 +1,8 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { listScheduledMessages, type ScheduledMessageRecord } from '@/integrations/scheduledMessages';
 
+const MAX_SCHEDULED_CONTENT_LENGTH = 1800;
+
 export interface ScheduledStoreEnv {
   RELEASES_DB: D1Database;
 }
@@ -33,16 +35,22 @@ export function formatScheduledList(records: ScheduledMessageRecord[]): string {
     return 'Scheduled metadata\nNo scheduled messages found.';
   }
 
-  const lines = records.map((record) => {
+  const lines = records.slice(0, 20).map((record) => {
     return `- ${record.scheduleKey} | ${formatScheduleType(record)} | ${record.status} | at ${formatScheduleTime(record.scheduledFor)} | attempts=${record.attempts} | channel=${record.channelId}`;
   });
 
-  return [
+  let rendered = [
     'Scheduled metadata',
     `Status counts: ${summarizeStatusCounts(records)}`,
     'Entries:',
     ...lines,
   ].join('\n');
+
+  if (rendered.length > MAX_SCHEDULED_CONTENT_LENGTH) {
+    rendered = `${rendered.slice(0, MAX_SCHEDULED_CONTENT_LENGTH - 1).trimEnd()}…`;
+  }
+
+  return rendered;
 }
 
 export async function listScheduledMetadata(

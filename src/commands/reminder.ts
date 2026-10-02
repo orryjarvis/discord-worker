@@ -1,19 +1,7 @@
 import type {
-  DurableObjectState,
-} from '@cloudflare/workers-types';
-import type {
   CommandRequest,
   CommandResult,
 } from '@/core';
-import {
-  getNextPendingScheduledMessage,
-  reclaimStaleFiringScheduledMessages,
-} from '@/integrations/scheduledMessages';
-import {
-  handleSchedulerCoordinatorRequest,
-  runSchedulerCoordinatorAlarm,
-  type SchedulerCoordinatorEnv,
-} from '@/skills/schedulerCoordinator';
 export { scheduleReminderTaskWithAlarm } from '@/skills/reminderScheduler';
 
 export const REMINDER_COMMAND_NAME = 'reminder';
@@ -105,7 +93,6 @@ export function handleReminderCommand(request: CommandRequest): CommandResult {
             length,
             interval,
             note,
-            requestToken: request.token,
           },
         },
         ephemeral: true,
@@ -122,45 +109,4 @@ export function handleReminderCommand(request: CommandRequest): CommandResult {
   }
 }
 
-export class ReminderDurableObject {
-  private readonly state: DurableObjectState;
-  private readonly env: ReminderAlarmEnv;
 
-  constructor(state: DurableObjectState, env: ReminderAlarmEnv) {
-    this.state = state;
-    this.env = env;
-    void this.initializeFromDatabase();
-  }
-
-  private async initializeFromDatabase(): Promise<void> {
-    if (!this.state.storage || typeof this.state.storage.get !== 'function') {
-      return;
-    }
-
-    const initialized = await this.state.storage.get<boolean>('scheduler-bootstrap');
-    if (initialized) {
-      return;
-    }
-
-    await reclaimStaleFiringScheduledMessages(this.env.RELEASES_DB);
-    const next = await getNextPendingScheduledMessage(this.env.RELEASES_DB);
-    if (!next) {
-      await this.state.storage.deleteAlarm();
-      await this.state.storage.put('scheduler-bootstrap', true);
-      return;
-    }
-
-    await this.state.storage.setAlarm(Math.max(Date.now(), next.scheduledFor));
-    await this.state.storage.put('scheduler-bootstrap', true);
-  }
-
-  fetch(request: Request): Promise<Response> {
-    return handleSchedulerCoordinatorRequest(this.state, this.env, request);
-  }
-
-  alarm(): Promise<void> {
-    return runSchedulerCoordinatorAlarm(this.state, this.env);
-  }
-}
-
-export type ReminderAlarmEnv = SchedulerCoordinatorEnv;

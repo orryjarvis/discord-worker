@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { ReminderDurableObject } from '@/commands/reminder';
 import {
+  ReminderDurableObject,
   handleSchedulerCoordinatorRequest,
   runSchedulerCoordinatorAlarm,
 } from '@/skills/schedulerCoordinator';
@@ -9,21 +9,37 @@ import {
   reclaimStaleFiringScheduledMessages,
 } from '@/integrations/scheduledMessages';
 
-vi.mock('@/skills/schedulerCoordinator', () => ({
-  handleSchedulerCoordinatorRequest: vi.fn(),
-  runSchedulerCoordinatorAlarm: vi.fn(),
-}));
+vi.mock('@/skills/schedulerCoordinator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/skills/schedulerCoordinator')>();
+  return {
+    ...actual,
+    handleSchedulerCoordinatorRequest: vi.fn(),
+    runSchedulerCoordinatorAlarm: vi.fn(),
+  };
+});
 
 describe('ReminderDurableObject', () => {
-  it('delegates fetch requests to scheduler coordinator request handler', async () => {
-    const expected = new Response(null, { status: 204 });
-    vi.mocked(handleSchedulerCoordinatorRequest).mockResolvedValue(expected);
-
-    const state = { storage: {} } as any;
+  it('allows initialized durable objects to handle fetch requests without re-running bootstrap', async () => {
+    const state = {
+      storage: {
+        get: vi.fn().mockResolvedValue(true),
+        deleteAlarm: vi.fn().mockResolvedValue(undefined),
+        setAlarm: vi.fn().mockResolvedValue(undefined),
+      },
+    } as any;
     const env = {
       DISCORD_TOKEN: 'test-token',
       DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
-      RELEASES_DB: {},
+      RELEASES_DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          })),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+        })),
+      },
     } as any;
     const durableObject = new ReminderDurableObject(state, env);
 
@@ -34,24 +50,36 @@ describe('ReminderDurableObject', () => {
 
     const response = await durableObject.fetch(request);
 
-    expect(response).toBe(expected);
-    expect(handleSchedulerCoordinatorRequest).toHaveBeenCalledWith(state, env, request);
+    expect(response.status).toBe(400);
+    expect(state.storage.get).toHaveBeenCalledWith('scheduler-bootstrap');
   });
 
-  it('delegates alarm execution to scheduler coordinator alarm runner', async () => {
-    vi.mocked(runSchedulerCoordinatorAlarm).mockResolvedValue(undefined);
-
-    const state = { storage: {} } as any;
+  it('allows initialized durable objects to run alarms without bootstrap races', async () => {
+    const state = {
+      storage: {
+        get: vi.fn().mockResolvedValue(true),
+        deleteAlarm: vi.fn().mockResolvedValue(undefined),
+        setAlarm: vi.fn().mockResolvedValue(undefined),
+      },
+    } as any;
     const env = {
       DISCORD_TOKEN: 'test-token',
       DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
-      RELEASES_DB: {},
+      RELEASES_DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          })),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+        })),
+      },
     } as any;
     const durableObject = new ReminderDurableObject(state, env);
 
-    await durableObject.alarm();
-
-    expect(runSchedulerCoordinatorAlarm).toHaveBeenCalledWith(state, env);
+    await expect(durableObject.alarm()).resolves.toBeUndefined();
+    expect(state.storage.get).toHaveBeenCalledWith('scheduler-bootstrap');
   });
 });
 

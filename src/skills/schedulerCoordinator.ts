@@ -60,44 +60,39 @@ function parseReminderScheduleRequest(input: unknown): ScheduleReminderTaskReque
   const task = request.task;
   const payload = task?.payload;
 
-  if (
-    typeof request.reminderId !== 'string'
-    || typeof request.scheduledFor !== 'number'
-    || !Number.isFinite(request.scheduledFor)
-    || !task
-    || typeof task !== 'object'
-    || typeof task.commandName !== 'string'
-    || !payload
-    || typeof payload !== 'object'
-  ) {
+  const reminderId = typeof request.reminderId === 'string' ? request.reminderId.trim() : '';
+  if (!reminderId || typeof request.scheduledFor !== 'number' || !Number.isFinite(request.scheduledFor) || !task || typeof task !== 'object' || typeof task.commandName !== 'string' || !payload || typeof payload !== 'object') {
     return null;
   }
 
   const candidate = payload as Partial<ReminderTaskPayload>;
+  const channelId = typeof candidate.channelId === 'string' ? candidate.channelId.trim() : '';
+  const userId = typeof candidate.userId === 'string' ? candidate.userId.trim() : '';
+  const note = typeof candidate.note === 'string' ? candidate.note.trim() : '';
+
   if (
-    typeof candidate.channelId !== 'string'
-    || typeof candidate.userId !== 'string'
+    !channelId
+    || !userId
     || typeof candidate.length !== 'number'
     || !Number.isInteger(candidate.length)
     || candidate.length <= 0
     || (candidate.interval !== 'minutes' && candidate.interval !== 'hours' && candidate.interval !== 'days')
-    || typeof candidate.note !== 'string'
-    || !candidate.note.trim()
+    || !note
   ) {
     return null;
   }
 
   return {
-    reminderId: request.reminderId,
+    reminderId,
     scheduledFor: Math.floor(request.scheduledFor),
     task: {
       commandName: task.commandName,
       payload: {
-        channelId: candidate.channelId,
-        userId: candidate.userId,
+        channelId,
+        userId,
         length: candidate.length,
         interval: candidate.interval,
-        note: candidate.note,
+        note,
       },
     },
   };
@@ -109,21 +104,25 @@ function parseScheduleMessageRequest(input: unknown): ScheduleMessageRequest | n
   }
 
   const request = input as Partial<ScheduleMessageRequest>;
+  const scheduleId = typeof request.scheduleId === 'string' ? request.scheduleId.trim() : '';
+  const channelId = typeof request.channelId === 'string' ? request.channelId.trim() : '';
+  const content = typeof request.content === 'string' ? request.content.trim() : '';
+
   if (
-    typeof request.scheduleId !== 'string'
+    !scheduleId
+    || !channelId
+    || !content
     || typeof request.scheduledFor !== 'number'
     || !Number.isFinite(request.scheduledFor)
-    || typeof request.channelId !== 'string'
-    || typeof request.content !== 'string'
   ) {
     return null;
   }
 
   return {
-    scheduleId: request.scheduleId,
+    scheduleId,
     scheduledFor: Math.floor(request.scheduledFor),
-    channelId: request.channelId,
-    content: request.content,
+    channelId,
+    content,
     allowedMentions: request.allowedMentions ?? { parse: [] },
   };
 }
@@ -134,11 +133,12 @@ function parseUnscheduleRequest(input: unknown): UnscheduleMessageRequest | null
   }
 
   const request = input as Partial<UnscheduleMessageRequest>;
-  if (typeof request.scheduleId !== 'string' || !request.scheduleId.trim()) {
+  const scheduleId = typeof request.scheduleId === 'string' ? request.scheduleId.trim() : '';
+  if (!scheduleId) {
     return null;
   }
 
-  return { scheduleId: request.scheduleId };
+  return { scheduleId };
 }
 
 function releaseSourceKeyFromScheduleId(scheduleId: string): string {
@@ -162,6 +162,56 @@ async function resetAlarmToNextScheduled(
   }
 
   await state.storage.setAlarm(Math.max(Date.now(), next.scheduledFor));
+}
+
+export class ReminderDurableObject {
+  private readonly state: DurableObjectState;
+  private readonly env: SchedulerCoordinatorEnv;
+  private initializationPromise: Promise<void> | null = null;
+
+  constructor(state: DurableObjectState, env: SchedulerCoordinatorEnv) {
+    this.state = state;
+    this.env = env;
+    this.initializationPromise = this.initializeFromDatabase();
+  }
+
+  private async initializeFromDatabase(): Promise<void> {
+    if (!this.state.storage || typeof this.state.storage.get !== 'function') {
+      return;
+    }
+
+    const initialized = await this.state.storage.get<boolean>('scheduler-bootstrap');
+    if (initialized) {
+      return;
+    }
+
+    await reclaimStaleFiringScheduledMessages(this.env.RELEASES_DB);
+    const next = await getNextPendingScheduledMessage(this.env.RELEASES_DB);
+    if (!next) {
+      await this.state.storage.deleteAlarm();
+      await this.state.storage.put('scheduler-bootstrap', true);
+      return;
+    }
+
+    await this.state.storage.setAlarm(Math.max(Date.now(), next.scheduledFor));
+    await this.state.storage.put('scheduler-bootstrap', true);
+  }
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initializeFromDatabase();
+    }
+
+    await this.initializationPromise;
+  }
+
+  fetch(request: Request): Promise<Response> {
+    return this.ensureInitialized().then(() => handleSchedulerCoordinatorRequest(this.state, this.env, request));
+  }
+
+  alarm(): Promise<void> {
+    return this.ensureInitialized().then(() => runSchedulerCoordinatorAlarm(this.state, this.env));
+  }
 }
 
 export async function handleSchedulerCoordinatorRequest(
@@ -266,12 +316,18 @@ function parseAllowedMentions(allowedMentionsJson: string): CreateChannelMessage
   return { parse: [] };
 }
 
+function getRetryBackoffMs(attempts: number): number {
+  const exponentialBackoffMs = Math.min(5 * 60 * 1000, 1_000 * (2 ** Math.max(0, attempts - 1)));
+  return exponentialBackoffMs;
+}
+
 export async function runSchedulerCoordinatorAlarm(
   state: DurableObjectState,
   env: SchedulerCoordinatorEnv,
 ): Promise<void> {
-  await reclaimStaleFiringScheduledMessages(env.RELEASES_DB, Date.now(), 5 * 60 * 1000);
-  const dueMessages = await listDueScheduledMessages(env.RELEASES_DB, Date.now(), 25);
+  const nowMs = Date.now();
+  await reclaimStaleFiringScheduledMessages(env.RELEASES_DB, nowMs, 5 * 60 * 1000);
+  const dueMessages = await listDueScheduledMessages(env.RELEASES_DB, nowMs, 25);
   let firstError: unknown = null;
 
   for (const message of dueMessages) {
@@ -293,7 +349,8 @@ export async function runSchedulerCoordinatorAlarm(
       await markScheduledMessageFired(env.RELEASES_DB, message.scheduleKey, new Date().toISOString());
     } catch (error) {
       const messageText = error instanceof Error ? error.message : String(error);
-      await resetScheduledMessageToScheduled(env.RELEASES_DB, message.scheduleKey, messageText);
+      const nextAttemptAt = Date.now() + getRetryBackoffMs(message.attempts);
+      await resetScheduledMessageToScheduled(env.RELEASES_DB, message.scheduleKey, messageText, nextAttemptAt);
       if (!firstError) {
         firstError = error;
       }

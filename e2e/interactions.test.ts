@@ -476,15 +476,18 @@ describe('Discord Worker', () => {
       },
     });
 
-    const scheduled = await getScheduledMessageByKey(`reminder:${correlationToken}`);
+    const scheduled = (await listScheduledMessagesForTests()).find((row) => {
+      return row.schedule_type === 'reminder' && row.channel_id === channelId && row.status === 'scheduled';
+    });
     expect(scheduled).toMatchObject({
-      schedule_key: `reminder:${correlationToken}`,
       schedule_type: 'reminder',
       channel_id: channelId,
       status: 'scheduled',
       attempts: 0,
       fired_at: null,
     });
+    expect(String(scheduled?.schedule_key)).toMatch(/^reminder:/);
+    expect(String(scheduled?.source_key)).not.toBe(correlationToken);
 
     const idsAfter = (await listDurableObjectIds(reminderNamespace)).map((id: { toString(): string }) => id.toString());
     expect(idsAfter).toContain(reminderNamespace.idFromName('global-scheduler').toString());
@@ -532,7 +535,12 @@ describe('Discord Worker', () => {
 
     expect(res.status).toBe(200);
 
-    await forceScheduledMessageDueForTests(`reminder:${correlationToken}`);
+    const reminderRow = (await listScheduledMessagesForTests()).find((row) => {
+      return row.schedule_type === 'reminder' && row.channel_id === channelId;
+    });
+    expect(reminderRow).toBeTruthy();
+
+    await forceScheduledMessageDueForTests(String(reminderRow?.schedule_key));
 
     const stub = reminderNamespace.get(reminderNamespace.idFromName('global-scheduler'));
 
@@ -544,9 +552,8 @@ describe('Discord Worker', () => {
     expect(payload.content).toContain('<@user-alarm-e2e> ⏰ Reminder: 30 days elapsed.');
     expect(payload.content).toContain('📝 rotate the API keys');
 
-    const scheduled = await getScheduledMessageByKey(`reminder:${correlationToken}`);
+    const scheduled = await getScheduledMessageByKey(String(reminderRow?.schedule_key));
     expect(scheduled).toMatchObject({
-      schedule_key: `reminder:${correlationToken}`,
       status: 'fired',
       attempts: 1,
     });
@@ -703,8 +710,12 @@ describe('Discord Worker', () => {
 
     const followUp = await waitForFollowUp(scheduledCorrelationId);
     const payload = JSON.parse(followUp.body) as Record<string, unknown>;
+    const scheduledRows = await listScheduledMessagesForTests();
+    const scheduledReminder = scheduledRows.find((row) => row.schedule_type === 'reminder' && row.channel_id === 'scheduled-command-channel');
+
     expect(payload.content).toContain('Scheduled metadata');
-    expect(payload.content).toContain(`reminder:${reminderToken}`);
+    expect(scheduledReminder).toBeTruthy();
+    expect(String(payload.content)).toContain(String(scheduledReminder?.schedule_key));
   });
 
   it('overwrites /release set by normalized title and moves non-exact dates to TBD', async () => {
@@ -937,8 +948,12 @@ describe('Discord Worker', () => {
     const rows = await listScheduledMessagesForTests();
     expect(rows.length).toBeGreaterThanOrEqual(2);
 
-    const earliest = rows[0];
-    expect(earliest.schedule_key).toBe(`reminder:${reminderToken}`);
+    const reminderRows = rows.filter((row) => row.schedule_type === 'reminder');
+    expect(reminderRows.length).toBeGreaterThanOrEqual(1);
+
+    const earliest = reminderRows.reduce((best, row) => Number(row.scheduled_for) < Number(best.scheduled_for) ? row : best);
+    expect(String(earliest.schedule_key)).toMatch(/^reminder:/);
+    expect(String(earliest.source_key)).not.toBe(reminderToken);
 
     const stub = reminderNamespace.get(reminderNamespace.idFromName('global-scheduler'));
     const alarmRan = await runDurableObjectAlarm(stub);

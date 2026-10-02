@@ -159,6 +159,7 @@ const SCHEDULED_COMMAND = {
   name: 'scheduled',
   description: 'List scheduler metadata tracked in D1',
   type: ApplicationCommandType.ChatInput,
+  default_member_permissions: '8',
 } satisfies RESTPostAPIApplicationCommandsJSONBody;
 
 async function deployCommands() {

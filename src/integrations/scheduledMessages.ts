@@ -223,10 +223,12 @@ export async function listDueScheduledMessages(
       created_at,
       updated_at
     FROM scheduled_messages
-    WHERE status = 'scheduled' AND scheduled_for <= ?
+    WHERE status = 'scheduled'
+      AND scheduled_for <= ?
+      AND (next_attempt_at IS NULL OR next_attempt_at <= ?)
     ORDER BY scheduled_for ASC, schedule_key ASC
     LIMIT ?`,
-  ).bind(nowMs, safeLimit).all<ScheduledMessageRow>();
+  ).bind(nowMs, nowMs, safeLimit).all<ScheduledMessageRow>();
 
   return (result.results ?? []).map(toScheduledMessageRecord);
 }
@@ -269,16 +271,17 @@ export async function resetScheduledMessageToScheduled(
   db: D1Database,
   scheduleKey: string,
   lastError?: string | null,
+  nextAttemptAt?: number | null,
 ): Promise<void> {
   await db.prepare(
     `UPDATE scheduled_messages
     SET status = 'scheduled',
       firing_started_at = NULL,
-      next_attempt_at = NULL,
+      next_attempt_at = ?,
       last_error = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE schedule_key = ? AND status = 'firing'`,
-  ).bind(lastError ?? null, scheduleKey).run();
+  ).bind(nextAttemptAt ?? null, lastError ?? null, scheduleKey).run();
 }
 
 export async function reclaimStaleFiringScheduledMessages(

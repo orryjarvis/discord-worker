@@ -671,7 +671,8 @@ describe('Discord Worker', () => {
       };
     };
 
-    expect(scheduleBody.reminderId).toBe('reminder-token');
+    expect(scheduleBody.reminderId).toEqual(expect.any(String));
+    expect(scheduleBody.reminderId).not.toBe('reminder-token');
     expect(scheduleBody.scheduledFor).toBeGreaterThan(Date.now());
     expect(scheduleBody.task).toEqual({
       commandName: 'reminder',
@@ -681,7 +682,6 @@ describe('Discord Worker', () => {
         length: 3,
         interval: 'hours',
         note: 'switch the laundry',
-        requestToken: 'reminder-token',
       },
     });
   });

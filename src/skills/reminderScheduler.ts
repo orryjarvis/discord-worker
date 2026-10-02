@@ -16,7 +16,6 @@ type ReminderTaskPayload = {
   length: number;
   interval: ReminderInterval;
   note: string;
-  requestToken?: string;
 };
 
 type ReminderTask = {
@@ -93,7 +92,7 @@ export async function scheduleReminderTaskWithAlarm(
   }
 
   const reminderTask = parseReminderTask(task);
-  const reminderId = reminderTask.payload.requestToken?.trim() || crypto.randomUUID();
+  const reminderId = crypto.randomUUID();
   const scheduledFor = Date.now() + Math.round(delaySeconds * 1000);
 
   const id = env.REMINDER_SCHEDULER.idFromName(GLOBAL_SCHEDULER_DO_NAME);

@@ -36,10 +36,13 @@ SELECT
   'release',
   title_normalized,
   channel_id,
-  CAST(unixepoch(datetime(
-    printf('%04d-%02d-%02d 12:00:00', year, month, day),
-    '-7 days'
-  )) * 1000 AS INTEGER),
+  CAST(MAX(
+    unixepoch(CURRENT_TIMESTAMP),
+    unixepoch(datetime(
+      printf('%04d-%02d-%02d 12:00:00', year, month, day),
+      '-7 days'
+    ))
+  ) * 1000 AS INTEGER),
   'Upcoming release hype: **' || title || '** is scheduled for ' || printf('%04d-%02d-%02d', year, month, day) || '.',
   '{"parse":[]}',
   'scheduled'
