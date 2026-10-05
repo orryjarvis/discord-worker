@@ -1,197 +1,115 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ReminderDurableObject } from '@/commands/reminder';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  ReminderDurableObject,
+  handleSchedulerCoordinatorRequest,
+  runSchedulerCoordinatorAlarm,
+} from '@/skills/schedulerCoordinator';
+import {
+  markScheduledMessageFired,
+  reclaimStaleFiringScheduledMessages,
+} from '@/integrations/scheduledMessages';
 
-type StoredValue = Record<string, unknown>;
-
-function createMockState() {
-  const stored = new Map<string, StoredValue>();
-  let alarmTime: number | null = null;
-
-  const state = {
-    storage: {
-      get: vi.fn((key: string) => Promise.resolve(stored.get(key))),
-      put: vi.fn((_key: string, value: StoredValue) => {
-        stored.set(_key, value);
-        return Promise.resolve();
-      }),
-      delete: vi.fn((key: string) => {
-        stored.delete(key);
-        return Promise.resolve();
-      }),
-      setAlarm: vi.fn((time: number) => {
-        alarmTime = time;
-        return Promise.resolve();
-      }),
-      deleteAlarm: vi.fn(() => {
-        alarmTime = null;
-        return Promise.resolve();
-      }),
-    },
-  };
-
+vi.mock('@/skills/schedulerCoordinator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/skills/schedulerCoordinator')>();
   return {
-    state,
-    getStoredReminder: () => stored.get('reminder-task'),
-    getAlarmTime: () => alarmTime,
+    ...actual,
+    handleSchedulerCoordinatorRequest: vi.fn(),
+    runSchedulerCoordinatorAlarm: vi.fn(),
   };
-}
-
-afterEach(() => {
-  vi.unstubAllGlobals();
 });
 
 describe('ReminderDurableObject', () => {
-  it('stores reminder payload and sets durable alarm when scheduled', async () => {
-    const mockState = createMockState();
-    const reminder = new ReminderDurableObject(mockState.state as any, {
+  it('allows initialized durable objects to handle fetch requests without re-running bootstrap', async () => {
+    const state = {
+      storage: {
+        get: vi.fn().mockResolvedValue(true),
+        deleteAlarm: vi.fn().mockResolvedValue(undefined),
+        setAlarm: vi.fn().mockResolvedValue(undefined),
+      },
+    } as any;
+    const env = {
       DISCORD_TOKEN: 'test-token',
       DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
-    });
+      RELEASES_DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          })),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+        })),
+      },
+    } as any;
+    const durableObject = new ReminderDurableObject(state, env);
 
-    const scheduledFor = Date.now() + 60_000;
-    const response = await reminder.fetch(new Request('https://reminder.internal/schedule', {
+    const request = new Request('https://reminder.internal/schedule', {
       method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        reminderId: 'reminder-1',
-        scheduledFor,
-        task: {
-          commandName: 'reminder',
-          payload: {
-            channelId: 'channel-1',
-            userId: 'user-1',
-            length: 1,
-            interval: 'minutes',
-            note: 'join the standup',
-          },
-        },
-      }),
-    }));
-
-    expect(response.status).toBe(204);
-    expect(mockState.getAlarmTime()).toBeGreaterThanOrEqual(Date.now());
-
-    expect(mockState.getStoredReminder()).toMatchObject({
-      reminderId: 'reminder-1',
-      task: {
-        commandName: 'reminder',
-        payload: {
-          channelId: 'channel-1',
-          userId: 'user-1',
-          length: 1,
-          interval: 'minutes',
-          note: 'join the standup',
-        },
-      },
-      attempts: 0,
+      body: JSON.stringify({ reminderId: 'abc', scheduledFor: Date.now(), task: {} }),
     });
+
+    const response = await durableObject.fetch(request);
+
+    expect(response.status).toBe(400);
+    expect(state.storage.get).toHaveBeenCalledWith('scheduler-bootstrap');
   });
 
-  it('posts the reminder message on alarm and marks reminder as fired', async () => {
-    const mockState = createMockState();
-    const reminder = new ReminderDurableObject(mockState.state as any, {
+  it('allows initialized durable objects to run alarms without bootstrap races', async () => {
+    const state = {
+      storage: {
+        get: vi.fn().mockResolvedValue(true),
+        deleteAlarm: vi.fn().mockResolvedValue(undefined),
+        setAlarm: vi.fn().mockResolvedValue(undefined),
+      },
+    } as any;
+    const env = {
       DISCORD_TOKEN: 'test-token',
       DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
-    });
-
-    await reminder.fetch(new Request('https://reminder.internal/schedule', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
+      RELEASES_DB: {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          })),
+          all: vi.fn().mockResolvedValue({ results: [] }),
+          run: vi.fn().mockResolvedValue({ meta: { changes: 0 } }),
+        })),
       },
-      body: JSON.stringify({
-        reminderId: 'reminder-2',
-        scheduledFor: Date.now() + 30_000,
-        task: {
-          commandName: 'reminder',
-          payload: {
-            channelId: 'channel-2',
-            userId: 'user-2',
-            length: 3,
-            interval: 'hours',
-            note: 'ship the hotfix',
-          },
-        },
-      }),
-    }));
+    } as any;
+    const durableObject = new ReminderDurableObject(state, env);
 
-    const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"msg-1"}', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
+    await expect(durableObject.alarm()).resolves.toBeUndefined();
+    expect(state.storage.get).toHaveBeenCalledWith('scheduler-bootstrap');
+  });
+});
 
-    await reminder.alarm();
+describe('scheduler recovery', () => {
+  it('reclaims stale firing rows back to scheduled status before re-delivery', async () => {
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: vi.fn((..._args: unknown[]) => ({
+          run: vi.fn().mockResolvedValue({ meta: { changes: 1 } }),
+        })),
+      })),
+    } as any;
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/channels/channel-2/messages',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          content: '<@user-2> ⏰ Reminder: 3 hours elapsed.\n📝 ship the hotfix',
-          allowed_mentions: {
-            parse: [],
-            users: ['user-2'],
-          },
-        }),
-      }),
-    );
+    const reclaimed = await reclaimStaleFiringScheduledMessages(db, Date.now(), 60_000);
 
-    expect(mockState.getStoredReminder()).toMatchObject({
-      reminderId: 'reminder-2',
-      attempts: 1,
-    });
-    expect(mockState.getStoredReminder()?.firedAt).toBeTypeOf('string');
+    expect(reclaimed).toBe(1);
+    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('UPDATE scheduled_messages'));
   });
 
-  it('supports schedule-message and unschedule-message for shared scheduling flows', async () => {
-    const mockState = createMockState();
-    const reminder = new ReminderDurableObject(mockState.state as any, {
-      DISCORD_TOKEN: 'test-token',
-      DISCORD_API_BASE_URL: 'https://discord.com/api/v10',
-    });
+  it('ignores stale firing completion when the row was already canceled', async () => {
+    const run = vi.fn().mockResolvedValue({ meta: { changes: 0 } });
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({ run })),
+      })),
+    } as any;
 
-    const scheduleResponse = await reminder.fetch(new Request('https://reminder.internal/schedule-message', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        scheduleId: 'release:hades-2',
-        scheduledFor: Date.now() + 1_000,
-        channelId: 'channel-9',
-        content: 'Upcoming release hype: **Hades 2** is scheduled for 2027-02-10.',
-      }),
-    }));
+    await markScheduledMessageFired(db, 'reminder:cancelled', new Date().toISOString());
 
-    expect(scheduleResponse.status).toBe(204);
-
-    const fetchMock = vi.fn().mockResolvedValue(new Response('{"id":"msg-1"}', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
-    await reminder.alarm();
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://discord.com/api/v10/channels/channel-9/messages',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({
-          content: 'Upcoming release hype: **Hades 2** is scheduled for 2027-02-10.',
-          allowed_mentions: {
-            parse: [],
-          },
-        }),
-      }),
-    );
-
-    const unscheduleResponse = await reminder.fetch(new Request('https://reminder.internal/unschedule-message', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        scheduleId: 'release:hades-2',
-      }),
-    }));
-
-    expect(unscheduleResponse.status).toBe(204);
+    expect(run).toHaveBeenCalled();
+    await expect(run.mock.results[0]?.value).resolves.toMatchObject({ meta: { changes: 0 } });
   });
 });

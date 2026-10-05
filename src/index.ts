@@ -1,2 +1,2 @@
 export { default } from '@/app';
-export { ReminderDurableObject } from '@/commands/reminder';
+export { ReminderDurableObject } from '@/skills/schedulerCoordinator';

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { parseReleaseSubcommand, toReleaseSetPayload } from '@/commands/release';
-import { formatReleaseList, validateReleaseDateParts } from '@/skills/releases';
+import {
+  buildReleaseScheduledMessage,
+  formatReleaseList,
+  validateReleaseDateParts,
+} from '@/skills/releases';
 
 describe('release command parsing', () => {
   it('parses supported subcommands', () => {
@@ -60,6 +64,42 @@ describe('release validation', () => {
   it('accepts TBD and full dates', () => {
     expect(validateReleaseDateParts({ year: null, quarter: null, month: null, day: null })).toBeNull();
     expect(validateReleaseDateParts({ year: 2027, quarter: null, month: 11, day: 20 })).toBeNull();
+  });
+});
+
+describe('release scheduled message building', () => {
+  it('builds a release schedule row from an exact date', () => {
+    const scheduledMessage = buildReleaseScheduledMessage({
+      title: 'Hades 2',
+      titleNormalized: 'hades 2',
+      channelId: 'channel-1',
+      year: 2027,
+      quarter: null,
+      month: 2,
+      day: 10,
+    }, Date.UTC(2026, 0, 1, 0, 0, 0, 0));
+
+    expect(scheduledMessage).toEqual({
+      scheduleKey: 'release:hades 2',
+      scheduleType: 'release',
+      sourceKey: 'hades 2',
+      channelId: 'channel-1',
+      scheduledFor: Date.UTC(2027, 1, 3, 12, 0, 0, 0),
+      content: 'Upcoming release hype: **Hades 2** is scheduled for 2027-02-10.',
+      allowedMentionsJson: '{"parse":[]}',
+    });
+  });
+
+  it('skips schedule rows for TBD releases', () => {
+    expect(buildReleaseScheduledMessage({
+      title: 'Mystery Game',
+      titleNormalized: 'mystery game',
+      channelId: 'channel-1',
+      year: 2027,
+      quarter: 1,
+      month: null,
+      day: null,
+    })).toBeNull();
   });
 });
 

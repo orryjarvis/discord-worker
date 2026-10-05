@@ -4,7 +4,7 @@ import {
   executeAndDeliverFollowUp,
   WOTD_COMMAND_NAME,
   type FollowUpDeliveryEnv,
-} from '@/commands';
+} from '@/handlers/commandRuntime';
 import {
   postWordOfDayMessage,
   runWordOfDayScheduledActivity,
