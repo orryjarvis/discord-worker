@@ -1,5 +1,5 @@
 {
-  "main": "src/index.ts",
+  "main": "src/rewrite/index.js",
   "compatibility_date": "2026-05-14",
   "workers_dev": true,
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
@@ -15,14 +15,31 @@
       {
         "name": "REMINDER_SCHEDULER",
         "class_name": "ReminderDurableObject"
+      },
+      {
+        "name": "BOT_CONTAINER",
+        "class_name": "BotContainer"
       }
     ]
   },
+  "containers": [
+    {
+      "class_name": "BotContainer",
+      "image": "./container/Dockerfile",
+      "max_instances": 1
+    }
+  ],
   "migrations": [
     {
       "tag": "v1-reminder-durable-object",
       "new_sqlite_classes": [
         "ReminderDurableObject"
+      ]
+    },
+    {
+      "tag": "v2-bot-container",
+      "new_sqlite_classes": [
+        "BotContainer"
       ]
     }
   ],
@@ -45,14 +62,31 @@
           {
             "name": "REMINDER_SCHEDULER",
             "class_name": "ReminderDurableObject"
+          },
+          {
+            "name": "BOT_CONTAINER",
+            "class_name": "BotContainer"
           }
         ]
       },
+      "containers": [
+        {
+          "class_name": "BotContainer",
+          "image": "./container/Dockerfile",
+          "max_instances": 1
+        }
+      ],
       "migrations": [
         {
           "tag": "v1-reminder-durable-object",
           "new_sqlite_classes": [
             "ReminderDurableObject"
+          ]
+        },
+        {
+          "tag": "v2-bot-container",
+          "new_sqlite_classes": [
+            "BotContainer"
           ]
         }
       ],
@@ -90,14 +124,31 @@
           {
             "name": "REMINDER_SCHEDULER",
             "class_name": "ReminderDurableObject"
+          },
+          {
+            "name": "BOT_CONTAINER",
+            "class_name": "BotContainer"
           }
         ]
       },
+      "containers": [
+        {
+          "class_name": "BotContainer",
+          "image": "./container/Dockerfile",
+          "max_instances": 1
+        }
+      ],
       "migrations": [
         {
           "tag": "v1-reminder-durable-object",
           "new_sqlite_classes": [
             "ReminderDurableObject"
+          ]
+        },
+        {
+          "tag": "v2-bot-container",
+          "new_sqlite_classes": [
+            "BotContainer"
           ]
         }
       ],

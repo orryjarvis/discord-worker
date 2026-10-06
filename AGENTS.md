@@ -12,6 +12,11 @@ A Cloudflare Worker that receives Discord slash command interactions, verifies
 the request signature, runs bot skills, and receives GitHub webhook delivery
 events for deployment-status channel notifications.
 
+Branch context: on `rewrite/container-pass-through`, the active entrypoint is a
+minimal JavaScript Worker that proxies to a Cloudflare Container. See
+[docs/design-docs/container-rewrite.md](docs/design-docs/container-rewrite.md)
+before expanding the rewrite.
+
 Current skills:
 - Command skill: `/pastify` — Opens a modal immediately, accepts a free-form idea, defers
   publicly on submit, then generates a channel-visible Twitch-style copypasta
