@@ -1,4 +1,6 @@
 import type {
+  CommandRequest,
+  CommandResult,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
@@ -22,6 +24,32 @@ type EightBallTargetContext = {
   targetMessageContent: string | null;
   targetMessageAuthorId: string | null;
 };
+
+export function handleEightBallCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'enqueue-follow-up',
+        token: request.token,
+        task: {
+          commandName: EIGHT_BALL_COMMAND_NAME,
+          payload: {
+            targetMessageId: request.targetId,
+            targetMessageContent: request.targetMessageContent,
+            targetMessageAuthorId: request.targetMessageAuthorId,
+          },
+        },
+        ephemeral: false,
+      };
+
+    case 'modal-submit':
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
+}
 
 function parseEightBallTargetContext(task: FollowUpTask): EightBallTargetContext {
   const targetMessageId = typeof task.payload.targetMessageId === 'string'

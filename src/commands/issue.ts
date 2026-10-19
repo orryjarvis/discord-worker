@@ -1,4 +1,6 @@
 import type {
+  CommandRequest,
+  CommandResult,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
@@ -46,6 +48,57 @@ export function parseIssueModalSubmit(data: {
       [ISSUE_BODY_INPUT_ID]: body,
     },
   };
+}
+
+export function handleIssueCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'show-modal',
+        modalId: ISSUE_MODAL_ID,
+        title: 'Log GitHub Issue',
+        inputs: [
+          {
+            inputId: ISSUE_TITLE_INPUT_ID,
+            inputLabel: 'Issue title',
+            inputPlaceholder: 'Short summary of the bug or feature request',
+            inputMinLength: 1,
+            inputMaxLength: 200,
+            inputRequired: true,
+            inputStyle: 'short',
+          },
+          {
+            inputId: ISSUE_BODY_INPUT_ID,
+            inputLabel: 'Issue details',
+            inputPlaceholder: 'Add any context, repro steps, or desired behavior',
+            inputMinLength: 1,
+            inputMaxLength: 4000,
+            inputRequired: true,
+            inputStyle: 'paragraph',
+          },
+        ],
+      };
+
+    case 'modal-submit':
+      return {
+        kind: 'enqueue-follow-up',
+        token: request.token,
+        task: {
+          commandName: ISSUE_COMMAND_NAME,
+          payload: {
+            title: request.fields[ISSUE_TITLE_INPUT_ID],
+            body: request.fields[ISSUE_BODY_INPUT_ID],
+          },
+        },
+        ephemeral: false,
+      };
+
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
 }
 
 export async function executeIssueFollowUp(

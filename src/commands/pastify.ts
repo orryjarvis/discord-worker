@@ -1,4 +1,6 @@
 import type {
+  CommandRequest,
+  CommandResult,
   FollowUpExecutionContext,
   FollowUpExecutionResult,
   FollowUpTask,
@@ -59,6 +61,47 @@ export function parsePastifyModalSubmit(data: {
       [PASTIFY_MODAL_TEXT_INPUT_ID]: text,
     },
   };
+}
+
+export function handlePastifyCommand(request: CommandRequest): CommandResult {
+  switch (request.kind) {
+    case 'command':
+      return {
+        kind: 'show-modal',
+        modalId: PASTIFY_MODAL_ID,
+        title: 'Pastify Idea',
+        inputs: [
+          {
+            inputId: PASTIFY_MODAL_TEXT_INPUT_ID,
+            inputLabel: 'Idea to Pastify',
+            inputPlaceholder: 'Describe the idea to turn into a copypasta',
+            inputMinLength: 1,
+            inputMaxLength: 1000,
+            inputRequired: true,
+            inputStyle: 'paragraph',
+          },
+        ],
+      };
+
+    case 'modal-submit':
+      return {
+        kind: 'enqueue-follow-up',
+        token: request.token,
+        task: {
+          commandName: PASTIFY_COMMAND_NAME,
+          payload: {
+            idea: request.fields[PASTIFY_MODAL_TEXT_INPUT_ID],
+          },
+        },
+        ephemeral: false,
+      };
+
+    case 'component':
+      throw new Error('Unhandled command request');
+
+    default:
+      throw new Error('Unhandled command request');
+  }
 }
 
 export { extractAiText } from '@/skills/ai';
