@@ -5,9 +5,12 @@
   "account_id": "ac4880feb8f60847f0577d5967bf2b59",
   "name": "discord-worker",
   "observability": {
-    "enabled": true,
+    "enabled": false,
+    "logs": {
+      "enabled": false
+    },
     "traces": {
-      "enabled": true
+      "enabled": false
     }
   },
   "durable_objects": {
